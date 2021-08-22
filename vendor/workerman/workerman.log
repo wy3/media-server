@@ -1,0 +1,38 @@
+2021-07-31 20:19:24 pid:1 TypeError: Argument 1 passed to React\Http\Server::__construct() must implement interface React\EventLoop\LoopInterface, instance of React\Http\Middleware\StreamingRequestMiddleware given, called in E:\job\runone\MjpegServerTest\mjpegServerTest.php on line 49 and defined in E:\job\runone\MjpegServerTest\vendor\react\http\src\Server.php:198
+Stack trace:
+#0 E:\job\runone\MjpegServerTest\mjpegServerTest.php(49): React\Http\Server->__construct(Object(React\Http\Middleware\StreamingRequestMiddleware), Object(Closure))
+#1 E:\job\runone\MjpegServerTest\vendor\workerman\workerman\Worker.php(2393): {closure}(Object(Workerman\Worker))
+#2 E:\job\runone\MjpegServerTest\vendor\workerman\workerman\Worker.php(1404): Workerman\Worker->run()
+#3 E:\job\runone\MjpegServerTest\vendor\workerman\workerman\Worker.php(1347): Workerman\Worker::forkWorkersForWindows()
+#4 E:\job\runone\MjpegServerTest\vendor\workerman\workerman\Worker.php(546): Workerman\Worker::forkWorkers()
+#5 E:\job\runone\MjpegServerTest\mjpegServerTest.php(55): Workerman\Worker::runAll()
+#6 {main}
+2021-07-31 20:19:25 pid:1 Worker process terminated
+2021-08-06 17:31:59 pid:1 Worker process terminated with ERROR: E_ERROR "Uncaught ArgumentCountError: Too few arguments to function SequenceReadableStream::{closure}(), 0 passed in E:\job\runone\MjpegServerTest\vendor\evenement\evenement\src\Evenement\EventEmitterTrait.php on line 123 and exactly 1 expected in E:\job\runone\MjpegServerTest\SequenceReadableStream.php:29
+Stack trace:
+#0 E:\job\runone\MjpegServerTest\vendor\evenement\evenement\src\Evenement\EventEmitterTrait.php(123): SequenceReadableStream->{closure}()
+#1 E:\job\runone\MjpegServerTest\vendor\react\http\src\Io\HttpBodyStream.php(178): Evenement\EventEmitter->emit('end')
+#2 E:\job\runone\MjpegServerTest\vendor\evenement\evenement\src\Evenement\EventEmitterTrait.php(123): React\Http\Io\HttpBodyStream->handleEnd()
+#3 E:\job\runone\MjpegServerTest\vendor\react\http\src\Io\ChunkedDecoder.php(150): Evenement\EventEmitter->emit('end')
+#4 E:\job\runone\MjpegServerTest\vendor\evenement\evenement\src\Evenement\EventEmitterTrait.php(123): React\Http\Io\ChunkedDecoder->handleData('0\r\n\r\n')
+#5 E:\job\runone\MjpegServerTest\ven in E:\job\runone\MjpegServerTest\SequenceReadableStream.php on line 29"
+2021-08-22 17:50:39 pid:1 Error: Object of class Workerman\Connection\TcpConnection could not be converted to string in E:\job\runone\MediaServer\src\Rtmp\RtmpHandshakeTrait.php:24
+Stack trace:
+#0 E:\job\runone\MediaServer\vendor\workerman\workerman\Connection\TcpConnection.php(660): MediaServer\Rtmp\RtmpStream->onHandShake()
+#1 E:\job\runone\MediaServer\vendor\react\event-loop\src\StreamSelectLoop.php(245): Workerman\Connection\TcpConnection->baseRead()
+#2 E:\job\runone\MediaServer\vendor\react\event-loop\src\StreamSelectLoop.php(212): React\EventLoop\StreamSelectLoop->waitForStreamActivity()
+#3 E:\job\runone\MediaServer\vendor\workerman\workerman\Events\React\Base.php(254): React\EventLoop\StreamSelectLoop->run()
+#4 E:\job\runone\MediaServer\vendor\workerman\workerman\Events\React\Base.php(137): Workerman\Events\React\Base->run()
+#5 E:\job\runone\MediaServer\vendor\workerman\workerman\Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 E:\job\runone\MediaServer\vendor\workerman\workerman\Worker.php(1417): Workerman\Worker->run()
+#7 E:\job\runone\MediaServer\vendor\workerman\workerman\Worker.php(1360): Workerman\Worker::forkWorkersForWindows()
+#8 E:\job\runone\MediaServer\vendor\workerman\workerman\Worker.php(542): Workerman\Worker::forkWorkers()
+#9 E:\job\runone\MediaServer\rtmpStart.php(25): Workerman\Worker::runAll()
+#10 {main}
+2021-08-22 17:50:39 pid:1 Worker process terminated
+2021-08-23 01:58:47 pid:49 Workerman[rtmpStart.php] start in DEBUG mode
+2021-08-23 01:59:22 pid:49 Workerman[rtmpStart.php] stopping ...
+2021-08-23 01:59:22 pid:49 Workerman[rtmpStart.php] has been stopped
+2021-08-23 02:03:44 pid:3634 Workerman[rtmpStart.php] start in DEBUG mode
+2021-08-23 02:03:51 pid:3634 Workerman[rtmpStart.php] stopping ...
+2021-08-23 02:03:51 pid:3634 Workerman[rtmpStart.php] has been stopped

@@ -1,0 +1,25 @@
+{
+    "name": "what_/mjpeg-server-test",
+    "authors": [
+        {
+            "name": "wy3",
+            "email": "908005070@qq.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4",
+        "ext-bcmath": "*",
+        "ext-gd": "*",
+        "ext-json": "*",
+        "react/http": "^1.0",
+        "evenement/evenement": "^3.0",
+        "apix/log": "^1.2",
+        "workerman/workerman": "^4.0"
+    },
+    "autoload": {
+        "psr-4": { "MediaServer\\": "src" }
+    },
+    "files": [
+        "src/functions.php"
+    ]
+}
