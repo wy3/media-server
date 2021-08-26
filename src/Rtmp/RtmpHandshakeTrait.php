@@ -17,12 +17,9 @@ trait RtmpHandshakeTrait
 {
 
     /**
-     * @param $data
      */
-    public function onHandShake($data)
+    public function onHandShake()
     {
-        $this->buffer .= $data;
-
         switch ($this->handshakeState) {
             case RtmpHandshake::RTMP_HANDSHAKE_UNINIT:
                 if (isset($this->buffer[0])) {
@@ -61,11 +58,6 @@ trait RtmpHandshakeTrait
                     break;
                 }
             case RtmpHandshake::RTMP_HANDSHAKE_C2:
-            default:
-                //logger()->info(bin2hex(substr($this->buffer, 0, 10)));
-                //进入 rtmp 数据处理
-                $this->onChunkData();
-                break;
         }
 
     }

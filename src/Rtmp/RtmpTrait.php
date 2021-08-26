@@ -54,4 +54,16 @@ trait RtmpTrait
     }
 
 
+    public function stop(){
+        if($this->pingInterval){
+            Loop::cancelTimer($this->pingInterval);
+            $this->pingInterval=null;
+        }
+
+    }
+
+    public function reject(){
+        $this->stop();
+    }
+
 }

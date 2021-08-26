@@ -149,6 +149,7 @@ trait RtmpInvokeHandlerTrait
 
     public function onCloseStream()
     {
+        $this->onDeleteStream(['streamId' => $this->currentPacket->streamId]);
     }
 
     public function onReceiveAudio($invokeMessage)

@@ -11,6 +11,7 @@ use Evenement\EventEmitter;
 use Exception;
 use MediaServer\BinaryStream;
 use React\EventLoop\Loop;
+use React\EventLoop\TimerInterface;
 use React\Socket\ConnectionInterface;
 use React\Socket\Connector;
 use React\Stream\DuplexStreamInterface;
@@ -71,7 +72,6 @@ class RtmpStream extends EventEmitter
      */
     protected $outChunkSize = 60000;
 
-    protected $ackSize = 0;
 
     /**
      * @var RtmpPacket
@@ -96,7 +96,7 @@ class RtmpStream extends EventEmitter
     public $appName;
 
     /**
-     * @var integer ping timer
+     * @var TimerInterface
      */
     public $pingInterval;
 
@@ -112,6 +112,10 @@ class RtmpStream extends EventEmitter
     public $publishStreamId;
 
 
+    protected $ackSize = 0;
+    protected $inAckSize = 0;
+    protected $inLastAck = 0;
+
     /**
      * PlayerStream constructor.
      * @param $con ConnectionInterface
@@ -126,8 +130,32 @@ class RtmpStream extends EventEmitter
         $con->on('error', [$this, 'streamError']);
         $con->on('end', [$this, 'end']);
         $con->on('close', [$this, 'close']);
-        $con->on('data', [$this, 'onHandShake']);
+        $con->on('data', [$this, 'onData']);
         $this->isStarting = true;
+    }
+
+    public function onData($data)
+    {
+        $this->buffer .= $data;
+        if ($this->handshakeState < RtmpHandshake::RTMP_HANDSHAKE_C2) {
+            $this->onHandShake();
+        }
+
+        if ($this->handshakeState === RtmpHandshake::RTMP_HANDSHAKE_C2) {
+            $this->onChunkData();
+
+            $this->inAckSize += strlen($data);
+            if ($this->inAckSize >= 0xf0000000) {
+                $this->inAckSize = 0;
+                $this->inLastAck = 0;
+            }
+            if ($this->ackSize > 0 && $this->inAckSize - $this->inLastAck >= $this->ackSize) {
+                //每次收到的数据超过ack设的值
+                $this->inLastAck = $this->inAckSize;
+                $this->sendACK($this->inAckSize);
+            }
+        }
+
     }
 
     public function end()
@@ -139,9 +167,12 @@ class RtmpStream extends EventEmitter
 
     }
 
+
     public function streamError()
     {
     }
+
+
 
 
     public function write(&$data)
