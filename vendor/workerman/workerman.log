@@ -1996,3 +1996,983 @@ Stack trace:
 2021-09-06 17:32:45 pid:12031 Workerman[unixTransTest.php] start in DEBUG mode
 2021-09-06 17:32:51 pid:12031 Workerman[unixTransTest.php] stopping ...
 2021-09-06 17:32:51 pid:12031 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:35:04 pid:18725 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:35:08 pid:18725 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:35:08 pid:18725 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:35:33 pid:18728 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:35:37 pid:18728 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:35:37 pid:18728 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:35:43 pid:18731 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:35:48 pid:18731 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:35:48 pid:18731 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:35:56 pid:18734 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:36:02 pid:18734 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:36:02 pid:18734 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:37:53 pid:18737 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:38:05 pid:18737 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:38:05 pid:18737 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:38:20 pid:18740 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:38:55 pid:18740 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:38:55 pid:18740 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:39:02 pid:18743 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:39:12 pid:18743 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:39:12 pid:18743 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:39:25 pid:18763 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:40:17 pid:18763 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:40:17 pid:18763 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:40:19 pid:18767 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:40:49 pid:18767 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:40:49 pid:18767 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:40:51 pid:18770 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:41:08 pid:18770 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:41:08 pid:18770 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:41:14 pid:18773 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:41:41 pid:18773 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:41:41 pid:18773 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:41:46 pid:18780 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:43:59 pid:18780 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:43:59 pid:18780 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:44:04 pid:18787 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:44:34 pid:18815 Workerman[unixTransTest.php] status 
+2021-09-08 22:44:41 pid:18787 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:44:42 pid:18787 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:44:48 pid:18817 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:44:52 pid:18824 Workerman[unixTransTest.php] status 
+2021-09-08 22:44:56 pid:18825 Workerman[unixTransTest.php] status 
+2021-09-08 22:45:41 pid:18817 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:45:41 pid:18817 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:45:50 pid:18826 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:45:56 pid:18833 Workerman[unixTransTest.php] status 
+2021-09-08 22:46:10 pid:18826 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:46:10 pid:18826 Workerman[unixTransTest.php] has been stopped
+2021-09-08 22:46:26 pid:18834 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 22:46:31 pid:18846 Workerman[unixTransTest.php] status 
+2021-09-08 22:49:56 pid:18834 Workerman[unixTransTest.php] stopping ...
+2021-09-08 22:49:56 pid:18834 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:17:38 pid:18847 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:17:41 pid:18848 Worker[18848] process terminated with ERROR: E_ERROR "Uncaught Error: Class '' not found in /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Connection/TcpConnection.php:321
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(31): Workerman\Connection\TcpConnection->send()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(79): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(244): Workerman\Events\React\Base->Workerman\Events\React\{closure}()
+#3 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#4 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base- in /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Connection/TcpConnection.php on line 321"
+2021-09-08 23:17:41 pid:18847 worker[none:18848] exit with status 65280
+2021-09-08 23:17:44 pid:18847 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:17:44 pid:18847 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:24:06 pid:18860 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:24:08 pid:18861 Worker[18861] process terminated with ERROR: E_ERROR "Uncaught Error: Class '' not found in /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Connection/TcpConnection.php:321
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(31): Workerman\Connection\TcpConnection->send()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(79): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(244): Workerman\Events\React\Base->Workerman\Events\React\{closure}()
+#3 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#4 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base- in /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Connection/TcpConnection.php on line 321"
+2021-09-08 23:24:08 pid:18860 worker[none:18861] exit with status 65280
+2021-09-08 23:24:12 pid:18860 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:24:12 pid:18860 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:25:25 pid:18873 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:25:38 pid:18885 Workerman[unixTransTest.php] status 
+2021-09-08 23:26:20 pid:18873 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:26:20 pid:18873 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:29:10 pid:18886 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:29:28 pid:18889 Workerman[unixTransTest.php] status 
+2021-09-08 23:35:42 pid:18886 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:35:42 pid:18886 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:36:01 pid:18890 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:38:02 pid:18890 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:38:02 pid:18890 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:38:13 pid:18893 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:38:34 pid:18897 Workerman[unixTransTest.php] status 
+2021-09-08 23:39:35 pid:18893 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:39:35 pid:18893 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:39:37 pid:18898 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:41:16 pid:18898 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:41:16 pid:18898 Workerman[unixTransTest.php] has been stopped
+2021-09-08 23:41:31 pid:18902 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-08 23:41:54 pid:18906 Workerman[unixTransTest.php] status 
+2021-09-08 23:42:56 pid:18902 Workerman[unixTransTest.php] stopping ...
+2021-09-08 23:42:56 pid:18902 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:07:59 pid:18910 Workerman[unixChannelTest.php] start in DEBUG mode
+2021-09-09 00:08:18 pid:18915 Workerman[unixTransTest.php] status 
+2021-09-09 00:08:18 pid:18915 Workerman[unixTransTest.php] not run
+2021-09-09 00:08:29 pid:18918 Workerman[unixChannelTest.php] status 
+2021-09-09 00:08:55 pid:18910 Workerman[unixChannelTest.php] stopping ...
+2021-09-09 00:08:55 pid:18910 Workerman[unixChannelTest.php] has been stopped
+2021-09-09 00:12:26 pid:18920 Workerman[unixChannelTest.php] start in DEBUG mode
+2021-09-09 00:12:40 pid:18925 Workerman[unixChannelTest.php] status 
+2021-09-09 00:13:07 pid:18920 Workerman[unixChannelTest.php] stopping ...
+2021-09-09 00:13:08 pid:18920 Workerman[unixChannelTest.php] has been stopped
+2021-09-09 00:13:20 pid:18926 Workerman[unixChannelTest.php] start in DEBUG mode
+2021-09-09 00:13:23 pid:18931 Workerman[unixChannelTest.php] status 
+2021-09-09 00:14:11 pid:18926 Workerman[unixChannelTest.php] stopping ...
+2021-09-09 00:14:11 pid:18926 Workerman[unixChannelTest.php] has been stopped
+2021-09-09 00:47:18 pid:18943 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:47:18 pid:18944 TypeError: Argument 2 passed to MediaServer\Frame::input() must be an instance of Workerman\Connection\TcpConnection, instance of Workerman\Connection\UdpConnection given, called in /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php on line 2532 and defined in /mnt/e/job/runone/MediaServer/src/Frame.php:30
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2532): MediaServer\Frame::input()
+#1 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(267): Workerman\Worker->acceptUdpConnection()
+#2 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#3 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#8 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#9 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#10 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#11 /mnt/e/job/runone/MediaServer/unixTransTest.php(74): Workerman\Worker::runAll()
+#12 {main}
+2021-09-09 00:47:18 pid:18944 Worker[18944] process terminated
+2021-09-09 00:47:18 pid:18943 worker[none:18944] exit with status 64000
+2021-09-09 00:47:18 pid:18947 TypeError: Argument 2 passed to MediaServer\Frame::input() must be an instance of Workerman\Connection\TcpConnection, instance of Workerman\Connection\UdpConnection given, called in /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php on line 2532 and defined in /mnt/e/job/runone/MediaServer/src/Frame.php:30
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2532): MediaServer\Frame::input()
+#1 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(267): Workerman\Worker->acceptUdpConnection()
+#2 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#3 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#8 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#9 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#10 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#11 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#12 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#13 /mnt/e/job/runone/MediaServer/unixTransTest.php(74): Workerman\Worker::runAll()
+#14 {main}
+2021-09-09 00:47:18 pid:18947 Worker[18947] process terminated
+2021-09-09 00:47:18 pid:18943 worker[none:18947] exit with status 64000
+2021-09-09 00:47:19 pid:18943 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:47:19 pid:18943 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:47:47 pid:18950 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:47:54 pid:18950 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:47:54 pid:18950 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:48:34 pid:18955 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:48:37 pid:18955 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:48:37 pid:18955 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:49:28 pid:18959 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:49:32 pid:18959 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:49:32 pid:18959 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:50:48 pid:18963 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:50:53 pid:18963 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:50:53 pid:18963 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:51:32 pid:18967 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:51:47 pid:18967 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:51:49 pid:18967 worker[none:18968] exit with status 9
+2021-09-09 00:51:49 pid:18967 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:52:40 pid:18971 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:53:05 pid:18974 Workerman[unixTransTest.php] status 
+2021-09-09 00:53:08 pid:18975 Workerman[unixTransTest.php] status 
+2021-09-09 00:53:20 pid:18971 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:53:21 pid:18971 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:53:29 pid:18976 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:53:50 pid:18988 Workerman[unixTransTest.php] status 
+2021-09-09 00:54:25 pid:18976 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:54:27 pid:18976 worker[none:18977] exit with status 9
+2021-09-09 00:54:27 pid:18976 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:54:37 pid:18990 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:54:44 pid:19002 Workerman[unixTransTest.php] status 
+2021-09-09 00:55:00 pid:18990 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:55:02 pid:18990 worker[none:18991] exit with status 9
+2021-09-09 00:55:02 pid:18990 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:55:04 pid:19003 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:55:20 pid:19010 Workerman[unixTransTest.php] status 
+2021-09-09 00:55:26 pid:19003 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:55:28 pid:19003 worker[none:19004] exit with status 9
+2021-09-09 00:55:28 pid:19003 Workerman[unixTransTest.php] has been stopped
+2021-09-09 00:55:31 pid:19011 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 00:55:41 pid:19018 Workerman[unixTransTest.php] status 
+2021-09-09 00:56:10 pid:19011 Workerman[unixTransTest.php] stopping ...
+2021-09-09 00:56:10 pid:19011 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:14:04 pid:19020 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:15:10 pid:19022 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:15:20 pid:19025 Workerman[unixTransTest.php] status 
+2021-09-09 01:15:26 pid:19022 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:15:26 pid:19022 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:16:58 pid:19027 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:17:09 pid:19029 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:19:33 pid:19039 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:19:41 pid:19039 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:19:41 pid:19039 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:20:50 pid:19042 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:21:31 pid:19044 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:21:32 pid:19044 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:21:32 pid:19044 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:22:34 pid:19048 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:22:37 pid:19048 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:22:37 pid:19048 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:23:07 pid:19052 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:23:16 pid:19052 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:23:16 pid:19052 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:25:51 pid:19056 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:25:54 pid:19056 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:25:54 pid:19056 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:26:04 pid:19060 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:26:05 pid:19060 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:26:05 pid:19060 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:26:26 pid:19064 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:26:31 pid:19066 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:26:32 pid:19066 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:26:32 pid:19066 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:27:02 pid:19069 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:27:11 pid:19072 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:27:14 pid:19072 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:27:14 pid:19072 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:27:34 pid:19076 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:27:43 pid:19080 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:27:45 pid:19080 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:27:45 pid:19080 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:28:05 pid:19085 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:28:06 pid:19085 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:28:06 pid:19085 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:28:59 pid:19089 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:29:00 pid:19089 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:29:00 pid:19089 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:29:30 pid:19094 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:29:31 pid:19094 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:29:31 pid:19094 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:31:14 pid:19098 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:31:15 pid:19098 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:31:15 pid:19098 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:31:34 pid:19101 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:31:37 pid:19103 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:31:37 pid:19103 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:31:37 pid:19103 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:32:32 pid:19108 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:32:32 pid:19108 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:32:32 pid:19108 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:34:06 pid:19113 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:34:10 pid:19113 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:34:10 pid:19113 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:35:08 pid:19118 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:35:11 pid:19118 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:35:11 pid:19118 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:36:36 pid:19122 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:36:36 pid:19123 Exception in /mnt/e/job/runone/MediaServer/src/UdgWorker.php:61
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(40): MediaServer\UdgWorker->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(77): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 01:36:36 pid:19122 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:36 pid:19123 Worker[19123] process terminated
+2021-09-09 01:36:36 pid:19122 worker[none:19123] exit with status 64000
+2021-09-09 01:36:36 pid:19122 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:36:42 pid:19127 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:36:46 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:46 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:46 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:47 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:47 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:47 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:47 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:48 pid:19127 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:36:48 pid:19127 worker[none:19128] exit with status 9
+2021-09-09 01:36:48 pid:19127 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:37:37 pid:19132 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:37:41 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:42 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:42 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:42 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:42 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:37:43 pid:19132 worker[none:19133] exit with status 9
+2021-09-09 01:37:43 pid:19132 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:40:03 pid:19138 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:40:07 pid:19138 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:40:07 pid:19138 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:41:07 pid:19143 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:41:10 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:11 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:11 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:11 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:11 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:11 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:12 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:12 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:12 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:12 pid:19143 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:12 pid:19143 worker[none:19144] exit with status 9
+2021-09-09 01:41:12 pid:19143 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:41:25 pid:19147 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:41:25 pid:19148 Exception in /mnt/e/job/runone/MediaServer/src/UdgWorker.php:61
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(40): MediaServer\UdgWorker->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(76): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 01:41:26 pid:19148 Worker[19148] process terminated
+2021-09-09 01:41:26 pid:19147 worker[none:19148] exit with status 64000
+2021-09-09 01:41:26 pid:19150 Exception in /mnt/e/job/runone/MediaServer/src/UdgWorker.php:61
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(40): MediaServer\UdgWorker->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(76): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 01:41:26 pid:19147 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:26 pid:19150 Worker[19150] process terminated
+2021-09-09 01:41:26 pid:19147 worker[none:19150] exit with status 64000
+2021-09-09 01:41:26 pid:19147 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:41:32 pid:19152 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:41:35 pid:19152 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:35 pid:19152 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:41:52 pid:19156 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:41:52 pid:19157 Exception in /mnt/e/job/runone/MediaServer/src/UdgWorker.php:61
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(37): MediaServer\UdgWorker->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 01:41:53 pid:19156 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:53 pid:19157 Worker[19157] process terminated
+2021-09-09 01:41:53 pid:19156 worker[none:19157] exit with status 64000
+2021-09-09 01:41:53 pid:19156 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:41:56 pid:19160 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:41:57 pid:19160 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:41:57 pid:19160 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:42:38 pid:19165 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:42:39 pid:19165 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:42:39 pid:19165 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:47:43 pid:19170 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:47:44 pid:19170 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:47:44 pid:19170 Workerman[unixTransTest.php] has been stopped
+2021-09-09 01:48:31 pid:19175 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 01:48:32 pid:19175 Workerman[unixTransTest.php] stopping ...
+2021-09-09 01:48:32 pid:19175 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:19:52 pid:19180 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:19:52 pid:19181 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:41
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(36): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(77): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:19:53 pid:19181 Worker[19181] process terminated
+2021-09-09 02:19:53 pid:19180 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:19:53 pid:19180 worker[none:19181] exit with status 64000
+2021-09-09 02:19:53 pid:19180 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:21:10 pid:19184 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:21:10 pid:19185 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:41
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(29): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(70): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:21:11 pid:19184 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:21:11 pid:19185 Worker[19185] process terminated
+2021-09-09 02:21:11 pid:19184 worker[none:19185] exit with status 64000
+2021-09-09 02:21:11 pid:19184 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:23:09 pid:19189 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:23:09 pid:19190 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:45
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(29): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(70): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:23:10 pid:19190 Worker[19190] process terminated
+2021-09-09 02:23:10 pid:19189 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:23:10 pid:19189 worker[none:19190] exit with status 64000
+2021-09-09 02:23:10 pid:19189 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:24:13 pid:19193 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:24:13 pid:19194 Error: Class 'MediaServer\Channel\Worker' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:54
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(29): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(70): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:24:14 pid:19194 Worker[19194] process terminated
+2021-09-09 02:24:14 pid:19193 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:24:14 pid:19193 worker[none:19194] exit with status 64000
+2021-09-09 02:24:14 pid:19193 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:26:01 pid:19198 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:26:01 pid:19199 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:26:02 pid:19199 Worker[19199] process terminated
+2021-09-09 02:26:02 pid:19198 worker[none:19199] exit with status 64000
+2021-09-09 02:26:03 pid:19201 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:26:03 pid:19198 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:26:03 pid:19201 Worker[19201] process terminated
+2021-09-09 02:26:03 pid:19198 worker[none:19201] exit with status 64000
+2021-09-09 02:26:03 pid:19198 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:26:18 pid:19204 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:28:16 pid:19207 Workerman[unixTransTest.php] status 
+2021-09-09 02:31:38 pid:19204 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:31:38 pid:19204 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:31:41 pid:19209 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:31:41 pid:19210 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:31:42 pid:19210 Worker[19210] process terminated
+2021-09-09 02:31:42 pid:19209 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:31:42 pid:19209 worker[none:19210] exit with status 64000
+2021-09-09 02:31:42 pid:19209 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:31:49 pid:19213 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:31:52 pid:19213 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:31:52 pid:19213 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:32:50 pid:19217 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:32:52 pid:19217 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:32:52 pid:19217 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:34:17 pid:19221 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:34:19 pid:19221 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:34:19 pid:19221 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:35:54 pid:19226 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:35:56 pid:19226 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:35:56 pid:19226 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:37:07 pid:19230 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:37:07 pid:19231 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:37:08 pid:19231 Worker[19231] process terminated
+2021-09-09 02:37:08 pid:19230 worker[none:19231] exit with status 64000
+2021-09-09 02:37:09 pid:19233 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:37:09 pid:19233 Worker[19233] process terminated
+2021-09-09 02:37:09 pid:19230 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:37:09 pid:19230 worker[none:19233] exit with status 64000
+2021-09-09 02:37:09 pid:19230 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:37:13 pid:19235 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:37:18 pid:19235 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:37:18 pid:19235 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:37:25 pid:19239 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:37:25 pid:19240 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:37:26 pid:19240 Worker[19240] process terminated
+2021-09-09 02:37:26 pid:19239 worker[none:19240] exit with status 64000
+2021-09-09 02:37:26 pid:19242 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:37:26 pid:19239 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:37:26 pid:19242 Worker[19242] process terminated
+2021-09-09 02:37:26 pid:19239 worker[none:19242] exit with status 64000
+2021-09-09 02:37:26 pid:19239 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:37:29 pid:19244 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:37:34 pid:19244 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:37:34 pid:19244 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:38:43 pid:19248 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:38:43 pid:19249 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:38:44 pid:19249 Worker[19249] process terminated
+2021-09-09 02:38:44 pid:19248 worker[none:19249] exit with status 64000
+2021-09-09 02:38:44 pid:19251 Error: Class 'MediaServer\Channel\Exception' not found in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:57
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:38:45 pid:19248 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:38:45 pid:19251 Worker[19251] process terminated
+2021-09-09 02:38:45 pid:19248 worker[none:19251] exit with status 64000
+2021-09-09 02:38:45 pid:19248 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:38:48 pid:19253 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:38:51 pid:19253 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:38:51 pid:19253 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:40:46 pid:19257 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:40:49 pid:19257 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:40:49 pid:19257 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:41:04 pid:19262 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:41:06 pid:19262 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:41:06 pid:19262 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:41:59 pid:19266 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:41:59 pid:19267 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:42:00 pid:19267 Worker[19267] process terminated
+2021-09-09 02:42:00 pid:19266 worker[none:19267] exit with status 64000
+2021-09-09 02:42:00 pid:19269 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:42:01 pid:19266 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:42:01 pid:19269 Worker[19269] process terminated
+2021-09-09 02:42:01 pid:19266 worker[none:19269] exit with status 64000
+2021-09-09 02:42:01 pid:19266 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:42:57 pid:19271 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:42:57 pid:19272 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:42:58 pid:19272 Worker[19272] process terminated
+2021-09-09 02:42:58 pid:19271 worker[none:19272] exit with status 64000
+2021-09-09 02:42:58 pid:19271 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:42:58 pid:19274 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(73): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:42:59 pid:19274 Worker[19274] process terminated
+2021-09-09 02:42:59 pid:19271 worker[none:19274] exit with status 64000
+2021-09-09 02:42:59 pid:19271 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:43:37 pid:19276 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:44:01 pid:19276 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:44:01 pid:19276 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:44:52 pid:19281 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:44:59 pid:19281 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:44:59 pid:19281 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:45:08 pid:19285 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:45:14 pid:19285 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:45:14 pid:19285 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:45:50 pid:19289 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:45:51 pid:19290 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(80): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:45:52 pid:19290 Worker[19290] process terminated
+2021-09-09 02:45:52 pid:19289 worker[none:19290] exit with status 64000
+2021-09-09 02:45:52 pid:19292 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(32): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1691): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1640): Workerman\Worker::monitorWorkersForLinux()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(544): Workerman\Worker::monitorWorkers()
+#8 /mnt/e/job/runone/MediaServer/unixTransTest.php(80): Workerman\Worker::runAll()
+#9 {main}
+2021-09-09 02:45:52 pid:19292 Worker[19292] process terminated
+2021-09-09 02:45:52 pid:19289 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:45:52 pid:19289 worker[none:19292] exit with status 64000
+2021-09-09 02:45:52 pid:19289 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:45:57 pid:19295 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:46:16 pid:19295 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:46:16 pid:19295 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:47:34 pid:19299 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:47:38 pid:19299 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:47:38 pid:19299 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:48:04 pid:19311 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:48:19 pid:19311 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:48:19 pid:19311 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:48:26 pid:19315 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:48:26 pid:19316 Exception in /mnt/e/job/runone/MediaServer/src/Channel/Server.php:58
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/unixTransTest.php(42): MediaServer\Channel\Server->listen()
+#1 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2415): {closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1358): Workerman\Worker::forkWorkersForLinux()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(542): Workerman\Worker::forkWorkers()
+#6 /mnt/e/job/runone/MediaServer/unixTransTest.php(95): Workerman\Worker::runAll()
+#7 {main}
+2021-09-09 02:48:26 pid:19315 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:48:26 pid:19316 Worker[19316] process terminated
+2021-09-09 02:48:26 pid:19315 worker[none:19316] exit with status 64000
+2021-09-09 02:48:26 pid:19315 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:48:48 pid:19319 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:48:52 pid:19319 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:48:52 pid:19319 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:50:15 pid:19323 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:50:22 pid:19323 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:50:22 pid:19323 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:50:30 pid:19326 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:50:50 pid:19326 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:50:50 pid:19326 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:50:55 pid:19330 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:51:17 pid:19333 Workerman[unixTransTest.php] status 
+2021-09-09 02:51:27 pid:19330 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:51:27 pid:19330 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:52:39 pid:19335 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:52:59 pid:19335 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:53:00 pid:19335 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:53:00 pid:19335 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:53:01 pid:19335 worker[none:19337] exit with status 9
+2021-09-09 02:53:01 pid:19335 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:54:55 pid:19339 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:55:16 pid:19342 Workerman[unixTransTest.php] status 
+2021-09-09 02:55:38 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:38 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:39 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:39 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:39 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:39 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:39 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:39 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:40 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:40 pid:19339 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:55:40 pid:19339 worker[none:19341] exit with status 9
+2021-09-09 02:55:40 pid:19339 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:56:24 pid:19344 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:56:42 pid:19347 Workerman[unixTransTest.php] status 
+2021-09-09 02:57:05 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:05 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:05 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:05 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:06 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:06 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:06 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:06 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:06 pid:19344 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:57:07 pid:19344 worker[none:19346] exit with status 9
+2021-09-09 02:57:07 pid:19344 Workerman[unixTransTest.php] has been stopped
+2021-09-09 02:57:55 pid:19348 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 02:58:55 pid:19351 Workerman[unixTransTest.php] status 
+2021-09-09 02:59:32 pid:19348 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:59:33 pid:19348 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:59:33 pid:19348 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:59:33 pid:19348 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:59:34 pid:19348 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:59:34 pid:19348 Workerman[unixTransTest.php] stopping ...
+2021-09-09 02:59:34 pid:19348 worker[none:19350] exit with status 9
+2021-09-09 02:59:34 pid:19348 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:15:29 pid:19353 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:15:35 pid:19355 Worker[19355] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:123
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 123"
+2021-09-09 03:15:35 pid:19353 worker[none:19355] exit with status 65280
+2021-09-09 03:15:36 pid:19353 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:15:36 pid:19353 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:16:22 pid:19358 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:16:23 pid:19360 Worker[19360] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:123
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 123"
+2021-09-09 03:16:23 pid:19358 worker[none:19360] exit with status 65280
+2021-09-09 03:16:24 pid:19361 Worker[19361] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:123
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 123"
+2021-09-09 03:16:24 pid:19358 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:16:24 pid:19358 worker[none:19361] exit with status 65280
+2021-09-09 03:16:24 pid:19358 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:17:10 pid:19363 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:17:20 pid:19366 Workerman[unixTransTest.php] status 
+2021-09-09 03:18:07 pid:19363 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:18:09 pid:19363 worker[none:19365] exit with status 9
+2021-09-09 03:18:09 pid:19363 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:20:24 pid:19368 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:20:36 pid:19371 Workerman[unixTransTest.php] status 
+2021-09-09 03:21:13 pid:19368 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:21:15 pid:19368 worker[none:19370] exit with status 9
+2021-09-09 03:21:15 pid:19368 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:21:53 pid:19373 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:22:08 pid:19376 Workerman[unixTransTest.php] status 
+2021-09-09 03:22:29 pid:19373 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:22:29 pid:19373 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:22:44 pid:19377 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:22:54 pid:19380 Workerman[unixTransTest.php] status 
+2021-09-09 03:23:10 pid:19377 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:23:11 pid:19377 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:23:12 pid:19377 worker[none:19379] exit with status 9
+2021-09-09 03:23:12 pid:19377 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:25:08 pid:19381 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:25:17 pid:19384 Workerman[unixTransTest.php] status 
+2021-09-09 03:25:29 pid:19381 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:25:31 pid:19381 worker[send:19383] exit with status 9
+2021-09-09 03:25:31 pid:19381 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:25:34 pid:19385 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:25:38 pid:19388 Workerman[unixTransTest.php] status 
+2021-09-09 03:26:53 pid:19385 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:26:55 pid:19385 worker[send:19387] exit with status 9
+2021-09-09 03:26:55 pid:19385 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:27:17 pid:19390 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:27:23 pid:19390 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:27:24 pid:19390 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:29:03 pid:19393 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:29:14 pid:19393 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:29:14 pid:19395 Worker[19395] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:29:14 pid:19393 worker[send:19395] exit with status 65280
+2021-09-09 03:29:14 pid:19393 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:30:09 pid:19397 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:30:21 pid:19397 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:30:21 pid:19399 Worker[19399] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:30:21 pid:19397 worker[send:19399] exit with status 65280
+2021-09-09 03:30:21 pid:19397 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:30:50 pid:19401 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:31:07 pid:19404 Workerman[unixTransTest.php] status 
+2021-09-09 03:31:24 pid:19401 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:31:24 pid:19403 Worker[19403] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:31:24 pid:19401 worker[send:19403] exit with status 65280
+2021-09-09 03:31:24 pid:19401 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:32:15 pid:19406 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:32:35 pid:19408 Worker[19408] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:32:35 pid:19406 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:32:35 pid:19406 worker[send:19408] exit with status 65280
+2021-09-09 03:32:35 pid:19406 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:33:28 pid:19418 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:33:48 pid:19420 Worker[19420] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:33:48 pid:19418 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:33:48 pid:19418 worker[send:19420] exit with status 65280
+2021-09-09 03:33:48 pid:19418 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:34:27 pid:19422 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:34:37 pid:19424 Worker[19424] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:34:37 pid:19422 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:34:37 pid:19422 worker[send:19424] exit with status 65280
+2021-09-09 03:34:37 pid:19422 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:35:09 pid:19426 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:35:25 pid:19426 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:35:25 pid:19428 Worker[19428] process terminated with ERROR: E_ERROR "Uncaught Exception: write data error. in /mnt/e/job/runone/MediaServer/src/Channel/Client.php:127
+Stack trace:
+#0 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(271): MediaServer\Channel\Client->handleWriteEvent()
+#1 [internal function]: React\EventLoop\ExtEventLoop->React\EventLoop\{closure}()
+#2 /mnt/e/job/runone/MediaServer/vendor/react/event-loop/src/ExtEventLoop.php(205): EventBase->loop()
+#3 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(254): React\EventLoop\ExtEventLoop->run()
+#4 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Events/React/Base.php(137): Workerman\Events\React\Base->run()
+#5 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(2430): Workerman\Events\React\Base->loop()
+#6 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1554): Workerman\Worker->run()
+#7 /mnt/e/job/runone/MediaServer/vendor/workerman/workerman/Worker.php(1384): Workerman\Worker::forkOneWorkerForLinux()
+#8 /mnt/e/job/r in /mnt/e/job/runone/MediaServer/src/Channel/Client.php on line 127"
+2021-09-09 03:35:25 pid:19426 worker[send:19428] exit with status 65280
+2021-09-09 03:35:25 pid:19426 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:35:43 pid:19430 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:36:00 pid:19430 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:36:02 pid:19430 worker[send:19432] exit with status 9
+2021-09-09 03:36:02 pid:19430 Workerman[unixTransTest.php] has been stopped
+2021-09-09 03:36:49 pid:19434 Workerman[unixTransTest.php] start in DEBUG mode
+2021-09-09 03:37:12 pid:19434 Workerman[unixTransTest.php] stopping ...
+2021-09-09 03:37:14 pid:19434 worker[send:19436] exit with status 9
+2021-09-09 03:37:14 pid:19434 Workerman[unixTransTest.php] has been stopped

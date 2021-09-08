@@ -7,7 +7,6 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Cassandra\Time;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use Workerman\Connection\AsyncTcpConnection;
@@ -19,33 +18,68 @@ use MediaServer\Frame;
 use Workerman\Timer;
 use Workerman\Worker;
 
-$worker = new Worker('unix:///tmp/test.sock');
-//$worker = new Worker('tcp://127.0.0.1:38888');
-$worker->protocol = Frame::class;
-$data = pack('@1');
-$worker->onConnect = function ($con) use ($data) {
-    $con->maxSendBufferSize=200000*200;
-    echo "server connection connected.", PHP_EOL;
-    for ($i = 0; $i < 200000; $i++) {
-        $con->send($data);
-    }
-};
-$worker->onMessage = function ($con, $data) {
-    // echo "server msg $data", PHP_EOL;
-};
-$c = new Worker();
-$c->count = 1;
-$c->onWorkerStart = function ($w) {
-
-    $tcp = new AsyncTcpConnection('unix:///tmp/test.sock');
-    //$tcp = new AsyncTcpConnection('tcp://127.0.0.1:38888');
-    $tcp->protocol = Frame::class;
-    $tcp->maxPackageSize=200000*1100;
+//$worker = new Worker('unix:///tmp/test.sock');
+@unlink('/tmp/test.sock');
+$w = new Worker();
+$w->name='onmsg';
+$w->onWorkerStart = function () {
+    $worker = new \MediaServer\Channel\Server(
+        Worker::getEventLoop(),
+        'udg:///tmp/test.sock'
+    );
     $recCount = 0;
     $first = 0;
     $last = 0;
     $bufferSize = 0;
-    $tcp->onMessage = function ($con, $msg) use (&$recCount, &$first, &$last, &$bufferSize) {
+    $maxDataSize=0;
+    $worker->onMessage = function ($data)use (&$recCount, &$first, &$last, &$bufferSize,&$maxDataSize) {
+        //echo "server msg $data", PHP_EOL;
+        if ($recCount === 0) {
+            $first = microtime(true);
+        }
+        $bufferSize += strlen($data);
+        $recCount++;
+        $last = microtime(true);
+        $maxDataSize=max(strlen($data),$maxDataSize);
+    };
+    $worker->listen();
+    Timer::add(1, function () use (&$recCount, &$first, &$last, &$bufferSize,&$maxDataSize) {
+        $avg = $recCount / (($last - $first) ?: 1);
+        //$avgByte=$bufferSize/($recCount ?: 1);
+        //echo "first: $first last: $last  getByte: $bufferSize maxPacketSize: $maxDataSize packet: $recCount  avg: $avg p/s.\n";
+    });
+
+};
+
+$c = new Worker();
+$c->count = 1;
+$c->name='send';
+$c->onWorkerStart = function ($w) {
+
+    Timer::add(1, function () {
+        $udg = new \MediaServer\Channel\Client(Worker::getEventLoop(),'udg:///tmp/test.sock');
+        $udg->onceMaxSend=1000;
+        $data=pack('@100');
+        Timer::add(1, function ()use($udg,$data) {
+            $beginSend=microtime(true);
+            for($i=0;$i<50000;$i++){
+                $udg->send($data);
+            }
+            $use=microtime(true)-$beginSend;
+            echo "now ".microtime(true)." send $i packets use $use s.\n";
+        });
+        $udg->send(time());
+    },[],false);
+
+    return;
+    //$tcp = new AsyncTcpConnection('unix:///tmp/test.sock');
+    $udp = new \MediaServer\AsyncUdgConnection('udg://'.__DIR__.'/test.sock');
+    //$udp->protocol = Frame::class;
+    $recCount = 0;
+    $first = 0;
+    $last = 0;
+    $bufferSize = 0;
+    $udp->onMessage = function ($udp, $msg) use (&$recCount, &$first, &$last, &$bufferSize) {
 
         if ($recCount === 0) {
             $first = microtime(true);
@@ -54,13 +88,17 @@ $c->onWorkerStart = function ($w) {
         $recCount++;
         $last = microtime(true);
     };
-    $tcp->onConnect = function ($tcp) use (&$recCount, &$first, &$last, &$bufferSize) {
-        Timer::add(1, function () use (&$recCount, &$first, &$last, &$bufferSize) {
-            $avg = $recCount / (($last - $first)?:1);
+    $udp->onConnect = function ($udp) use (&$recCount, &$first, &$last, &$bufferSize) {
+        echo "udg connected.\n";
+        //随便发点消息先
+        /** @var \MediaServer\AsyncUdgConnection $udp */
+        var_dump($udp->send('hi'));
+        Timer::add(1, function () use ($udp, &$recCount, &$first, &$last, &$bufferSize) {
+            $avg = $recCount / (($last - $first) ?: 1);
             echo "first: $first last: $last $bufferSize byte $recCount packet avg: $avg p/s.\n";
         });
     };
-    $tcp->connect();
+    $udp->connect();
 };
 
 Worker::runAll();

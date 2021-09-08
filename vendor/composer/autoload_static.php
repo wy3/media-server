@@ -18,10 +18,13 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         array (
             'Workerman\\' => 10,
         ),
+        'S' => 
+        array (
+            'Socket\\Raw\\' => 11,
+        ),
         'R' => 
         array (
             'RingCentral\\Psr7\\' => 17,
-            'React\\ZMQ\\' => 10,
             'React\\Stream\\' => 13,
             'React\\Socket\\' => 13,
             'React\\Promise\\Timer\\' => 20,
@@ -41,6 +44,10 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         array (
             'MediaServer\\' => 12,
         ),
+        'C' => 
+        array (
+            'Channel\\' => 8,
+        ),
         'A' => 
         array (
             'Apix\\Log\\' => 9,
@@ -52,13 +59,13 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         array (
             0 => __DIR__ . '/..' . '/workerman/workerman',
         ),
+        'Socket\\Raw\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/clue/socket-raw/src',
+        ),
         'RingCentral\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/ringcentral/psr7/src',
-        ),
-        'React\\ZMQ\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/react/zmq/src',
         ),
         'React\\Stream\\' => 
         array (
@@ -107,6 +114,10 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         'MediaServer\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
+        ),
+        'Channel\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/workerman/channel/src',
         ),
         'Apix\\Log\\' => 
         array (

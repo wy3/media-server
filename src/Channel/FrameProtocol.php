@@ -1,33 +1,23 @@
 <?php
 /**
- * This file is part of workerman.
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the MIT-LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @author    walkor<walkor@workerman.net>
- * @copyright walkor<walkor@workerman.net>
- * @link      http://www.workerman.net/
- * @license   http://www.opensource.org/licenses/mit-license.php MIT License
+ * Created by PhpStorm.
+ * User: what_
+ * Date: 2021/9/9
+ * Time: 2:07
  */
-namespace MediaServer;
 
-use Workerman\Connection\TcpConnection;
+namespace MediaServer\Channel;
 
-/**
- * Frame Protocol.
- */
-class Frame
+
+trait FrameProtocol
 {
     /**
      * Check the integrity of the package.
      *
-     * @param string        $buffer
-     * @param TcpConnection $connection
+     * @param string $buffer
      * @return int
      */
-    public static function input($buffer, $connection)
+    public static function input($buffer)
     {
         if (\strlen($buffer) < 4) {
             return 0;

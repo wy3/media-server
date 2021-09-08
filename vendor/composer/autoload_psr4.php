@@ -7,8 +7,8 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'Workerman\\' => array($vendorDir . '/workerman/workerman'),
+    'Socket\\Raw\\' => array($vendorDir . '/clue/socket-raw/src'),
     'RingCentral\\Psr7\\' => array($vendorDir . '/ringcentral/psr7/src'),
-    'React\\ZMQ\\' => array($vendorDir . '/react/zmq/src'),
     'React\\Stream\\' => array($vendorDir . '/react/stream/src'),
     'React\\Socket\\' => array($vendorDir . '/react/socket/src'),
     'React\\Promise\\Timer\\' => array($vendorDir . '/react/promise-timer/src'),
@@ -21,5 +21,6 @@ return array(
     'Psr\\Log\\' => array($vendorDir . '/psr/log/Psr/Log'),
     'Psr\\Http\\Message\\' => array($vendorDir . '/psr/http-message/src'),
     'MediaServer\\' => array($baseDir . '/src'),
+    'Channel\\' => array($vendorDir . '/workerman/channel/src'),
     'Apix\\Log\\' => array($vendorDir . '/apix/log/src'),
 );

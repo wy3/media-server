@@ -59,6 +59,79 @@
         ]
     },
     {
+        "name": "clue/socket-raw",
+        "version": "v1.5.0",
+        "version_normalized": "1.5.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/clue/php-socket-raw.git",
+            "reference": "089ffa05fa75bdc4e919aac44bbc435b3ef640ef"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/clue/php-socket-raw/zipball/089ffa05fa75bdc4e919aac44bbc435b3ef640ef",
+            "reference": "089ffa05fa75bdc4e919aac44bbc435b3ef640ef",
+            "shasum": "",
+            "mirrors": [
+                {
+                    "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                    "preferred": true
+                }
+            ]
+        },
+        "require": {
+            "ext-sockets": "*",
+            "php": ">=5.3"
+        },
+        "require-dev": {
+            "phpunit/phpunit": "^9.3 || ^5.7 || ^4.8.35"
+        },
+        "time": "2020-11-27T13:16:18+00:00",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Socket\\Raw\\": "src"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Christian Lück",
+                "email": "christian@clue.engineering"
+            }
+        ],
+        "description": "Simple and lightweight OOP wrapper for PHP's low-level sockets extension (ext-sockets).",
+        "homepage": "https://github.com/clue/php-socket-raw",
+        "keywords": [
+            "Socket",
+            "client",
+            "datagram",
+            "dgram",
+            "icmp",
+            "ipv6",
+            "server",
+            "stream",
+            "tcp",
+            "udg",
+            "udp",
+            "unix"
+        ],
+        "funding": [
+            {
+                "url": "https://clue.engineering/support",
+                "type": "custom"
+            },
+            {
+                "url": "https://github.com/clue",
+                "type": "github"
+            }
+        ]
+    },
+    {
         "name": "evenement/evenement",
         "version": "v3.0.1",
         "version_normalized": "3.0.1.0",
@@ -876,55 +949,6 @@
         ]
     },
     {
-        "name": "react/zmq",
-        "version": "v0.4.0",
-        "version_normalized": "0.4.0.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/friends-of-reactphp/zmq.git",
-            "reference": "13dec0bd2397adcc5d6aa54c8d7f0982fba66f39"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/friends-of-reactphp/zmq/zipball/13dec0bd2397adcc5d6aa54c8d7f0982fba66f39",
-            "reference": "13dec0bd2397adcc5d6aa54c8d7f0982fba66f39",
-            "shasum": "",
-            "mirrors": [
-                {
-                    "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
-                    "preferred": true
-                }
-            ]
-        },
-        "require": {
-            "evenement/evenement": "^3.0 || ^2.0",
-            "ext-zmq": "*",
-            "php": ">=5.4.0",
-            "react/event-loop": "^1.0 || ^0.5 || ^0.4"
-        },
-        "require-dev": {
-            "ext-pcntl": "*",
-            "phpunit/phpunit": "~4.8.35 || ~5.7 || ~6.4"
-        },
-        "time": "2018-05-18T15:27:55+00:00",
-        "type": "library",
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "React\\ZMQ\\": "src"
-            }
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "description": "ZeroMQ bindings for React.",
-        "keywords": [
-            "zeromq",
-            "zmq"
-        ]
-    },
-    {
         "name": "ringcentral/psr7",
         "version": "1.3.0",
         "version_normalized": "1.3.0.0",
@@ -989,6 +1013,44 @@
             "stream",
             "uri"
         ]
+    },
+    {
+        "name": "workerman/channel",
+        "version": "v1.1.0",
+        "version_normalized": "1.1.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/walkor/channel.git",
+            "reference": "3df772d0d20d4cebfcfd621c33d1a1ab732db523"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/walkor/channel/zipball/3df772d0d20d4cebfcfd621c33d1a1ab732db523",
+            "reference": "3df772d0d20d4cebfcfd621c33d1a1ab732db523",
+            "shasum": "",
+            "mirrors": [
+                {
+                    "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
+                    "preferred": true
+                }
+            ]
+        },
+        "require": {
+            "workerman/workerman": ">=4.0.12"
+        },
+        "time": "2021-02-08T02:45:42+00:00",
+        "type": "library",
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Channel\\": "./src"
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "MIT"
+        ],
+        "homepage": "http://www.workerman.net"
     },
     {
         "name": "workerman/workerman",
