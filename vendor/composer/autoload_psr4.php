@@ -8,6 +8,7 @@ $baseDir = dirname($vendorDir);
 return array(
     'Workerman\\' => array($vendorDir . '/workerman/workerman'),
     'RingCentral\\Psr7\\' => array($vendorDir . '/ringcentral/psr7/src'),
+    'React\\ZMQ\\' => array($vendorDir . '/react/zmq/src'),
     'React\\Stream\\' => array($vendorDir . '/react/stream/src'),
     'React\\Socket\\' => array($vendorDir . '/react/socket/src'),
     'React\\Promise\\Timer\\' => array($vendorDir . '/react/promise-timer/src'),

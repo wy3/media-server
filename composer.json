@@ -7,14 +7,16 @@
         }
     ],
     "require": {
-        "php": "^7.4",
+        "php": "^7.2",
         "ext-bcmath": "*",
         "ext-gd": "*",
         "ext-json": "*",
+        "ext-zmq": "*",
         "react/http": "^1.0",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",
-        "workerman/workerman": "^4.0"
+        "workerman/workerman": "^4.0",
+        "react/zmq": "^0.4.0"
     },
     "autoload": {
         "psr-4": { "MediaServer\\": "src" }

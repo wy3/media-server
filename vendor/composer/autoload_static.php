@@ -21,6 +21,7 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         'R' => 
         array (
             'RingCentral\\Psr7\\' => 17,
+            'React\\ZMQ\\' => 10,
             'React\\Stream\\' => 13,
             'React\\Socket\\' => 13,
             'React\\Promise\\Timer\\' => 20,
@@ -54,6 +55,10 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         'RingCentral\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/ringcentral/psr7/src',
+        ),
+        'React\\ZMQ\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/react/zmq/src',
         ),
         'React\\Stream\\' => 
         array (
