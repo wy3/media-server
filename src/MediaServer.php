@@ -10,7 +10,12 @@ namespace MediaServer;
 
 
 use Evenement\EventEmitter;
+use Evenement\EventEmitterInterface;
 use MediaServer\FlvStreamConst as flv;
+use MediaServer\PushServer\PlayStreamInterface;
+use MediaServer\PushServer\PublishStreamInterface;
+use MediaServer\PushServer\VerifyAuthStreamInterface;
+use MediaServer\Rtmp\RtmpStream;
 
 class MediaServer
 {
@@ -63,119 +68,165 @@ class MediaServer
     }
 
 
-    static public $publishSession = [];
-
-    static public $playerSession = [];
-
     /**
-     * @param $index
-     * @return FlvStream|null
+     * @var PublishStreamInterface[]
      */
-    static public function getPublishSession($index)
-    {
-        return self::$publishSession[$index] ?? null;
-    }
+    static public $publishStream = [];
 
     /**
-     * @param $index
+     * @param $path
      * @return bool
      */
-    static public function hasPublishSession($index)
+    static public function hasPublishStream($path)
     {
-        return isset(self::$publishSession[$index]);
+        return isset(self::$publishStream[$path]);
     }
 
     /**
-     * @param $index
-     * @return PlayerStream[]
+     * @param $path
+     * @return PublishStreamInterface
      */
-    static public function getPlayers($index)
-    {
-        return self::$playerSession[$index] ?? [];
+    static public function getPublishStream($path){
+        return self::$publishStream[$path];
     }
 
-    static public function deletePlayer($index, $objId)
+    /**
+     * @param $stream PublishStreamInterface
+     */
+    static public function addPublishStream($stream)
     {
-        unset(self::$playerSession[$index][$objId]);
+        $path = $stream->getPublishPath();
+        self::$publishStream[$path] = $stream;
+    }
+
+    static public function delPublishStream($path)
+    {
+        unset(self::$publishStream[$path]);
+    }
+
+    /**
+     * @var PlayStreamInterface[][]
+     */
+    static public $playerStream = [];
+
+    /**
+     * @param $path
+     * @return array|PlayStreamInterface[]
+     */
+    static public function getPlayStreams($path)
+    {
+        return self::$playerStream[$path] ?? [];
+    }
+
+
+    /**
+     * @param $path
+     * @param $objId
+     */
+    static public function delPlayerStream($path, $objId)
+    {
+        unset(self::$playerStream[$path][$objId]);
+    }
+
+    /**
+     * @param $playerStream PlayStreamInterface
+     */
+    static public function addPlayerStream($playerStream)
+    {
+
+        $path = $playerStream->getPlayPath();
+        $objIndex = spl_object_id($playerStream);
+
+
+        if (!isset(self::$playerStream[$path])) {
+            self::$playerStream[$path] = [];
+        }
+
+        self::$playerStream[$path][$objIndex] = $playerStream;
+
     }
 
 
     /**
      *
-     * @param FlvStream $flvStream
-     * @param string $pathIndex
+     * @param PublishStreamInterface $stream
+     * @return mixed
      */
-    static public function addPublish($flvStream, $pathIndex)
+    static public function addPublish($stream)
     {
-        if(self::hasPublishSession($pathIndex)){
-            return false;
-        }
-        $flvStream->on('flv_ready', function ($flvHeader) use ($pathIndex) {
-            //找到所有idling的触发onStart
-            foreach (self::getPlayers($pathIndex) as $player) {
-                if ($player->idling) {
-                    $player->onStartPlay($pathIndex);
+        $path = $stream->getPublishPath();
+
+        $stream->on('on_publish_ready', function () use ($path) {
+            foreach (self::getPlayStreams($path) as $playStream) {
+                if ($playStream->isPlayerIdling()) {
+                    $playStream->startPlay();
                 }
             }
         });
 
-        $flvStream->on('flv_tag', function ($tag) use ($pathIndex) {
+
+        /**
+         * 触发一个包
+         */
+        $stream->on('on_frame', function ($frame) use ($path) {
             //一个flv tag
-            foreach (self::getPlayers($pathIndex) as $player) {
-                $player->isPlaying && $player->sendTag($tag);
+            foreach (self::getPlayStreams($path) as $playStream) {
+                if (!$playStream->isPlayerIdling()) {
+                    $playStream->frameSend($frame);
+                }
             }
         });
 
 
-        $flvStream->on('close', function () use ($pathIndex) {
-            echo "close",PHP_EOL;
-            //结束当前正在播放的player
-            foreach (self::getPlayers($pathIndex) as $player) {
-                $player->end();
+        $stream->on('on_close', function () use ($path) {
+            foreach (self::getPlayStreams($path) as $playStream) {
+                $playStream->playClose();
             }
-            //清理数据
-            unset(
-                self::$publishSession[$pathIndex]
-            );
+
+            self::delPublishStream($path);
 
         });
 
-        self::$publishSession[$pathIndex] = $flvStream;
+        self::addPublishStream($stream);
 
-        logger()->info(" add publisher {path}", ['path' => $pathIndex]);
+        logger()->info(" add publisher {path}", ['path' => $path]);
 
         return true;
-
 
     }
 
     /**
-     * @param PlayerStream $player
-     * @param string $pathIndex
+     * @param PlayStreamInterface $playerStream
      */
-    static public function addPlayer($player, $pathIndex)
+    static public function addPlayer($playerStream)
     {
 
-        $objIndex = spl_object_id($player);
-        $player->on("close", function () use ($pathIndex, $objIndex) {
-            self::deletePlayer($pathIndex, $objIndex);
+        $objIndex = spl_object_id($playerStream);
+        $path = $playerStream->getPlayPath();
+
+        //on close event
+        $playerStream->on("on_close", function () use ($path, $objIndex) {
+            self::delPlayerStream($path, $objIndex);
         });
 
-        if (!isset(self::$playerSession[$pathIndex])) {
-            self::$playerSession[$pathIndex] = [];
-        }
-
-        self::$playerSession[$pathIndex][$objIndex] = $player;
+        self::addPlayerStream($playerStream);
 
         //判断当前是否有对应的推流设备
-        if (self::hasPublishSession($pathIndex)) {
-            $player->onStartPlay($pathIndex);
-        } else {
-            $player->idling = true;
+        if (self::hasPublishStream($path)) {
+            $playerStream->startPlay();
         }
 
-        logger()->info(" add player {path}", ['path' => $pathIndex]);
+        logger()->info(" add player {path}", ['path' => $path]);
 
+    }
+
+    /**
+     * @param $stream VerifyAuthStreamInterface
+     * @return bool
+     */
+    static public function verifyAuth($stream)
+    {
+        return true;
     }
 
 

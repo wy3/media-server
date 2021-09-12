@@ -55,30 +55,7 @@ class VideoAnalysis
             'frameType' => $firstByte >> 4,
             'codecId' => $firstByte & 15,
             'data' => substr($videoData, 1),
+            'rawData'=>$videoData
         ]);
-    }
-}
-
-class VideoFrame
-{
-    public $frameType;
-    public $codecId;
-    public $data;
-
-    public function getVideoCodecName(){
-        return VideoAnalysis::VIDEO_CODEC_NAME[$this->codecId];
-    }
-
-    /**
-     * @param $args
-     * @return VideoFrame
-     */
-    public static function create($args)
-    {
-        $f = new self();
-        foreach ($args as $k => $v) {
-            $f->$k = $v;
-        }
-        return $f;
     }
 }

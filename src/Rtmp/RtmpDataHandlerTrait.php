@@ -9,6 +9,7 @@
 namespace MediaServer\Rtmp;
 
 
+use MediaServer\MediaReader\MetaDataFrame;
 use React\EventLoop\Loop;
 use \Exception;
 
@@ -34,9 +35,18 @@ trait RtmpDataHandlerTrait
                     $this->videoFps = $dataMessage['dataObj']['framerate'] ?? $this->videoFps;
                 }
 
+                $this->isMetaData = true;
+                $metaDataFrame = new MetaDataFrame();
+                $stream = new \SabreAMF_OutputStream();
+                $s = new \SabreAMF_AMF0_Serializer($stream);
+                $s->writeAMFData([
+                    'cmd' => 'onMetaData',
+                    'dataObj' => $dataMessage['dataObj']
+                ]);
+                $metaDataFrame->rawData = $stream->getRawData();
+                $this->metaDataFrame = $metaDataFrame;
+
             //播放类群发onMetaData
-
-
         }
     }
 }

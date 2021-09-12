@@ -23,7 +23,6 @@ trait RtmpAudioHandlerTrait
     {
         //音频包拆解
         $p = $this->currentPacket;
-        var_dump(bin2hex($p->payload));
         $audioFrame = AudioAnalysis::audioFrameDataRead($p->payload);
 
         if ($this->audioCodec == 0) {
@@ -36,17 +35,14 @@ trait RtmpAudioHandlerTrait
 
         if ($audioFrame->soundFormat == AudioAnalysis::SOUND_FORMAT_AAC) {
             $accPack = AAC::packetRead($audioFrame->data);
-            var_dump(bin2hex($accPack->data));
             if ($accPack->aacPacketType === AAC::AAC_PACKET_TYPE_SEQUENCE_HEADER) {
                 $this->isAACSequence = true;
-                $this->aacSequenceHeader = $p;
+                $this->aacSequenceHeaderFrame = $audioFrame;
                 $set = new AACSequenceParameterSet($accPack->data);
                 $set->readData();
                 $this->audioProfileName = AAC::getAACProfileName($set);
                 $this->audioSamplerate = $set->sampleRate;
                 $this->audioChannels = $set->channels;
-
-                var_dump([$this->audioProfileName,$this->audioSamplerate,$this->audioChannels,$set]);
                 //logger()->info("publisher {path} recv acc sequence.", ['path' => $this->pathIndex]);
             }
 
@@ -58,7 +54,9 @@ trait RtmpAudioHandlerTrait
             }
         }
 
-        exit;
+
+        $this->emit('on_frame',[$audioFrame]);
+
         logger()->info("rtmpAudioHandler");
     }
 }

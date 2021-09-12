@@ -43,14 +43,19 @@ trait RtmpVideoHandlerTrait
                 //h264
                 $avcPack = AVC::packetRead($videoFrame->data);
                 if ($avcPack->avcPacketType === AVC::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
+                    $this->isAVCSequence = true;
+                    $this->avcSequenceHeaderFrame = $videoFrame;
                     $specificConfig = AVC::readAVCSpecificConfig($avcPack->data);
                     $this->videoWidth = $specificConfig->width;
                     $this->videoHeight = $specificConfig->height;
                     $this->videoProfileName = AVC::getAVCProfileName($specificConfig->profile);
                     $this->videoLevel = $specificConfig->level;
                 }
+
                 break;
         }
         //数据处理与数据发送
+        $this->emit('on_frame', [$videoFrame]);
+
     }
 }

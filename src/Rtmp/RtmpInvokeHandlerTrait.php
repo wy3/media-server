@@ -9,8 +9,10 @@
 namespace MediaServer\Rtmp;
 
 
+use MediaServer\MediaServer;
 use React\EventLoop\Loop;
 use \Exception;
+use React\Promise\PromiseInterface;
 use function RingCentral\Psr7\parse_query;
 use Workerman\Timer;
 
@@ -120,40 +122,115 @@ trait RtmpInvokeHandlerTrait
 
     /**
      * @param $invokeMessage
+     * @param $isPromise bool
      * @throws Exception
      */
-    public function onPublish($invokeMessage)
+    public function onPublish($invokeMessage, $isPromise = false)
     {
-        //发布一个视频
-        logger()->info("[rtmp publish] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-
-        if (!is_string($invokeMessage['streamName'])) {
-            return;
+        if (!$isPromise) {
+            //发布一个视频
+            logger()->info("[rtmp publish] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+            if (!is_string($invokeMessage['streamName'])) {
+                return;
+            }
+            $streamInfo = explode('?', $invokeMessage['streamName']);
+            $this->publishStreamPath = '/' . $this->appName . '/' . $streamInfo[0];
+            parse_str($streamInfo[1] ?? '', $this->publishArgs);
+            $this->publishStreamId = $this->currentPacket->streamId;
         }
-        $streamInfo = explode('?', $invokeMessage['streamName']);
+        //auth check
+        if (!$isPromise && $result = MediaServer::verifyAuth($this)) {
+            if ($result === false) {
+                logger()->info("[rtmp publish] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+                //check false
+                $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.publish.Unauthorized', 'Authorization required.');
+                return;
+            }
 
-        $this->publishStreamPath = '/' . $this->appName . '/' . $streamInfo[0];
-        parse_str($streamInfo[1], $this->publishArgs);
-        $this->publishStreamId = $this->currentPacket->streamId;
-        $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
+            if ($result instanceof PromiseInterface) {
+                //异步检查
+                $result->then(function () use ($invokeMessage) {
+                    //resolve
+                    $this->onPublish($invokeMessage, true);
+                }, function ($exception) use ($invokeMessage) {
+                    logger()->info("[rtmp publish] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage) . " " . $exception->getMessage());
+                    //check false
+                    $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.publish.Unauthorized', 'Authorization required.');
+                });
+                return;
+            }
+        }
+
+        if(MediaServer::hasPublishStream($this->publishStreamPath)){
+            //publishStream already
+            logger()->info("[rtmp publish] Already has a stream. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+            $this->reject();
+            $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+        }else if($this->isPublishing){
+            logger()->info("[rtmp publish] NetConnection is publishing. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+            $this->sendStatusMessage( $this->publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
+        }else{
+
+            MediaServer::addPublish($this);
+
+            $this->isPublishing=true;
+            $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
+
+            //emit on on_publish_ready
+            $this->emit('on_publish_ready');
+
+        }
     }
 
     /**
      * @param $invokeMessage
+     * @param $isPromise bool
      * @throws Exception
      */
-    public function onPlay($invokeMessage)
+    public function onPlay($invokeMessage,$isPromise=false)
     {
-        /** @var RtmpPacket $p */
-        $p = $this->currentPacket;
-        $parse = explode('?', $invokeMessage['streamName']);
-        $this->playStreamPath = '/' . $this->appName . '/' . $parse[0];;
-        $this->playArgs = parse_query($parse[1] ?? '');
-        $this->playStreamId = $p->streamId;
+        if (!$isPromise) {
+            logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+            if (!is_string($invokeMessage['streamName'])) {
+                return;
+            }
+            /** @var RtmpPacket $p */
+            $parse = explode('?', $invokeMessage['streamName']);
+            $this->playStreamPath = '/' . $this->appName . '/' . $parse[0];
+            parse_str($parse[1] ?? '', $this->playArgs);
+            $this->playStreamId =  $this->currentPacket->streamId;
+        }
 
-        //播放一个视频，将当前连接置为视频播放用的
-        logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-        $this->respondPlay();
+        //auth check
+        if (!$isPromise && $result = MediaServer::verifyAuth($this)) {
+            if ($result === false) {
+                logger()->info("[rtmp play] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+                $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.play.Unauthorized', 'Authorization required.');
+                return;
+            }
+
+            if ($result instanceof PromiseInterface) {
+                //异步检查
+                $result->then(function () use ($invokeMessage) {
+                    //resolve
+                    $this->onPlay($invokeMessage, true);
+                }, function ($exception) use ($invokeMessage) {
+                    logger()->info("[rtmp play] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage) . " " . $exception->getMessage());
+                    //check false
+                    $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.play.Unauthorized', 'Authorization required.');
+                });
+                return;
+            }
+        }
+
+        if($this->isPlaying){
+            $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.Play.BadConnection', 'Connection already playing');
+        }else{
+            $this->respondPlay();
+        }
+
+        MediaServer::addPlayer($this);
+
     }
 
     public function onPause($invokeMessage)
@@ -333,6 +410,12 @@ trait RtmpInvokeHandlerTrait
         $this->sendStatusMessage($this->playStreamId, 'status', 'NetStream.Play.Reset', 'Playing and resetting stream.');
         $this->sendStatusMessage($this->playStreamId, 'status', 'NetStream.Play.Start', 'Started playing stream.');
         $this->sendRtmpSampleAccess($this->playStreamId);
+    }
+
+    public function reject()
+    {
+        logger()->info("[rtmp reject] reject stream publish id={$this->id}");
+        $this->stop();
     }
 
 }

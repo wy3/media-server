@@ -20,7 +20,8 @@ trait RtmpTrait
         RtmpAudioHandlerTrait,
         RtmpVideoHandlerTrait,
         RtmpInvokeHandlerTrait,
-        RtmpDataHandlerTrait;
+        RtmpDataHandlerTrait,
+        RtmpAuthorizeTrait;
 
     /**
      * @param RtmpPacket $p
@@ -59,16 +60,30 @@ trait RtmpTrait
     }
 
 
-    public function stop(){
-        if($this->pingInterval){
-            Loop::cancelTimer($this->pingInterval);
-            $this->pingInterval=null;
+    public function stop()
+    {
+
+        if ($this->isStarting) {
+            $this->isStarting = false;
+            if ($this->playStreamId > 0) {
+                $this->onDeleteStream(['streamId' => $this->playStreamId]);
+            }
+
+            if ($this->publishStreamId > 0) {
+                $this->onDeleteStream(['streamId' => $this->publishStreamId]);
+            }
+
+            if ($this->pingInterval) {
+                Loop::cancelTimer($this->pingInterval);
+                $this->pingInterval = null;
+            }
         }
 
+        logger()->info("[rtmp disconnect] id={$this->id}");
+
+
     }
 
-    public function reject(){
-        $this->stop();
-    }
+
 
 }

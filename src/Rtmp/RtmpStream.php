@@ -8,7 +8,13 @@ namespace MediaServer\Rtmp;
 
 
 use Evenement\EventEmitter;
+use Evenement\EventEmitterInterface;
 use Exception;
+use MediaServer\MediaReader\AudioFrame;
+use MediaServer\MediaReader\MetaDataFrame;
+use MediaServer\MediaReader\VideoFrame;
+use MediaServer\PushServer\DuplexMediaStreamInterface;
+use MediaServer\PushServer\VerifyAuthStreamInterface;
 use React\EventLoop\Loop;
 use React\EventLoop\TimerInterface;
 use React\Socket\ConnectionInterface;
@@ -21,10 +27,16 @@ use function ord;
  * Class RtmpStream
  * @package MediaServer\Rtmp
  */
-class RtmpStream extends EventEmitter
+class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, VerifyAuthStreamInterface
 {
 
-    use RtmpHandshakeTrait, RtmpChunkHandlerTrait, RtmpPacketTrait, RtmpTrait;
+    use RtmpHandshakeTrait,
+        RtmpChunkHandlerTrait,
+        RtmpPacketTrait,
+        RtmpTrait,
+        RtmpPublisherTrait,
+        RtmpPlayerTrait;
+
 
     /**
      * @var EventEmitter|DuplexStreamInterface
@@ -131,6 +143,12 @@ class RtmpStream extends EventEmitter
      */
     protected $inLastAck = 0;
 
+    public $isMetaData=false;
+    /**
+     * @var MetaDataFrame
+     */
+    public $metaDataFrame;
+
 
     public $videoWidth = 0;
     public $videoHeight = 0;
@@ -141,14 +159,25 @@ class RtmpStream extends EventEmitter
 
     public $videoCodec = 0;
     public $videoCodecName = '';
+    public $isAVCSequence = false;
+    /**
+     * @var VideoFrame
+     */
+    public $avcSequenceHeaderFrame;
 
     public $audioCodec = 0;
     public $audioCodecName = '';
     public $audioSamplerate = 0;
     public $audioChannels = 1;
     public $isAACSequence = false;
-    public $aacSequenceHeader;
+    /**
+     * @var AudioFrame
+     */
+    public $aacSequenceHeaderFrame;
     public $audioProfileName = '';
+
+    public $isPublishing = false;
+    public $isPlaying = false;
 
 
     /**
@@ -162,15 +191,16 @@ class RtmpStream extends EventEmitter
         $this->input = $con;
         $this->ip = $con->getRemoteAddress();
         $this->handshakeState = RtmpHandshake::RTMP_HANDSHAKE_UNINIT;
-        $con->on('error', [$this, 'streamError']);
-        $con->on('end', [$this, 'end']);
-        $con->on('close', [$this, 'close']);
-        $con->on('data', [$this, 'onData']);
+        $con->on('error', [$this, 'onStreamError']);
+        $con->on('close', [$this, 'onStreamClose']);
+        $con->on('data', [$this, 'onStreamData']);
         $this->isStarting = true;
     }
 
-    public function onData($data)
+    public function onStreamData($data)
     {
+        //若干秒后没有收到数据断开
+
         $this->buffer .= $data;
         if ($this->handshakeState < RtmpHandshake::RTMP_HANDSHAKE_C2) {
             $this->onHandShake();
@@ -193,18 +223,16 @@ class RtmpStream extends EventEmitter
 
     }
 
-    public function end()
-    {
-    }
 
-    public function close()
+    public function onStreamClose()
     {
-
+        $this->stop();
     }
 
 
-    public function streamError()
+    public function onStreamError()
     {
+        $this->stop();
     }
 
 
@@ -217,5 +245,12 @@ class RtmpStream extends EventEmitter
     {
         return $this->input->isWritable();
     }
+
+    public function __destruct()
+    {
+        // TODO: Implement __destruct() method.
+        logger()->info("[RtmpStream __destruct] id={$this->id}");
+    }
+
 
 }
