@@ -16,12 +16,19 @@
         "apix/log": "^1.2",
         "workerman/workerman": "^4.0",
         "workerman/channel": "^1.1",
-        "clue/socket-raw": "^1.5"
+        "clue/socket-raw": "^1.5",
+        "james-heinrich/getid3": "2.0.x-dev"
     },
     "autoload": {
         "psr-4": { "MediaServer\\": "src" }
     },
     "files": [
         "src/functions.php"
+    ],
+    "repositories":[
+       {
+            "type":"path",
+            "url":"./packages/james-heinrich/getID3"
+        }
     ]
 }

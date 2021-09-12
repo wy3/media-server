@@ -44,6 +44,10 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         array (
             'MediaServer\\' => 12,
         ),
+        'J' => 
+        array (
+            'JamesHeinrich\\GetID3\\' => 21,
+        ),
         'C' => 
         array (
             'Channel\\' => 8,
@@ -114,6 +118,10 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         'MediaServer\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
+        ),
+        'JamesHeinrich\\GetID3\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/james-heinrich/getid3/src',
         ),
         'Channel\\' => 
         array (

@@ -11,6 +11,7 @@ namespace MediaServer\Rtmp;
 
 use React\EventLoop\Loop;
 use \Exception;
+use function RingCentral\Psr7\parse_query;
 use Workerman\Timer;
 
 trait RtmpInvokeHandlerTrait
@@ -18,6 +19,7 @@ trait RtmpInvokeHandlerTrait
 
     /**
      * @throws Exception
+     * @return mixed | void
      */
     public function rtmpInvokeHandler()
     {
@@ -122,6 +124,7 @@ trait RtmpInvokeHandlerTrait
      */
     public function onPublish($invokeMessage)
     {
+        //发布一个视频
         logger()->info("[rtmp publish] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
 
         if (!is_string($invokeMessage['streamName'])) {
@@ -135,35 +138,56 @@ trait RtmpInvokeHandlerTrait
         $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
     }
 
+    /**
+     * @param $invokeMessage
+     * @throws Exception
+     */
     public function onPlay($invokeMessage)
     {
+        /** @var RtmpPacket $p */
+        $p = $this->currentPacket;
+        $parse = explode('?', $invokeMessage['streamName']);
+        $this->playStreamPath = '/' . $this->appName . '/' . $parse[0];;
+        $this->playArgs = parse_query($parse[1] ?? '');
+        $this->playStreamId = $p->streamId;
+
+        //播放一个视频，将当前连接置为视频播放用的
+        logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+        $this->respondPlay();
     }
 
     public function onPause($invokeMessage)
     {
+        //暂停视频
     }
 
     public function onDeleteStream($invokeMessage)
     {
+        //删除流
     }
 
     public function onCloseStream()
     {
+        //关闭流，调用删除流逻辑
         $this->onDeleteStream(['streamId' => $this->currentPacket->streamId]);
     }
 
     public function onReceiveAudio($invokeMessage)
     {
+        logger()->info("[rtmp play] receiveAudio=" . ($invokeMessage['bool'] ? 'true' : 'false'));
+        $this->isReceiveAudio = $invokeMessage['bool'];
     }
 
     public function onReceiveVideo($invokeMessage)
     {
+        logger()->info("[rtmp play] receiveVideo=" . ($invokeMessage['bool'] ? 'true' : 'false'));
+        $this->isReceiveVideo = $invokeMessage['bool'];
     }
 
     public function sendStreamStatus($st, $id)
     {
 
-        $buf = hex2bin('02000000000004010000000000000000');
+        $buf = hex2bin('020000000000060400000000000000000000');
         $buf = substr_replace($buf, pack('nN', $st, $id), 12);
         $this->write($buf);
     }

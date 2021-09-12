@@ -194,12 +194,14 @@ class FlvStream extends EventEmitter
                     }
 
                     //gop
-                    if ($videoFrame['frameType'] == FlvStreamConst::VIDEO_FRAME_TYPE_KEY_FRAME && $avcPack['avcPacketType'] == FlvStreamConst::AVC_PACKET_TYPE_NALU) {
+                    if ($videoFrame['frameType'] == FlvStreamConst::VIDEO_FRAME_TYPE_KEY_FRAME &&
+                        $avcPack['avcPacketType'] == FlvStreamConst::AVC_PACKET_TYPE_NALU) {
                         logger()->info("publisher {path} clear gop.", ['path' => $this->pathIndex]);
                         $this->gopCacheQueue = [];
                     }
 
-                    if ($videoFrame['frameType'] == FlvStreamConst::VIDEO_FRAME_TYPE_KEY_FRAME && $avcPack['avcPacketType'] == FlvStreamConst::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
+                    if ($videoFrame['frameType'] == FlvStreamConst::VIDEO_FRAME_TYPE_KEY_FRAME &&
+                        $avcPack['avcPacketType'] == FlvStreamConst::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
                         //skip avc sequence
                     } else {
                         $this->gopCacheQueue[] = &$tag;

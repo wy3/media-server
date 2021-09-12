@@ -9,7 +9,6 @@ namespace MediaServer\Rtmp;
 
 use Evenement\EventEmitter;
 use Exception;
-use MediaServer\BinaryStream;
 use React\EventLoop\Loop;
 use React\EventLoop\TimerInterface;
 use React\Socket\ConnectionInterface;
@@ -88,12 +87,18 @@ class RtmpStream extends EventEmitter
     public $streams = 0;
 
     public $playStreamId = 0;
+    public $playStreamPath = '';
+    public $playArgs = [];
 
     public $isStarting = false;
 
     public $connectCmdObj = null;
 
-    public $appName;
+    public $appName = '';
+
+    public $isReceiveAudio = true;
+    public $isReceiveVideo = true;
+
 
     /**
      * @var TimerInterface
@@ -112,9 +117,39 @@ class RtmpStream extends EventEmitter
     public $publishStreamId;
 
 
+    /**
+     * @var int 发送ack的长度
+     */
     protected $ackSize = 0;
+
+    /**
+     * @var int 当前size统计
+     */
     protected $inAckSize = 0;
+    /**
+     * @var int 上次ack的size
+     */
     protected $inLastAck = 0;
+
+
+    public $videoWidth = 0;
+    public $videoHeight = 0;
+    public $videoFps = 0;
+    public $videoCount = 0;
+    public $videoProfileName = '';
+    public $videoLevel = 0;
+
+    public $videoCodec = 0;
+    public $videoCodecName = '';
+
+    public $audioCodec = 0;
+    public $audioCodecName = '';
+    public $audioSamplerate = 0;
+    public $audioChannels = 1;
+    public $isAACSequence = false;
+    public $aacSequenceHeader;
+    public $audioProfileName = '';
+
 
     /**
      * PlayerStream constructor.
@@ -171,8 +206,6 @@ class RtmpStream extends EventEmitter
     public function streamError()
     {
     }
-
-
 
 
     public function write(&$data)

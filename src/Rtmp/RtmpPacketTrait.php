@@ -9,7 +9,7 @@
 namespace MediaServer\Rtmp;
 
 
-use MediaServer\BinaryStream;
+use MediaServer\Utils\BinaryStream;
 
 
 /**

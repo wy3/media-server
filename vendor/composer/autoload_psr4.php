@@ -21,6 +21,7 @@ return array(
     'Psr\\Log\\' => array($vendorDir . '/psr/log/Psr/Log'),
     'Psr\\Http\\Message\\' => array($vendorDir . '/psr/http-message/src'),
     'MediaServer\\' => array($baseDir . '/src'),
+    'JamesHeinrich\\GetID3\\' => array($vendorDir . '/james-heinrich/getid3/src'),
     'Channel\\' => array($vendorDir . '/workerman/channel/src'),
     'Apix\\Log\\' => array($vendorDir . '/apix/log/src'),
 );

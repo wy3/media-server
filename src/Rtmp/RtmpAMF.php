@@ -8,11 +8,11 @@
 
 namespace MediaServer\Rtmp;
 
-require_once __DIR__ . '/../SabreAMF/OutputStream.php';
-require_once __DIR__ . '/../SabreAMF/InputStream.php';
+require_once __DIR__ . '/../../packages/SabreAMF/OutputStream.php';
+require_once __DIR__ . '/../../packages/SabreAMF/InputStream.php';
 
-require_once __DIR__ . '/../SabreAMF/AMF0/Serializer.php';
-require_once __DIR__ . '/../SabreAMF/AMF0/Deserializer.php';
+require_once __DIR__ . '/../../packages/SabreAMF/AMF0/Serializer.php';
+require_once __DIR__ . '/../../packages/SabreAMF/AMF0/Deserializer.php';
 
 class RtmpAMF
 {

@@ -22,6 +22,11 @@ trait RtmpTrait
         RtmpInvokeHandlerTrait,
         RtmpDataHandlerTrait;
 
+    /**
+     * @param RtmpPacket $p
+     * @return int|mixed|void
+     * @throws Exception
+     */
     public function rtmpHandler(RtmpPacket $p)
     {
         //根据 msg type 进入处理流程
