@@ -21,28 +21,34 @@ trait RtmpPublisherTrait
     }
 
 
-    public function isAACSequence(){
+    public function isAACSequence()
+    {
         return $this->isAACSequence;
     }
 
-    public function getAACSequenceFrame(){
+    public function getAACSequenceFrame()
+    {
         return $this->aacSequenceHeaderFrame;
     }
 
-    public function isAVCSequence(){
+    public function isAVCSequence()
+    {
         return $this->isAVCSequence;
     }
 
-    public function getAVCSequenceFrame(){
+    public function getAVCSequenceFrame()
+    {
         return $this->avcSequenceHeaderFrame;
     }
 
 
-    public function isMetaData(){
-        $this->isMetaData;
+    public function isMetaData()
+    {
+        return $this->isMetaData;
     }
 
-    public function getMetaDataFrame(){
+    public function getMetaDataFrame()
+    {
         return $this->metaDataFrame;
     }
 

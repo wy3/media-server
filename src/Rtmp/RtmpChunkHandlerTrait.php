@@ -135,7 +135,7 @@ trait RtmpChunkHandlerTrait
         while ($remain = $packet->length - $readOffset) {
 
             $size = min($remain, $chunkSize);
-            logger()->debug("rtmpChunksCreate remain {$remain} size {$size}");
+            //logger()->debug("rtmpChunksCreate remain {$remain} size {$size}");
             $out .= substr($packet->payload, $readOffset, $size);
             $readOffset += $size;
             if ($readOffset < $packet->length) {
@@ -192,7 +192,7 @@ trait RtmpChunkHandlerTrait
             $out .= pack('L', $packet->streamId);
         }
 
-        logger()->debug("rtmpChunkMessageHeaderCreate " . bin2hex($out));
+        //logger()->debug("rtmpChunkMessageHeaderCreate " . bin2hex($out));
 
         return $out;
     }

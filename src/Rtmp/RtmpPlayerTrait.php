@@ -40,7 +40,6 @@ trait RtmpPlayerTrait
         /**
          * meta data send
          */
-
         if ($publishStream->isMetaData()) {
             $metaDataFrame = $publishStream->getMetaDataFrame();
             $this->sendMetaDataFrame($metaDataFrame);
@@ -113,6 +112,7 @@ trait RtmpPlayerTrait
         $packet->chunkStreamId = RtmpChunk::CHANNEL_AUDIO;
         $packet->type = RtmpPacket::TYPE_AUDIO;
         $packet->payload = $audioFrame->rawData;
+        $packet->timestamp=$audioFrame->clock;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
         $chunks = $this->rtmpChunksCreate($packet);
@@ -132,6 +132,7 @@ trait RtmpPlayerTrait
         $packet->payload = $videoFrame->rawData;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
+        $packet->timestamp=$videoFrame->clock;
         $chunks = $this->rtmpChunksCreate($packet);
         $this->write($chunks);
     }

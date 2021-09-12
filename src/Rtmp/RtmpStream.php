@@ -143,7 +143,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
      */
     protected $inLastAck = 0;
 
-    public $isMetaData=false;
+    public $isMetaData = false;
     /**
      * @var MetaDataFrame
      */

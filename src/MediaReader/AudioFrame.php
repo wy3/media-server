@@ -17,6 +17,7 @@ class AudioFrame
     public $soundType;
     public $data;
     public $rawData='';
+    public $clock=0;
 
     public function getAudioCodecName()
     {

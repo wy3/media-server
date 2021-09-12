@@ -21,8 +21,13 @@ trait RtmpVideoHandlerTrait
     public function rtmpVideoHandler()
     {
         //视频包拆解
+        /**
+         * @var $p RtmpPacket
+         */
         $p = $this->currentPacket;
         $videoFrame = VideoAnalysis::frameReader($p->payload);
+        $videoFrame->clock=$p->clock;
+
         if ($this->videoCodec == 0) {
             $this->videoCodec = $videoFrame->codecId;
             $this->videoCodecName = $videoFrame->getVideoCodecName();

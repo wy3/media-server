@@ -15,6 +15,7 @@ class VideoFrame
     public $codecId;
     public $data;
     public $rawData = '';
+    public $clock=0;
 
     public function getVideoCodecName()
     {

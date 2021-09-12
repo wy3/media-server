@@ -37,14 +37,13 @@ trait RtmpDataHandlerTrait
 
                 $this->isMetaData = true;
                 $metaDataFrame = new MetaDataFrame();
-                $stream = new \SabreAMF_OutputStream();
-                $s = new \SabreAMF_AMF0_Serializer($stream);
-                $s->writeAMFData([
+                $metaDataFrame->rawData = RtmpAMF::rtmpDATAAmf0Creator([
                     'cmd' => 'onMetaData',
                     'dataObj' => $dataMessage['dataObj']
                 ]);
-                $metaDataFrame->rawData = $stream->getRawData();
                 $this->metaDataFrame = $metaDataFrame;
+
+                $this->emit('on_frame',[$metaDataFrame]);
 
             //播放类群发onMetaData
         }

@@ -22,8 +22,12 @@ trait RtmpAudioHandlerTrait
     public function rtmpAudioHandler()
     {
         //音频包拆解
+        /**
+         * @var $p RtmpPacket
+         */
         $p = $this->currentPacket;
         $audioFrame = AudioAnalysis::audioFrameDataRead($p->payload);
+        $audioFrame->clock = $p->clock;
 
         if ($this->audioCodec == 0) {
             $this->audioCodec = $audioFrame->soundFormat;
@@ -55,8 +59,8 @@ trait RtmpAudioHandlerTrait
         }
 
 
-        $this->emit('on_frame',[$audioFrame]);
+        $this->emit('on_frame', [$audioFrame]);
 
-        logger()->info("rtmpAudioHandler");
+        //logger()->info("rtmpAudioHandler");
     }
 }

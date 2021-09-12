@@ -62,7 +62,7 @@ trait RtmpPacketTrait
                     $this->buffer = substr($this->buffer, $p->msgHeaderLen);
 
 
-                    logger()->info("chunk header fin");
+                    //logger()->info("chunk header fin");
                     //var_dump($p);
                 } else {
                     //长度不够，等待下个数据包
@@ -111,10 +111,10 @@ trait RtmpPacketTrait
                         $p->payload .= substr($this->buffer, 0, $size);
                         $p->bytesRead += $size;
                         $this->buffer = substr($this->buffer, $size);
-                        logger()->info("packet csid {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead}");
+                        //logger()->info("packet csid {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead}");
                     } else {
                         //长度不够，等待下个数据包
-                        logger()->info("packet csid  {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead} buffer " . strlen($this->buffer) . " not enough.");
+                        //logger()->info("packet csid  {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead} buffer " . strlen($this->buffer) . " not enough.");
                         return false;
                     }
                 }
