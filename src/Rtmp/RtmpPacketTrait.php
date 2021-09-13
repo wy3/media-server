@@ -21,6 +21,8 @@ trait RtmpPacketTrait
 
     public function onPacketHandler()
     {
+
+
         /** @var RtmpPacket $p */
         $p = $this->currentPacket;
         switch ($p->state) {
@@ -130,6 +132,8 @@ trait RtmpPacketTrait
                     $this->chunkState = RtmpChunk::CHUNK_STATE_BEGIN;
                 }
         }
+
+
 
     }
 }

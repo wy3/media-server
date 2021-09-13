@@ -18,6 +18,32 @@ class AVCSequenceParameterSet extends BitReader
     public $height;
     public $avc_ref_frames = 0;
 
+    public function __construct($data)
+    {
+        parent::__construct($data);
+        $this->readData();
+    }
+
+    public function getAVCProfileName()
+    {
+        switch ($this->profile) {
+            case 1:
+                return 'Main';
+            case 2:
+                return 'Main 10';
+            case 3:
+                return 'Main Still Picture';
+            case 66:
+                return 'Baseline';
+            case 77:
+                return 'Main';
+            case 100:
+                return 'High';
+            default:
+                return '';
+        }
+    }
+
     public function readData()
     {
         /*$data = [];

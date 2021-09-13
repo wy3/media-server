@@ -22,6 +22,7 @@ trait RtmpChunkHandlerTrait
      */
     public function onChunkData()
     {
+
         switch ($this->chunkState) {
             case RtmpChunk::CHUNK_STATE_BEGIN:
                 if (isset($this->buffer[0])) {
@@ -106,6 +107,8 @@ trait RtmpChunkHandlerTrait
                 $this->onChunkData();
                 break;
         }
+
+
     }
 
 

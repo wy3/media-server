@@ -8,9 +8,8 @@
 
 namespace MediaServer\Rtmp;
 
-
-use MediaServer\MediaReader\AVC;
-use MediaServer\MediaReader\VideoAnalysis;
+use MediaServer\MediaReader\AVCPacket;
+use MediaServer\MediaReader\VideoFrame;
 use React\EventLoop\Loop;
 use \Exception;
 
@@ -25,9 +24,7 @@ trait RtmpVideoHandlerTrait
          * @var $p RtmpPacket
          */
         $p = $this->currentPacket;
-        $videoFrame = VideoAnalysis::frameReader($p->payload);
-        $videoFrame->clock=$p->clock;
-
+        $videoFrame = new VideoFrame($p->payload, $p->clock);
         if ($this->videoCodec == 0) {
             $this->videoCodec = $videoFrame->codecId;
             $this->videoCodecName = $videoFrame->getVideoCodecName();
@@ -44,16 +41,16 @@ trait RtmpVideoHandlerTrait
         }
 
         switch ($videoFrame->codecId) {
-            case VideoAnalysis::VIDEO_CODEC_ID_AVC:
+            case VideoFrame::VIDEO_CODEC_ID_AVC:
                 //h264
-                $avcPack = AVC::packetRead($videoFrame->data);
-                if ($avcPack->avcPacketType === AVC::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
+                $avcPack = $videoFrame->getAVCPacket();
+                if ($avcPack->avcPacketType === AVCPacket::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
                     $this->isAVCSequence = true;
                     $this->avcSequenceHeaderFrame = $videoFrame;
-                    $specificConfig = AVC::readAVCSpecificConfig($avcPack->data);
+                    $specificConfig = $avcPack->getAVCSequenceParameterSet();
                     $this->videoWidth = $specificConfig->width;
                     $this->videoHeight = $specificConfig->height;
-                    $this->videoProfileName = AVC::getAVCProfileName($specificConfig->profile);
+                    $this->videoProfileName = $specificConfig->getAVCProfileName();
                     $this->videoLevel = $specificConfig->level;
                 }
 
@@ -61,6 +58,8 @@ trait RtmpVideoHandlerTrait
         }
         //数据处理与数据发送
         $this->emit('on_frame', [$videoFrame]);
+        //销毁
+        $videoFrame->destroy();
 
     }
 }

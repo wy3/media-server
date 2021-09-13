@@ -79,6 +79,8 @@ trait RtmpTrait
             }
         }
 
+        $this->emit('on_close');
+
         logger()->info("[rtmp disconnect] id={$this->id}");
 
 

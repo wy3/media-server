@@ -8,25 +8,70 @@
 
 namespace MediaServer\MediaReader;
 
-class AudioFrame
+use MediaServer\Utils\BinaryStream;
+
+class AudioFrame extends BinaryStream
 {
+    const AUDIO_CODEC_NAME = [
+        '',
+        'ADPCM',
+        'MP3',
+        'LinearLE',
+        'Nellymoser16',
+        'Nellymoser8',
+        'Nellymoser',
+        'G711A',
+        'G711U',
+        '',
+        'AAC',
+        'Speex',
+        '',
+        'OPUS',
+        'MP3-8K',
+        'DeviceSpecific',
+        'Uncompressed'
+    ];
+
+    const AUDIO_SOUND_RATE = [
+        5512, 11025, 22050, 44100
+    ];
+
+
+    const SOUND_FORMAT_AAC = 10;
 
     public $soundFormat;
     public $soundRate;
     public $soundSize;
     public $soundType;
-    public $data;
-    public $rawData='';
-    public $clock=0;
+    public $timestamp = 0;
+
+
+    public function __construct($data, $timestamp = 0)
+    {
+        parent::__construct($data);
+        $this->timestamp = $timestamp;
+        $firstByte = $this->readTinyInt();
+        $this->soundFormat = $firstByte >> 4;
+        $this->soundRate = $firstByte >> 2 & 3;
+        $this->soundSize = $firstByte >> 1 & 1;
+        $this->soundType = $firstByte & 1;
+
+    }
+
+    public function __toString()
+    {
+        return $this->dump();
+    }
+
 
     public function getAudioCodecName()
     {
-        return AudioAnalysis::AUDIO_CODEC_NAME[$this->soundFormat];
+        return self::AUDIO_CODEC_NAME[$this->soundFormat];
     }
 
     public function getAudioSamplerate()
     {
-        $rate = AudioAnalysis::AUDIO_SOUND_RATE[$this->soundRate];
+        $rate = self::AUDIO_SOUND_RATE[$this->soundRate];
         switch ($this->soundFormat) {
             case 4:
                 $rate = 16000;
@@ -44,18 +89,27 @@ class AudioFrame
         return $rate;
     }
 
+    /**
+     * @var AACPacket
+     */
+    protected $aacPacket;
 
     /**
-     * @param $args
-     * @return AudioFrame
+     * @return AACPacket
      */
-    public static function create($args)
+    public function getAACPacket()
     {
-        $f = new self();
-        foreach ($args as $k => $v) {
-            $f->$k = $v;
+        if (!$this->aacPacket) {
+            $this->aacPacket = new AACPacket($this);
         }
-        return $f;
+
+        return $this->aacPacket;
+    }
+
+
+    public function destroy()
+    {
+        $this->aacPacket = null;
     }
 
 }

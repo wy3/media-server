@@ -94,7 +94,7 @@ trait RtmpPlayerTrait
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
         $packet->chunkStreamId = RtmpChunk::CHANNEL_DATA;
         $packet->type = RtmpPacket::TYPE_DATA;
-        $packet->payload = $metaDataFrame->rawData;
+        $packet->payload = (string)$metaDataFrame;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
         $chunks = $this->rtmpChunksCreate($packet);
@@ -111,8 +111,8 @@ trait RtmpPlayerTrait
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
         $packet->chunkStreamId = RtmpChunk::CHANNEL_AUDIO;
         $packet->type = RtmpPacket::TYPE_AUDIO;
-        $packet->payload = $audioFrame->rawData;
-        $packet->timestamp=$audioFrame->clock;
+        $packet->payload = (string)$audioFrame;
+        $packet->timestamp = $audioFrame->timestamp;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
         $chunks = $this->rtmpChunksCreate($packet);
@@ -129,10 +129,10 @@ trait RtmpPlayerTrait
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
         $packet->chunkStreamId = RtmpChunk::CHANNEL_VIDEO;
         $packet->type = RtmpPacket::TYPE_VIDEO;
-        $packet->payload = $videoFrame->rawData;
+        $packet->payload = (string)$videoFrame;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
-        $packet->timestamp=$videoFrame->clock;
+        $packet->timestamp = $videoFrame->timestamp;
         $chunks = $this->rtmpChunksCreate($packet);
         $this->write($chunks);
     }

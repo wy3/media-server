@@ -36,11 +36,10 @@ trait RtmpDataHandlerTrait
                 }
 
                 $this->isMetaData = true;
-                $metaDataFrame = new MetaDataFrame();
-                $metaDataFrame->rawData = RtmpAMF::rtmpDATAAmf0Creator([
+                $metaDataFrame = new MetaDataFrame(RtmpAMF::rtmpDATAAmf0Creator([
                     'cmd' => 'onMetaData',
                     'dataObj' => $dataMessage['dataObj']
-                ]);
+                ]));
                 $this->metaDataFrame = $metaDataFrame;
 
                 $this->emit('on_frame',[$metaDataFrame]);

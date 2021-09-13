@@ -10,22 +10,45 @@ namespace MediaServer\MediaReader;
 
 
 
+use MediaServer\Utils\BinaryStream;
+
 class AVCPacket
 {
+    const AVC_PACKET_TYPE_SEQUENCE_HEADER = 0;
+    const AVC_PACKET_TYPE_NALU = 1;
+    const AVC_PACKET_TYPE_END_SEQUENCE = 2;
+
+
+
     public $avcPacketType;
     public $compositionTime;
-    public $data;
+    public $stream;
 
     /**
-     * @param $args
-     * @return AVCPacket
+     * AVCPacket constructor.
+     * @param $stream BinaryStream
      */
-    public static function create($args)
+    public function __construct($stream)
     {
-        $f = new self();
-        foreach ($args as $k => $v) {
-            $f->$k = $v;
+        $this->stream=$stream;
+        $this->avcPacketType=$stream->readTinyInt();
+        $this->compositionTime=$stream->readInt24();
+    }
+
+
+    /**
+     * @var AACSequenceParameterSet
+     */
+    protected $avcSequenceParameterSet;
+
+    /**
+     * @return AVCSequenceParameterSet
+     */
+    public function getAVCSequenceParameterSet(){
+
+        if(!$this->avcSequenceParameterSet){
+            $this->avcSequenceParameterSet=new AVCSequenceParameterSet($this->stream->readRaw());
         }
-        return $f;
+        return $this->avcSequenceParameterSet;
     }
 }

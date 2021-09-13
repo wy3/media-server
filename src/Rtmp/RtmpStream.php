@@ -180,6 +180,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $isPlaying = false;
 
 
+
     /**
      * PlayerStream constructor.
      * @param $con ConnectionInterface
@@ -195,6 +196,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         $con->on('close', [$this, 'onStreamClose']);
         $con->on('data', [$this, 'onStreamData']);
         $this->isStarting = true;
+
     }
 
     public function onStreamData($data)

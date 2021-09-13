@@ -36,5 +36,8 @@ $server->on('connection', function (React\Socket\ConnectionInterface $connection
     logger()->info("connection" . $connection->getRemoteAddress() . " connected . ");
     $rtmpStream=new \MediaServer\Rtmp\RtmpStream($connection);
 });
+Loop::addPeriodicTimer(1,function(){
+    logger()->info("[memory] memory:".memory_get_usage());
+});
 logger()->info("server " . $server->getAddress() . " start . ");
 Loop::run();
