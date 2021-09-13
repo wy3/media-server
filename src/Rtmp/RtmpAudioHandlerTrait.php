@@ -50,7 +50,7 @@ trait RtmpAudioHandlerTrait
 
             } else {
                 //音频关键帧缓存
-                $this->gopCacheQueue[] = &$tag;
+               // $this->gopCacheQueue[] = &$tag;
             }
         }
 

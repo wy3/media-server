@@ -124,7 +124,10 @@ trait RtmpPacketTrait
                 if ($p->isReady()) {
                     //开始读取下一个包
                     $this->chunkState = RtmpChunk::CHUNK_STATE_BEGIN;
+
+
                     $this->rtmpHandler($p);
+
                     //当前包已经读取完成数据，释放当前包
                     $p->free();
                 } elseif (0 === $p->bytesRead % $this->inChunkSize) {

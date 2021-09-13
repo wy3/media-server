@@ -16,6 +16,6 @@ trait RtmpEventHandlerTrait
 {
     public function rtmpEventHandler()
     {
-        logger()->info("rtmpEventHandler");
+        //logger()->info("rtmpEventHandler");
     }
 }

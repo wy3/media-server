@@ -142,6 +142,8 @@ trait RtmpPlayerTrait
      */
     public function playClose()
     {
+        $this->stop();
+        $this->input->close();
     }
 
     /**

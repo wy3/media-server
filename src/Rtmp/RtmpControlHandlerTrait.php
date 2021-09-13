@@ -35,6 +35,6 @@ trait RtmpControlHandlerTrait
                 break;
         }
 
-        logger()->info("rtmpControlHandler use:" . ((microtime(true) - $b) * 1000) . 'ms');
+        //logger()->info("rtmpControlHandler use:" . ((microtime(true) - $b) * 1000) . 'ms');
     }
 }

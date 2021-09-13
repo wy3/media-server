@@ -36,8 +36,13 @@ $server->on('connection', function (React\Socket\ConnectionInterface $connection
     logger()->info("connection" . $connection->getRemoteAddress() . " connected . ");
     $rtmpStream=new \MediaServer\Rtmp\RtmpStream($connection);
 });
-Loop::addPeriodicTimer(1,function(){
+Loop::addPeriodicTimer(5,function(){
     logger()->info("[memory] memory:".memory_get_usage());
+    $playCount=0;
+    foreach (MediaServer::$playerStream as $g){
+        $playCount+=count($g);
+    }
+    logger()->info("[media server] publisher:".count(MediaServer::$publishStream)." player:".$playCount);
 });
 logger()->info("server " . $server->getAddress() . " start . ");
 Loop::run();

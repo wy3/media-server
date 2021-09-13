@@ -350,7 +350,7 @@ trait RtmpInvokeHandlerTrait
     {
 
         $currentTimestamp = timestamp() - $this->startTimestamp;
-        logger()->debug("send ping time:" . $currentTimestamp);
+        //logger()->debug("send ping time:" . $currentTimestamp);
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
         $packet->chunkStreamId = RtmpChunk::CHANNEL_PROTOCOL;

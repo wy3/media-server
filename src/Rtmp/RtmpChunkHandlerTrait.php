@@ -99,6 +99,7 @@ trait RtmpChunkHandlerTrait
                     break;
                 }
             case RtmpChunk::CHUNK_STATE_CHUNK_READY:
+
                 if (false === $this->onPacketHandler()) {
                     break;
                 }

@@ -120,7 +120,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     /**
      * @var int ping interval
      */
-    public $pingTime = 10;
+    public $pingTime = 60;
     public $bitrateCache;
 
 
@@ -180,7 +180,6 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $isPlaying = false;
 
 
-
     /**
      * PlayerStream constructor.
      * @param $con ConnectionInterface
@@ -197,13 +196,26 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         $con->on('data', [$this, 'onStreamData']);
         $this->isStarting = true;
 
+        Loop::addPeriodicTimer(5,function(){
+            $avgTime=$this->frameTimeCount/($this->frameCount?:1);
+            $avgPack=$this->frameCount/5;
+            $packPs=(1/($avgTime?:1));
+            $s=$packPs/$avgPack;
+            $this->frameCount=0;
+            $this->frameTimeCount=0;
+            logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
+        });
     }
+
+    public $frameCount=0;
+    public $frameTimeCount=0;
 
     public function onStreamData($data)
     {
         //若干秒后没有收到数据断开
-
+        $b=microtime(true);
         $this->buffer .= $data;
+
         if ($this->handshakeState < RtmpHandshake::RTMP_HANDSHAKE_C2) {
             $this->onHandShake();
         }
@@ -222,7 +234,10 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
                 $this->sendACK($this->inAckSize);
             }
         }
+        $this->frameTimeCount+=microtime(true)-$b;
+        $this->frameCount++;
 
+        //logger()->info("[rtmp on data] per sec handler times: ".(1/($end?:1)));
     }
 
 
@@ -250,6 +265,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     public function __destruct()
     {
+
         // TODO: Implement __destruct() method.
         logger()->info("[RtmpStream __destruct] id={$this->id}");
     }
