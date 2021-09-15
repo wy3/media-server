@@ -12,6 +12,7 @@ use MediaServer\MediaReader\AVCPacket;
 use MediaServer\MediaReader\VideoFrame;
 use React\EventLoop\Loop;
 use \Exception;
+use Workerman\Timer;
 
 trait RtmpVideoHandlerTrait
 {
@@ -34,9 +35,9 @@ trait RtmpVideoHandlerTrait
         if ($this->videoFps === 0) {
             //当前帧为第0
             if ($this->videoCount++ === 0) {
-                Loop::addTimer(5, function () {
+                Timer::add(5, function () {
                     $this->videoFps = ceil($this->videoCount / 5);
-                });
+                }, [], false);
             }
         }
 
@@ -52,6 +53,21 @@ trait RtmpVideoHandlerTrait
                     $this->videoHeight = $specificConfig->height;
                     $this->videoProfileName = $specificConfig->getAVCProfileName();
                     $this->videoLevel = $specificConfig->level;
+                }
+                if ($this->isAVCSequence) {
+                    if ($videoFrame->frameType === VideoFrame::VIDEO_FRAME_TYPE_KEY_FRAME
+                        &&
+                        $avcPack->avcPacketType === AVCPacket::AVC_PACKET_TYPE_NALU) {
+                        $this->gopCacheQueue = [];
+                    }
+
+                    if ($videoFrame->frameType === VideoFrame::VIDEO_FRAME_TYPE_KEY_FRAME
+                        &&
+                        $avcPack->avcPacketType === AVCPacket::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
+                        //skip avc sequence
+                    } else {
+                        $this->gopCacheQueue[] = $videoFrame;
+                    }
                 }
 
                 break;

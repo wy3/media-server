@@ -20,8 +20,8 @@ trait RtmpInvokeHandlerTrait
 {
 
     /**
-     * @throws Exception
      * @return mixed | void
+     * @throws Exception
      */
     public function rtmpInvokeHandler()
     {
@@ -88,7 +88,8 @@ trait RtmpInvokeHandlerTrait
 
 
         $this->startTimestamp = timestamp();
-        $this->pingInterval = Loop::addPeriodicTimer($this->pingTime, function () {
+
+        $this->pingInterval = Timer::add($this->pingTime, function () {
             $this->sendPingRequest();
         });
 
@@ -161,19 +162,19 @@ trait RtmpInvokeHandlerTrait
             }
         }
 
-        if(MediaServer::hasPublishStream($this->publishStreamPath)){
+        if (MediaServer::hasPublishStream($this->publishStreamPath)) {
             //publishStream already
             logger()->info("[rtmp publish] Already has a stream. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
             $this->reject();
             $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
-        }else if($this->isPublishing){
+        } else if ($this->isPublishing) {
             logger()->info("[rtmp publish] NetConnection is publishing. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-            $this->sendStatusMessage( $this->publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
-        }else{
+            $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
+        } else {
 
             MediaServer::addPublish($this);
 
-            $this->isPublishing=true;
+            $this->isPublishing = true;
             $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
 
             //emit on on_publish_ready
@@ -187,7 +188,7 @@ trait RtmpInvokeHandlerTrait
      * @param $isPromise bool
      * @throws Exception
      */
-    public function onPlay($invokeMessage,$isPromise=false)
+    public function onPlay($invokeMessage, $isPromise = false)
     {
         if (!$isPromise) {
             logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
@@ -198,7 +199,7 @@ trait RtmpInvokeHandlerTrait
             $parse = explode('?', $invokeMessage['streamName']);
             $this->playStreamPath = '/' . $this->appName . '/' . $parse[0];
             parse_str($parse[1] ?? '', $this->playArgs);
-            $this->playStreamId =  $this->currentPacket->streamId;
+            $this->playStreamId = $this->currentPacket->streamId;
         }
 
         //auth check
@@ -223,9 +224,9 @@ trait RtmpInvokeHandlerTrait
             }
         }
 
-        if($this->isPlaying){
+        if ($this->isPlaying) {
             $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.Play.BadConnection', 'Connection already playing');
-        }else{
+        } else {
             $this->respondPlay();
         }
 

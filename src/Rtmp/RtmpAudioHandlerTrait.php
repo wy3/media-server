@@ -46,12 +46,16 @@ trait RtmpAudioHandlerTrait
                 //logger()->info("publisher {path} recv acc sequence.", ['path' => $this->pathIndex]);
             }
 
-            if ($aacPack->aacPacketType == AACPacket::AAC_PACKET_TYPE_SEQUENCE_HEADER) {
+            if ($this->isAACSequence) {
+                if ($aacPack->aacPacketType == AACPacket::AAC_PACKET_TYPE_SEQUENCE_HEADER) {
 
-            } else {
-                //音频关键帧缓存
-               // $this->gopCacheQueue[] = &$tag;
+                } else {
+                    //音频关键帧缓存
+                    $this->gopCacheQueue[] = $audioFrame;
+                }
             }
+
+
         }
 
 

@@ -11,6 +11,7 @@ namespace MediaServer\Rtmp;
 
 use React\EventLoop\Loop;
 use \Exception;
+use Workerman\Timer;
 
 trait RtmpTrait
 {
@@ -83,7 +84,7 @@ trait RtmpTrait
             }
 
             if ($this->pingInterval) {
-                Loop::cancelTimer($this->pingInterval);
+                Timer::del($this->pingInterval);
                 $this->pingInterval = null;
             }
         }

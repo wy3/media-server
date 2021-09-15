@@ -21,6 +21,10 @@ trait RtmpPacketTrait
 
     public function onPacketHandler()
     {
+        /**
+         * @var $stream BinaryStream
+         */
+        $stream = $this->buffer;
 
 
         /** @var RtmpPacket $p */
@@ -28,29 +32,27 @@ trait RtmpPacketTrait
         switch ($p->state) {
             case RtmpPacket::PACKET_STATE_MSG_HEADER:
                 //base header + message header
-                if (isset($this->buffer[$p->msgHeaderLen - 1])) {
-                    $data = substr($this->buffer, 0, $p->msgHeaderLen);
-                    $bin = new BinaryStream($data);
+                if ($stream->has($p->msgHeaderLen)) {
                     switch ($p->chunkType) {
                         case RtmpChunk::CHUNK_TYPE_3:
                             // all same
                             break;
                         case RtmpChunk::CHUNK_TYPE_2:
                             //new timestamp delta, 3bytes
-                            $p->timestamp = $bin->readInt24();
+                            $p->timestamp = $stream->readInt24();
                             break;
                         case RtmpChunk::CHUNK_TYPE_1:
                             //new timestamp delta, length,type 7bytes
-                            $p->timestamp = $bin->readInt24();
-                            $p->length = $bin->readInt24();
-                            $p->type = $bin->readTinyInt();
+                            $p->timestamp = $stream->readInt24();
+                            $p->length = $stream->readInt24();
+                            $p->type = $stream->readTinyInt();
                             break;
                         case RtmpChunk::CHUNK_TYPE_0:
                             //all different, 11bytes
-                            $p->timestamp = $bin->readInt24();
-                            $p->length = $bin->readInt24();
-                            $p->type = $bin->readTinyInt();
-                            $p->streamId = $bin->readInt32LE();
+                            $p->timestamp = $stream->readInt24();
+                            $p->length = $stream->readInt24();
+                            $p->type = $stream->readTinyInt();
+                            $p->streamId = $stream->readInt32LE();
                             break;
                     }
 
@@ -61,25 +63,18 @@ trait RtmpPacketTrait
 
 
                     $p->state = RtmpPacket::PACKET_STATE_EXT_TIMESTAMP;
-                    $this->buffer = substr($this->buffer, $p->msgHeaderLen);
-
 
                     //logger()->info("chunk header fin");
-                    //var_dump($p);
                 } else {
                     //长度不够，等待下个数据包
                     return false;
                 }
             case RtmpPacket::PACKET_STATE_EXT_TIMESTAMP:
-
                 if ($p->timestamp === RtmpPacket::MAX_TIMESTAMP) {
-                    if (isset($this->buffer[3])) {
-                        list(, $extTimestamp) = unpack("N", substr($this->buffer, 0, 4));
-
+                    if ($stream->has(4)) {
+                        $extTimestamp = $stream->readInt32();
                         logger()->info("chunk has ext timestamp {$extTimestamp}");
-
                         $p->hasExtTimestamp = true;
-                        $this->buffer = substr($this->buffer, 4);
                     } else {
                         //当前长度不够，等待下个数据包
                         return false;
@@ -108,15 +103,14 @@ trait RtmpPacketTrait
 
 
                 if ($size > 0) {
-                    if (isset($this->buffer[$size - 1])) {
+                    if ($stream->has($size)) {
                         //数据拷贝
-                        $p->payload .= substr($this->buffer, 0, $size);
+                        $p->payload .= $stream->readRaw($size);
                         $p->bytesRead += $size;
-                        $this->buffer = substr($this->buffer, $size);
                         //logger()->info("packet csid {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead}");
                     } else {
                         //长度不够，等待下个数据包
-                        //logger()->info("packet csid  {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead} buffer " . strlen($this->buffer) . " not enough.");
+                        //logger()->info("packet csid  {$p->chunkStreamId} stream {$p->streamId} payload  size {$size} payload size: {$p->length} bytesRead {$p->bytesRead} buffer ") . " not enough.");
                         return false;
                     }
                 }
@@ -124,7 +118,6 @@ trait RtmpPacketTrait
                 if ($p->isReady()) {
                     //开始读取下一个包
                     $this->chunkState = RtmpChunk::CHUNK_STATE_BEGIN;
-
 
                     $this->rtmpHandler($p);
 
@@ -135,7 +128,6 @@ trait RtmpPacketTrait
                     $this->chunkState = RtmpChunk::CHUNK_STATE_BEGIN;
                 }
         }
-
 
 
     }

@@ -8,19 +8,13 @@ namespace MediaServer\Rtmp;
 
 
 use Evenement\EventEmitter;
-use Evenement\EventEmitterInterface;
-use Exception;
 use MediaServer\MediaReader\AudioFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
-use React\EventLoop\Loop;
-use React\EventLoop\TimerInterface;
-use React\Socket\ConnectionInterface;
-use React\Socket\Connector;
-use React\Stream\DuplexStreamInterface;
-use function ord;
+use MediaServer\Utils\BinaryStream;
+use Workerman\Connection\ConnectionInterface;
 
 
 /**
@@ -39,16 +33,10 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
 
     /**
-     * @var EventEmitter|DuplexStreamInterface
+     * @var ConnectionInterface
      */
     private $input;
 
-
-    protected $buffer = "";
-    /**
-     * @var int 计划读取的数据长度
-     */
-    protected $wantedRead = 1;
 
     /**
      * @var int handshake state
@@ -62,11 +50,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $port;
 
 
-    public $currentChunk = null;
-
-
     protected $chunkHeaderLen = 0;
-    protected $chunkCID;
     protected $chunkState;
 
     /**
@@ -90,8 +74,6 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     protected $currentPacket;
 
 
-    public $connectTime;
-
     public $startTimestamp;
 
     public $objectEncoding;
@@ -113,7 +95,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
 
     /**
-     * @var TimerInterface
+     * @var int
      */
     public $pingInterval;
 
@@ -179,6 +161,14 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $isPublishing = false;
     public $isPlaying = false;
 
+    public $enableGop = true;
+    public $gopCacheQueue = [];
+
+
+    /**
+     * @var BinaryStream
+     */
+    protected $buffer;
 
     /**
      * PlayerStream constructor.
@@ -191,30 +181,35 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         $this->input = $con;
         $this->ip = $con->getRemoteAddress();
         $this->handshakeState = RtmpHandshake::RTMP_HANDSHAKE_UNINIT;
-        $con->on('error', [$this, 'onStreamError']);
-        $con->on('close', [$this, 'onStreamClose']);
-        $con->on('data', [$this, 'onStreamData']);
-        $this->isStarting = true;
+        $con->onMessage = [$this, 'onStreamData'];
+        $con->onError = [$this, 'onStreamError'];
+        $con->onClose = [$this, 'onStreamClose'];
 
-        Loop::addPeriodicTimer(5,function(){
-            $avgTime=$this->frameTimeCount/($this->frameCount?:1);
-            $avgPack=$this->frameCount/5;
-            $packPs=(1/($avgTime?:1));
-            $s=$packPs/$avgPack;
-            $this->frameCount=0;
-            $this->frameTimeCount=0;
-            logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
-        });
+        $this->isStarting = true;
+        $this->buffer = new BinaryStream();
+
+        /*        Loop::addPeriodicTimer(5,function(){
+                    $avgTime=$this->frameTimeCount/($this->frameCount?:1);
+                    $avgPack=$this->frameCount/5;
+                    $packPs=(1/($avgTime?:1));
+                    $s=$packPs/$avgPack;
+                    $this->frameCount=0;
+                    $this->frameTimeCount=0;
+                    logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
+                });*/
     }
 
-    public $frameCount=0;
-    public $frameTimeCount=0;
+    public $frameCount = 0;
+    public $frameTimeCount = 0;
 
-    public function onStreamData($data)
+    public function onStreamData($con, $data)
     {
         //若干秒后没有收到数据断开
-        $b=microtime(true);
-        $this->buffer .= $data;
+        $b = microtime(true);
+
+        //存入数据
+        $this->buffer->push($data);
+
 
         if ($this->handshakeState < RtmpHandshake::RTMP_HANDSHAKE_C2) {
             $this->onHandShake();
@@ -234,8 +229,12 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
                 $this->sendACK($this->inAckSize);
             }
         }
-        $this->frameTimeCount+=microtime(true)-$b;
+        $this->frameTimeCount += microtime(true) - $b;
         $this->frameCount++;
+
+
+        //已消费数据清理
+        $this->buffer->clear();
 
         //logger()->info("[rtmp on data] per sec handler times: ".(1/($end?:1)));
     }
@@ -255,12 +254,8 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     public function write(&$data)
     {
-        return $this->input->write($data);
-    }
-
-    public function isWritable()
-    {
-        return $this->input->isWritable();
+        //return $this->input->write($data);
+        return $this->input->send($data,true);
     }
 
     public function __destruct()

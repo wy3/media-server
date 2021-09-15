@@ -35,9 +35,22 @@ class BinaryStream
         return $d;
     }
 
+
     public function dump()
     {
         return $this->_data;
+    }
+
+    public function has($len)
+    {
+        $pos = $len - 1;
+        return isset($this->_data[$this->_index + $pos]);
+    }
+
+    public function clear()
+    {
+        $this->_data = substr($this->_data, $this->_index);
+        $this->_index = 0;
     }
 
     public function begin()
@@ -48,7 +61,7 @@ class BinaryStream
 
     public function move($pos)
     {
-        $this->_index = max(array(0, min(array($pos, strlen($data)))));
+        $this->_index = max(array(0, min(array($pos, strlen($this->_data)))));
         return $this;
     }
 
@@ -102,6 +115,7 @@ class BinaryStream
         $this->_data .= $value;
         $this->_index += strlen($value);
     }
+
     //-------------------------------
     //		Reader
     //-------------------------------
@@ -118,7 +132,12 @@ class BinaryStream
 
     public function readInt16()
     {
-        return $this->read("s", 2);
+        return ($this->readTinyInt() << 8) + $this->readTinyInt();
+    }
+
+    public function readInt16LE()
+    {
+        return $this->readTinyInt() + ($this->readTinyInt() << 8);
     }
 
     public function readInt24()
@@ -152,6 +171,22 @@ class BinaryStream
         $m = unpack("$type", substr($this->_data, $this->_index, $size));
         $this->_index += $size;
         return $m[1];
+    }
+
+    //-------------------------------
+    //		Tag & rollback
+    //-------------------------------
+
+    protected $tagPos;
+
+    public function tag()
+    {
+        $this->tagPos = $this->_index;
+    }
+
+    public function rollBack()
+    {
+        $this->_index = $this->tagPos;
     }
 
 

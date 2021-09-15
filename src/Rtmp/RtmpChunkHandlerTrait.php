@@ -9,6 +9,7 @@
 namespace MediaServer\Rtmp;
 
 use \Exception;
+use MediaServer\Utils\BinaryStream;
 
 /**
  * Trait RtmpChunkHandlerTrait
@@ -22,11 +23,19 @@ trait RtmpChunkHandlerTrait
      */
     public function onChunkData()
     {
+        /**
+         * @var $stream BinaryStream
+         */
+        $stream = $this->buffer;
 
         switch ($this->chunkState) {
             case RtmpChunk::CHUNK_STATE_BEGIN:
-                if (isset($this->buffer[0])) {
-                    $header = ord($this->buffer[0]);
+                if ($stream->has(1)) {
+
+                    $stream->tag();
+                    $header = $stream->readTinyInt();
+                    $stream->rollBack();
+
                     $chunkHeaderLen = RtmpChunk::BASE_HEADER_SIZES[$header & 0x3f] ?? 1; //base header size
                     //logger()->info('base header size ' . $chunkHeaderLen);
                     $chunkHeaderLen += RtmpChunk::MSG_HEADER_SIZES[$header >> 6]; //messaege header size
@@ -34,25 +43,22 @@ trait RtmpChunkHandlerTrait
                     //base header + message header
                     $this->chunkHeaderLen = $chunkHeaderLen;
                     $this->chunkState = RtmpChunk::CHUNK_STATE_HEADER_READY;
-                    //不截断当前buffer
 
                 } else {
                     break;
                 }
             case RtmpChunk::CHUNK_STATE_HEADER_READY:
-                if (isset($this->buffer[$this->chunkHeaderLen - 1])) {
+                if ($stream->has($this->chunkHeaderLen)) {
                     //get base header + message header
-                    //$this->buffer = substr($this->buffer, $this->chunkHeaderLen);
-                    //logger()->info(bin2hex($this->buffer[0]));
-                    $header = ord($this->buffer[0]);
+                    $header = $stream->readTinyInt();
                     $fmt = $header >> 6;
                     switch ($csId = $header & 0x3f) {
                         case 0:
-                            $csId = ord($this->buffer[1]) + 64;
+                            $csId = $stream->readTinyInt() + 64;
                             break;
                         case 1:
                             //小端
-                            $csId = 64 + ord($this->buffer[2]) + (ord($this->buffer[3]) << 8);
+                            $csId = 64 + $stream->readInt16LE();
                             break;
                     }
 
@@ -83,10 +89,6 @@ trait RtmpChunkHandlerTrait
                     $this->currentPacket = $p;
                     $this->chunkState = RtmpChunk::CHUNK_STATE_CHUNK_READY;
 
-
-                    //截取base header
-                    $this->buffer = substr($this->buffer, $p->baseHeaderLen);
-
                     if ($p->chunkType === RtmpChunk::CHUNK_TYPE_3) {
                         //直接进入判断是否需要读取扩展时间戳的流程
                         $p->state = RtmpPacket::PACKET_STATE_EXT_TIMESTAMP;
@@ -99,7 +101,6 @@ trait RtmpChunkHandlerTrait
                     break;
                 }
             case RtmpChunk::CHUNK_STATE_CHUNK_READY:
-
                 if (false === $this->onPacketHandler()) {
                     break;
                 }
@@ -111,7 +112,6 @@ trait RtmpChunkHandlerTrait
 
 
     }
-
 
 
     /**
@@ -202,7 +202,6 @@ trait RtmpChunkHandlerTrait
     }
 
 
-
     public function sendACK($size)
     {
         $buf = hex2bin('02000000000004030000000000000000');
@@ -231,8 +230,6 @@ trait RtmpChunkHandlerTrait
         $buf = substr_replace($buf, pack('N', $size), 12);
         $this->write($buf);
     }
-
-
 
 
 }

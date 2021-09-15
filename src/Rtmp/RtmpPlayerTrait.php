@@ -63,6 +63,11 @@ trait RtmpPlayerTrait
         }
 
         //gop 发送
+        if ($this->enableGop) {
+            foreach ($publishStream->gopCacheQueue as &$frame) {
+                $this->frameSend($frame);
+            }
+        }
 
         $this->isPlayerIdling = false;
         $this->isPlaying = true;
