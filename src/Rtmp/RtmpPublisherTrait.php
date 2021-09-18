@@ -52,4 +52,12 @@ trait RtmpPublisherTrait
         return $this->metaDataFrame;
     }
 
+    public function hasAudio(){
+        return $this->isAACSequence();
+    }
+
+    public function hasVideo(){
+        return $this->isAVCSequence();
+    }
+
 }

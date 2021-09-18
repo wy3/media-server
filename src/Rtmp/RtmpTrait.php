@@ -11,7 +11,6 @@ namespace MediaServer\Rtmp;
 
 use React\EventLoop\Loop;
 use \Exception;
-use Workerman\Timer;
 
 trait RtmpTrait
 {
@@ -83,9 +82,9 @@ trait RtmpTrait
                 $this->onDeleteStream(['streamId' => $this->publishStreamId]);
             }
 
-            if ($this->pingInterval) {
-                Timer::del($this->pingInterval);
-                $this->pingInterval = null;
+            if ($this->pingTimer) {
+                Loop::cancelTimer($this->pingTimer);
+                $this->pingTimer = null;
             }
         }
 

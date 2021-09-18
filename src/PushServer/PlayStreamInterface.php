@@ -45,4 +45,22 @@ interface PlayStreamInterface extends EventEmitterInterface
      */
     public function getPlayPath();
 
+    /**
+     * 是否启用音频
+     * @return bool
+     */
+    public function enableAudio();
+
+    /**
+     * 是否启用视频
+     * @return bool
+     */
+    public function enableVideo();
+
+
+    /**
+     * 是否启用gop，关闭能降低延迟
+     * @return bool
+     */
+    public function enableGop();
 }

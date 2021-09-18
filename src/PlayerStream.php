@@ -52,7 +52,7 @@ class PlayerStream extends EventEmitter
      * @param $input EventEmitter|ReadableStreamInterface
      * @param $pathIndex string
      */
-    public function __construct($input, $pathIndex)
+    public function __construct($input, string $pathIndex)
     {
         $this->input = $input;
         $this->pathIndex = $pathIndex;

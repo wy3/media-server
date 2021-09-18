@@ -11,8 +11,6 @@ namespace MediaServer\Rtmp;
 use MediaServer\MediaReader\AVCPacket;
 use MediaServer\MediaReader\VideoFrame;
 use React\EventLoop\Loop;
-use \Exception;
-use Workerman\Timer;
 
 trait RtmpVideoHandlerTrait
 {
@@ -35,9 +33,9 @@ trait RtmpVideoHandlerTrait
         if ($this->videoFps === 0) {
             //当前帧为第0
             if ($this->videoCount++ === 0) {
-                Timer::add(5, function () {
+                Loop::addTimer(5, function () {
                     $this->videoFps = ceil($this->videoCount / 5);
-                }, [], false);
+                });
             }
         }
 
@@ -74,7 +72,7 @@ trait RtmpVideoHandlerTrait
         }
         //数据处理与数据发送
         $this->emit('on_frame', [$videoFrame]);
-        //销毁
+        //销毁AVC
         $videoFrame->destroy();
 
     }

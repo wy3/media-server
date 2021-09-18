@@ -14,6 +14,7 @@ use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
 use MediaServer\Utils\BinaryStream;
+use React\Stream\ReadableStreamInterface;
 use Workerman\Connection\ConnectionInterface;
 
 
@@ -97,7 +98,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     /**
      * @var int
      */
-    public $pingInterval;
+    public $pingTimer;
 
     /**
      * @var int ping interval
@@ -172,18 +173,19 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     /**
      * PlayerStream constructor.
-     * @param $con ConnectionInterface
+     * @param $con EventEmitter|ReadableStreamInterface
      */
-    public function __construct($con)
+    public function __construct($input)
     {
         //先随机生成个id
         $this->id = generateNewSessionID();
-        $this->input = $con;
-        $this->ip = $con->getRemoteAddress();
         $this->handshakeState = RtmpHandshake::RTMP_HANDSHAKE_UNINIT;
-        $con->onMessage = [$this, 'onStreamData'];
-        $con->onError = [$this, 'onStreamError'];
-        $con->onClose = [$this, 'onStreamClose'];
+        $this->input = $input;
+        $this->ip = '';
+
+        $input->on('data', [$this, 'onStreamData']);
+        $input->on('error', [$this, 'onStreamError']);
+        $input->on('close', [$this, 'close']);
 
         $this->isStarting = true;
         $this->buffer = new BinaryStream();
@@ -254,8 +256,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     public function write(&$data)
     {
-        //return $this->input->write($data);
-        return $this->input->send($data,true);
+        return $this->input->write($data);
     }
 
     public function __destruct()

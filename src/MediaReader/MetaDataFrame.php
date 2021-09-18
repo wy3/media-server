@@ -13,8 +13,6 @@ use MediaServer\Utils\BinaryStream;
 
 class MetaDataFrame extends BinaryStream
 {
-    public $rawData='';
-
     public function __construct(string $data = "")
     {
         parent::__construct($data);

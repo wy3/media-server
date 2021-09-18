@@ -55,4 +55,16 @@ interface PublishStreamInterface extends EventEmitterInterface
      */
     public function getAVCSequenceFrame();
 
+    /**
+     * 是否包含音频
+     * @return bool
+     */
+    public function hasAudio();
+
+    /**
+     * 是否包含视频
+     * @return mixed
+     */
+    public function hasVideo();
+
 }

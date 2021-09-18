@@ -9,6 +9,7 @@
 namespace MediaServer;
 
 
+use Channel\Server;
 use Evenement\EventEmitter;
 use Evenement\EventEmitterInterface;
 use MediaServer\FlvStreamConst as flv;
@@ -16,6 +17,8 @@ use MediaServer\PushServer\PlayStreamInterface;
 use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
 use MediaServer\Rtmp\RtmpStream;
+use Workerman\Timer;
+use Workerman\Worker;
 
 class MediaServer
 {
@@ -67,6 +70,11 @@ class MediaServer
         self::ee()->emit($event, $arguments);
     }
 
+    static function serverCenterInit()
+    {
+        $channelServer = new Server("unix://__DIR__/center");
+    }
+
 
     /**
      * @var PublishStreamInterface[]
@@ -86,7 +94,8 @@ class MediaServer
      * @param $path
      * @return PublishStreamInterface
      */
-    static public function getPublishStream($path){
+    static public function getPublishStream($path)
+    {
         return self::$publishStream[$path];
     }
 
@@ -206,7 +215,7 @@ class MediaServer
 
         //on close event
         $playerStream->on("on_close", function () use ($path, $objIndex) {
-            echo "play on close",PHP_EOL;
+            echo "play on close", PHP_EOL;
             self::delPlayerStream($path, $objIndex);
         });
 

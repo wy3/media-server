@@ -1,99 +1,163 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/9/9
- * Time: 2:06
- */
+namespace Channel;
 
-namespace MediaServer\Channel;
-
-
-use Workerman\Events\EventInterface;
+use Workerman\Protocols\Frame;
 use Workerman\Worker;
-use \Exception;
 
+/**
+ * Channel server.
+ */
 class Server
 {
-    use FrameProtocol;
+    /**
+     * Worker instance.
+     * @var Worker
+     */
+    protected $_worker = null;
 
     /**
-     * Max udp package size.
-     *
-     * @var int
+     * Queues
+     * @var Queue[]
      */
-    const MAX_UDG_PACKAGE_SIZE = 65535;
+    protected $_queues = array();
 
-    public $context;
-    public $local_socket = '';
-    public $socket;
-    public $onMessage;
+    private $ip;
 
     /**
-     * @var EventInterface
+     * Construct.
+     * @param string $ip Bind ip address or unix domain socket.
+     * Bind unix domain socket use 'unix:///tmp/channel.sock'
+     * @param int $port Tcp port to bind, only used when listen on tcp.
      */
-    public $loop;
-
-    public function __construct($loop, $local_socket, $context_option = [])
+    public function __construct($ip = '0.0.0.0', $port = 2206)
     {
-        $this->loop = $loop;
-        $this->local_socket = $local_socket;
-        $this->context = \stream_context_create($context_option);
+        if (strpos($ip, 'unix:') === false) {
+            $worker = new Worker("frame://$ip:$port");
+        } else {
+            $worker = new Worker($ip);
+            $worker->protocol = Frame::class;
+        }
+        $this->ip = $ip;
+        $worker->count = 1;
+        $worker->name = 'ChannelServer';
+        $worker->channels = array();
+        $worker->onMessage = array($this, 'onMessage') ;
+        $worker->onClose = array($this, 'onClose');
+        $this->_worker = $worker;
     }
 
     /**
-     * @throws Exception
+     * onClose
+     * @return void
      */
-    public function listen()
+    public function onClose($connection)
     {
-        $errNo = 0;
-        $errMsg = '';
-
-        // Create an Internet or Unix domain server socket.
-
-        $this->socket = \stream_socket_server($this->local_socket, $errNo, $errMsg, STREAM_SERVER_BIND);
-
-
-        if (!$this->socket) {
-            throw new Exception($errMsg);
+        if (!empty($connection->channels)) {
+	        foreach ($connection->channels as $channel) {
+		        unset($this->_worker->channels[$channel][$connection->id]);
+		        if (empty($this->_worker->channels[$channel])) {
+			        unset($this->_worker->channels[$channel]);
+		        }
+	        }
         }
 
-        // Non blocking.
-        \stream_set_blocking($this->socket, false);
-
-        $this->loop->add($this->socket, \Workerman\Events\EventInterface::EV_READ, array($this, 'acceptMsg'));
-
+        if (!empty($connection->watchs)) {
+        	foreach ($connection->watchs as $channel) {
+        		if (isset($this->_queues[$channel])) {
+        			$this->_queues[$channel]->removeWatch($connection);
+        			if ($this->_queues[$channel]->isEmpty()) {
+        				unset($this->_queues[$channel]);
+			        }
+		        }
+	        }
+        }
     }
 
     /**
-     * @param resource $socket
-     * @return mixed|void|bool
+     * onMessage.
+     * @param \Workerman\Connection\TcpConnection $connection
+     * @param string $data
      */
-    public function acceptMsg($socket)
+    public function onMessage($connection, $data)
     {
-        \set_error_handler(function () {
-        });
-
-        $recv_buffer = \stream_socket_recvfrom($socket, static::MAX_UDG_PACKAGE_SIZE, 0, $remote_address);
-        \restore_error_handler();
-        if (false === $recv_buffer) {
-            return false;
+        if(!$data)
+        {
+            return;
         }
-
-        if ($this->onMessage) {
-            try {
-                $data = self::decode($recv_buffer);
-                // Discard bad packets.
-                if ($data === false)
-                    return true;
-                \call_user_func($this->onMessage, $data);
-            } catch (\Exception $e) {
-                Worker::log($e);
-            } catch (\Error $e) {
-                Worker::log($e);
-            }
+        $worker = $this->_worker;
+        $data = unserialize($data);
+        $type = $data['type'];
+        switch($type)
+        {
+            case 'subscribe':
+                foreach($data['channels'] as $channel)
+                {
+                    $connection->channels[$channel] = $channel;
+                    $worker->channels[$channel][$connection->id] = $connection;
+                }
+                break;
+            case 'unsubscribe':
+                foreach($data['channels'] as $channel) {
+                    if (isset($connection->channels[$channel])) {
+                        unset($connection->channels[$channel]);
+                    }
+                    if (isset($worker->channels[$channel][$connection->id])) {
+                        unset($worker->channels[$channel][$connection->id]);
+                        if (empty($worker->channels[$channel])) {
+                            unset($worker->channels[$channel]);
+                        }
+                    }
+                }
+                break;
+            case 'publish':
+                foreach ($data['channels'] as $channel) {
+                    if (empty($worker->channels[$channel])) {
+                        continue;
+                    }
+                    $buffer = serialize(array('type' => 'event', 'channel' => $channel, 'data' => $data['data']))."\n";
+                    foreach ($worker->channels[$channel] as $connection) {
+                        $connection->send($buffer);
+                    }
+                }
+                break;
+            case 'watch':
+            	foreach ($data['channels'] as $channel) {
+		            $this->getQueue($channel)->addWatch($connection);
+	            }
+                break;
+            case 'unwatch':
+	            foreach ($data['channels'] as $channel) {
+		            if (isset($this->_queues[$channel])) {
+			            $this->_queues[$channel]->removeWatch($connection);
+			            if ($this->_queues[$channel]->isEmpty()) {
+				            unset($this->_queues[$channel]);
+			            }
+		            }
+	            }
+                break;
+            case 'enqueue':
+            	foreach ($data['channels'] as $channel) {
+		            $this->getQueue($channel)->enqueue($data['data']);
+	            }
+                break;
+            case 'reserve':
+				if (isset($connection->watchs)) {
+					foreach ($connection->watchs as $channel) {
+						if (isset($this->_queues[$channel])) {
+							$this->_queues[$channel]->addConsumer($connection);
+						}
+					}
+				}
+                break;
         }
     }
 
+    private function getQueue($channel)
+    {
+        if (isset($this->_queues[$channel])) {
+            return $this->_queues[$channel];
+        }
+        return ($this->_queues[$channel] = new Queue($channel));
+    }
 
 }

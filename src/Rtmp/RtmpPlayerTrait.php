@@ -26,6 +26,22 @@ trait RtmpPlayerTrait
         return $this->isPlayerIdling;
     }
 
+    public function enableAudio()
+    {
+        return true;
+    }
+
+    public function enableVideo()
+    {
+        return true;
+    }
+
+    public function enableGop()
+    {
+        return true;
+    }
+
+
 
     /**
      * 播放开始

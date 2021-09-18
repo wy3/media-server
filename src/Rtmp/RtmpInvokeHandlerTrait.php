@@ -13,8 +13,6 @@ use MediaServer\MediaServer;
 use React\EventLoop\Loop;
 use \Exception;
 use React\Promise\PromiseInterface;
-use function RingCentral\Psr7\parse_query;
-use Workerman\Timer;
 
 trait RtmpInvokeHandlerTrait
 {
@@ -89,11 +87,9 @@ trait RtmpInvokeHandlerTrait
 
         $this->startTimestamp = timestamp();
 
-        $this->pingInterval = Timer::add($this->pingTime, function () {
+        $this->pingTimer = Loop::addPeriodicTimer($this->pingTime, function () {
             $this->sendPingRequest();
         });
-
-//        $this->pingInterval=Timer::add($this->pingTime,[$this,'sendPingRequest']);
 
         $this->sendWindowACK(5000000);
         $this->setPeerBandwidth(5000000, 2);
