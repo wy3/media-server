@@ -13,8 +13,6 @@ use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\MediaServer;
 use MediaServer\PushServer\PlayStreamInterface;
-use MediaServer\Rtmp\RtmpChunk;
-use MediaServer\Rtmp\RtmpPacket;
 use function chr;
 use function ord;
 
