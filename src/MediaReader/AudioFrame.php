@@ -10,8 +10,10 @@ namespace MediaServer\MediaReader;
 
 use MediaServer\Utils\BinaryStream;
 
-class AudioFrame extends BinaryStream
+class AudioFrame extends BinaryStream implements MediaFrame
 {
+    public $FRAME_TYPE=self::AUDIO_FRAME;
+
     const AUDIO_CODEC_NAME = [
         '',
         'ADPCM',

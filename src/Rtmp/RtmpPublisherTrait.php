@@ -60,4 +60,8 @@ trait RtmpPublisherTrait
         return $this->isAVCSequence();
     }
 
+    public function getGopCacheQueue(){
+        return $this->gopCacheQueue;
+    }
+
 }

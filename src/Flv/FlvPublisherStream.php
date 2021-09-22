@@ -14,6 +14,7 @@ use Exception;
 use MediaServer\MediaReader\AACPacket;
 use MediaServer\MediaReader\AudioFrame;
 use MediaServer\MediaReader\AVCPacket;
+use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\PublishStreamInterface;
@@ -94,11 +95,14 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
      */
     public $publishPath;
 
+    /**
+     * @var MediaFrame[]
+     */
     public $gopCacheQueue = [];
 
     public function __destruct()
     {
-        logger()->info("flv stream {path} destruct", ['path' => $this->publishPath]);
+        logger()->info("publisher flv stream {path} destruct", ['path' => $this->publishPath]);
     }
 
     /**
@@ -114,7 +118,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         $this->publishPath = $path;
         $input->on('data', [$this, 'onStreamData']);
         $input->on('error', [$this, 'onStreamError']);
-        $input->on('close', [$this, 'close']);
+        $input->on('close', [$this, 'onStreamClose']);
         $this->buffer = new BinaryStream();
     }
 
@@ -130,7 +134,12 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     protected $steamStatus = self::FLV_STATE_FLV_HEADER;
 
 
-    /** @internal */
+
+    /**
+     * @param $data
+     * @throws Exception
+     * @internal
+     */
     public function onStreamData($data)
     {
         //若干秒后没有收到数据断开
@@ -158,6 +167,9 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
     }
 
+    /**
+     * @throws Exception
+     */
     public function flvTagHandler()
     {
         //若干秒后没有收到数据断开
@@ -169,7 +181,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                     $tag = new FlvTag();
                     $tag->type = $this->buffer->readTinyInt();
                     $tag->dataSize = $this->buffer->readInt24();
-                    $tag->timestamp = $this->buffer->readInt24() + $this->buffer->readTinyInt() << 24;
+                    $tag->timestamp = $this->buffer->readInt24() | $this->buffer->readTinyInt() << 24;
                     $tag->streamId = $this->buffer->readInt24();
                     $this->currentTag = $tag;
                     //进入等待 Data
@@ -199,12 +211,15 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     }
 
 
+    /**
+     * @throws Exception
+     */
     public function onTagEvent()
     {
         $tag = $this->currentTag;
         switch ($tag->type) {
             case Flv::SCRIPT_TAG:
-                $metaData = Flv::scriptFrameDataRead($tag['data']);
+                $metaData = Flv::scriptFrameDataRead($tag->data);
                 logger()->info("publisher {path} metaData: " . json_encode($metaData));
                 $this->videoWidth = $metaData['dataObj']['width'] ?? 0;
                 $this->videoHeight = $metaData['dataObj']['height'] ?? 0;
@@ -314,13 +329,17 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     }
 
 
-    /** @internal */
-    public function onStreamError(Exception $e)
+    /**
+     * @param Exception $e
+     * @internal
+     */
+    public function onStreamError(\Exception $e)
     {
-        $this->close();
+        $this->emit('on_error',[$e]);
+        $this->onStreamClose();
     }
 
-    public function close()
+    public function onStreamClose()
     {
         if ($this->closed) {
             return;
@@ -379,5 +398,9 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     public function hasVideo()
     {
         return $this->hasVideo;
+    }
+
+    public function getGopCacheQueue(){
+        return $this->gopCacheQueue;
     }
 }

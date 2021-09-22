@@ -17,6 +17,13 @@ require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/functions.php';
 
 
+$rtmpServer = new React\Socket\SocketServer('tcp://0.0.0.0:1935');
+$rtmpServer->on('connection', function (React\Socket\ConnectionInterface $connection) {
+    logger()->info("connection" . $connection->getRemoteAddress() . " connected . ");
+    $rtmpStream=new \MediaServer\Rtmp\RtmpStream($connection);
+});
+logger()->info("rtmp server start " . $rtmpServer->getAddress() . " start . ");
+
 $server = new React\Http\HttpServer(
     new React\Http\Middleware\StreamingRequestMiddleware(),
     function (Psr\Http\Message\ServerRequestInterface $request, $next) {
@@ -32,34 +39,29 @@ $server = new React\Http\HttpServer(
             case "GET":
                 $path = $request->getUri()->getPath();
 
-
-                //判断后缀是否为flv
-                $playerStream = new PlayerStream(
-                    $throughStream = new ThroughStream(),
-                    $path
-                );
+                $playerStream=new \MediaServer\Flv\FlvPlayStream($throughStream = new ThroughStream(),$path);
 
                 $disableAudio = $request->getQueryParams()['disableAudio'] ?? false;
                 if ($disableAudio) {
-                    $playerStream->enableAudio = false;
+                    $playerStream->setEnableAudio(false);
                 }
 
                 $disableVideo = $request->getQueryParams()['disableVideo'] ?? false;
                 if ($disableVideo) {
-                    $playerStream->enableVideo = false;
+                    $playerStream->setEnableVideo(false);
                 }
 
                 $disableGop = $request->getQueryParams()['disableGop'] ?? false;
                 if ($disableGop) {
-                    $playerStream->enableGop = false;
+                    $playerStream->setEnableGop(false);
                 }
 
-                Loop::addTimer(0.01, function () use ($playerStream, $path) {
-                    MediaServer::addPlayer($playerStream,
-                        $path);
+
+                Loop::futureTick(function ()use ($playerStream, $path) {
+                    MediaServer::addPlayer($playerStream);
                 });
 
-                return new React\Http\Message\Response(
+                $response= new React\Http\Message\Response(
                     200,
                     array(
                         'Cache-Control' => 'no-cache',
@@ -69,6 +71,8 @@ $server = new React\Http\HttpServer(
                     ),
                     $throughStream
                 );
+
+                return $response;
             case "POST":
                 return $next($request);
             default:
@@ -86,16 +90,14 @@ $server = new React\Http\HttpServer(
 
 
         return new React\Promise\Promise(function ($resolve, $reject) use ($bodyStream, $path) {
-            $flvReadStream = new FlvStream(
+            $flvReadStream = new \MediaServer\Flv\FlvPublisherStream(
                 $bodyStream,
                 $path
             );
-            if (MediaServer::addPublish(
-                $flvReadStream,
-                $path
-            )) {
+            //http 推流
+            if(MediaServer::addPublish($flvReadStream)) {
                 logger()->info("stream {path} created", ['path' => $path]);
-                $flvReadStream->on('end', function () use ($resolve) {
+                $flvReadStream->on('on_end', function () use ($resolve) {
                     $resolve(new Response(200));
                 });
                 $flvReadStream->on('error', function (Exception $exception) use ($resolve, &$bytes) {
@@ -125,4 +127,7 @@ $socket = new React\Socket\SocketServer('tcp://127.0.0.1:18080');
 
 $server->listen($socket);
 logger()->info("server " . $socket->getAddress() . " start . ");
+
+
+
 Loop::run();

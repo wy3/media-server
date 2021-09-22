@@ -11,8 +11,10 @@ namespace MediaServer\MediaReader;
 
 use MediaServer\Utils\BinaryStream;
 
-class VideoFrame extends BinaryStream
+class VideoFrame extends BinaryStream implements MediaFrame
 {
+    public $FRAME_TYPE=self::VIDEO_FRAME;
+
     const VIDEO_CODEC_NAME = [
         '',
         'Jpeg',

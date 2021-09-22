@@ -9,6 +9,7 @@ namespace MediaServer\Rtmp;
 
 use Evenement\EventEmitter;
 use MediaServer\MediaReader\AudioFrame;
+use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
@@ -163,6 +164,10 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $isPlaying = false;
 
     public $enableGop = true;
+
+    /**
+     * @var MediaFrame[]
+     */
     public $gopCacheQueue = [];
 
 
@@ -173,7 +178,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     /**
      * PlayerStream constructor.
-     * @param $con EventEmitter|ReadableStreamInterface
+     * @param $input EventEmitter|ReadableStreamInterface
      */
     public function __construct($input)
     {
@@ -185,7 +190,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
         $input->on('data', [$this, 'onStreamData']);
         $input->on('error', [$this, 'onStreamError']);
-        $input->on('close', [$this, 'close']);
+        $input->on('close', [$this, 'onStreamClose']);
 
         $this->isStarting = true;
         $this->buffer = new BinaryStream();
@@ -204,7 +209,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $frameCount = 0;
     public $frameTimeCount = 0;
 
-    public function onStreamData($con, $data)
+    public function onStreamData($data)
     {
         //若干秒后没有收到数据断开
         $b = microtime(true);

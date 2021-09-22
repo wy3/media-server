@@ -102,13 +102,13 @@ class MediaServer
     /**
      * @param $stream PublishStreamInterface
      */
-    static public function addPublishStream($stream)
+    static protected function addPublishStream($stream)
     {
         $path = $stream->getPublishPath();
         self::$publishStream[$path] = $stream;
     }
 
-    static public function delPublishStream($path)
+    static protected function delPublishStream($path)
     {
         unset(self::$publishStream[$path]);
     }
@@ -132,7 +132,7 @@ class MediaServer
      * @param $path
      * @param $objId
      */
-    static public function delPlayerStream($path, $objId)
+    static protected function delPlayerStream($path, $objId)
     {
         unset(self::$playerStream[$path][$objId]);
     }
@@ -140,7 +140,7 @@ class MediaServer
     /**
      * @param $playerStream PlayStreamInterface
      */
-    static public function addPlayerStream($playerStream)
+    static protected function addPlayerStream($playerStream)
     {
 
         $path = $playerStream->getPlayPath();
@@ -189,6 +189,7 @@ class MediaServer
 
         $stream->on('on_close', function () use ($path) {
             foreach (self::getPlayStreams($path) as $playStream) {
+                $playStream->emit('on_end');
                 $playStream->playClose();
             }
 
@@ -217,6 +218,7 @@ class MediaServer
         $playerStream->on("on_close", function () use ($path, $objIndex) {
             echo "play on close", PHP_EOL;
             self::delPlayerStream($path, $objIndex);
+
         });
 
         self::addPlayerStream($playerStream);

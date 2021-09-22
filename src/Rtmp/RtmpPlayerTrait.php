@@ -10,6 +10,7 @@ namespace MediaServer\Rtmp;
 
 
 use MediaServer\MediaReader\AudioFrame;
+use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\MediaServer;
@@ -26,19 +27,31 @@ trait RtmpPlayerTrait
         return $this->isPlayerIdling;
     }
 
-    public function enableAudio()
+    public function isEnableAudio()
     {
         return true;
     }
 
-    public function enableVideo()
+    public function isEnableVideo()
     {
         return true;
     }
 
-    public function enableGop()
+    public function isEnableGop()
     {
         return true;
+    }
+
+    public function setEnableAudio($status)
+    {
+    }
+
+    public function setEnableVideo($status)
+    {
+    }
+
+    public function setEnableGop($status)
+    {
     }
 
 
@@ -80,7 +93,7 @@ trait RtmpPlayerTrait
 
         //gop 发送
         if ($this->enableGop) {
-            foreach ($publishStream->gopCacheQueue as &$frame) {
+            foreach ($publishStream->getGopCacheQueue() as &$frame) {
                 $this->frameSend($frame);
             }
         }
@@ -90,23 +103,23 @@ trait RtmpPlayerTrait
     }
 
     /**
-     * @param $frame VideoFrame|AudioFrame|MetaDataFrame
+     * @param $frame MediaFrame
      * @return mixed
      */
     public function frameSend($frame)
     {
-        switch (get_class($frame)) {
-            case VideoFrame::class:
+        switch ($frame->FRAME_TYPE) {
+            case MediaFrame::VIDEO_FRAME:
                 return $this->sendVideoFrame($frame);
-            case AudioFrame::class:
+            case MediaFrame::AUDIO_FRAME:
                 return $this->sendAudioFrame($frame);
-            case MetaDataFrame::class:
+            case MediaFrame::META_FRAME:
                 return $this->sendMetaDataFrame($frame);
         }
     }
 
     /**
-     * @param $metaDataFrame MetaDataFrame
+     * @param $metaDataFrame MetaDataFrame|MediaFrame
      * @return mixed
      */
     public function sendMetaDataFrame($metaDataFrame)
@@ -123,7 +136,7 @@ trait RtmpPlayerTrait
     }
 
     /**
-     * @param $audioFrame AudioFrame
+     * @param $audioFrame AudioFrame|MediaFrame
      * @return mixed
      */
     public function sendAudioFrame($audioFrame)
@@ -141,7 +154,7 @@ trait RtmpPlayerTrait
     }
 
     /**
-     * @param $videoFrame VideoFrame
+     * @param $videoFrame VideoFrame|MediaFrame
      * @return mixed
      */
     public function sendVideoFrame($videoFrame)

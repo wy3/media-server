@@ -11,6 +11,7 @@ namespace MediaServer\PushServer;
 
 use Evenement\EventEmitterInterface;
 use MediaServer\MediaReader\AudioFrame;
+use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 
@@ -66,5 +67,11 @@ interface PublishStreamInterface extends EventEmitterInterface
      * @return mixed
      */
     public function hasVideo();
+
+    /**
+     * 获取gop
+     * @return MediaFrame[]
+     */
+    public function getGopCacheQueue();
 
 }
