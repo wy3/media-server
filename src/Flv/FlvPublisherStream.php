@@ -24,7 +24,6 @@ use React\EventLoop\Loop;
 use React\Promise\Deferred;
 use React\Promise\Promise;
 use React\Stream\ReadableStreamInterface;
-use Workerman\Timer;
 use function ord;
 
 class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
@@ -123,8 +122,6 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     }
 
 
-
-
     /**
      * @var FlvTag
      */
@@ -132,7 +129,6 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
 
     protected $steamStatus = self::FLV_STATE_FLV_HEADER;
-
 
 
     /**
@@ -230,7 +226,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
                 $this->metaDataFrame = new MetaDataFrame($tag->data);
                 $this->isMetaData = true;
-                $this->emit('on_frame', [$this->metaDataFrame]);
+                $this->emit('on_frame', [$this->metaDataFrame, $this]);
                 break;
             case Flv::VIDEO_TAG:
                 //视频数据
@@ -283,7 +279,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                 }
 
                 //数据处理与数据发送
-                $this->emit('on_frame', [$videoFrame]);
+                $this->emit('on_frame', [$videoFrame, $this]);
                 //销毁AVC
                 $videoFrame->destroy();
                 break;
@@ -321,7 +317,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
                 }
 
-                $this->emit('on_frame', [$audioFrame]);
+                $this->emit('on_frame', [$audioFrame, $this]);
                 //logger()->info("rtmpAudioHandler");
                 $audioFrame->destroy();
                 break;
@@ -335,7 +331,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
      */
     public function onStreamError(\Exception $e)
     {
-        $this->emit('on_error',[$e]);
+        $this->emit('on_error', [$e]);
         $this->onStreamClose();
     }
 
@@ -400,7 +396,8 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         return $this->hasVideo;
     }
 
-    public function getGopCacheQueue(){
+    public function getGopCacheQueue()
+    {
         return $this->gopCacheQueue;
     }
 }

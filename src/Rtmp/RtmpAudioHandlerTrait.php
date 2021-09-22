@@ -59,7 +59,7 @@ trait RtmpAudioHandlerTrait
         }
 
 
-        $this->emit('on_frame', [$audioFrame]);
+        $this->emit('on_frame', [$audioFrame, $this]);
 
         //logger()->info("rtmpAudioHandler");
 

@@ -71,7 +71,7 @@ trait RtmpVideoHandlerTrait
                 break;
         }
         //数据处理与数据发送
-        $this->emit('on_frame', [$videoFrame]);
+        $this->emit('on_frame', [$videoFrame, $this]);
         //销毁AVC
         $videoFrame->destroy();
 

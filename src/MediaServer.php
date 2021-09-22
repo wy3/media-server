@@ -13,6 +13,7 @@ use Channel\Server;
 use Evenement\EventEmitter;
 use Evenement\EventEmitterInterface;
 use MediaServer\FlvStreamConst as flv;
+use MediaServer\MediaReader\MediaFrame;
 use MediaServer\PushServer\PlayStreamInterface;
 use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
@@ -135,6 +136,12 @@ class MediaServer
     static protected function delPlayerStream($path, $objId)
     {
         unset(self::$playerStream[$path][$objId]);
+        //一个播放设备都没有
+        if (self::hasPublishStream($path) && count(self::getPlayStreams($path)) == 0) {
+            $p_stream = self::getPublishStream($path);
+            $p_stream->removeListener('on_frame', self::class . '::publisherOnFrame');
+            $p_stream->is_on_frame = false;
+        }
     }
 
     /**
@@ -153,6 +160,28 @@ class MediaServer
 
         self::$playerStream[$path][$objIndex] = $playerStream;
 
+        if (self::hasPublishStream($path)) {
+            $p_stream = self::getPublishStream($path);
+            if (!$p_stream->is_on_frame) {
+                $p_stream->on('on_frame', self::class . '::publisherOnFrame');
+                $p_stream->is_on_frame = true;
+            }
+        }
+
+    }
+
+
+    /**
+     * @param $publisher PublishStreamInterface
+     * @param $frame MediaFrame
+     */
+    static function publisherOnFrame($frame, $publisher)
+    {
+        foreach (self::getPlayStreams($publisher->getPublishPath()) as $playStream) {
+            if (!$playStream->isPlayerIdling()) {
+                $playStream->frameSend($frame);
+            }
+        }
     }
 
 
@@ -164,6 +193,7 @@ class MediaServer
     static public function addPublish($stream)
     {
         $path = $stream->getPublishPath();
+        $stream->is_on_frame = false;
 
         $stream->on('on_publish_ready', function () use ($path) {
             foreach (self::getPlayStreams($path) as $playStream) {
@@ -173,23 +203,14 @@ class MediaServer
             }
         });
 
-
-        /**
-         * 触发一个包
-         */
-        $stream->on('on_frame', function ($frame) use ($path) {
-            //一个flv tag
-            foreach (self::getPlayStreams($path) as $playStream) {
-                if (!$playStream->isPlayerIdling()) {
-                    $playStream->frameSend($frame);
-                }
-            }
-        });
+        if (count(self::getPlayStreams($path)) > 0) {
+            $stream->on('on_frame', self::class . '::publisherOnFrame');
+            $stream->is_on_frame = true;
+        }
 
 
         $stream->on('on_close', function () use ($path) {
             foreach (self::getPlayStreams($path) as $playStream) {
-                $playStream->emit('on_end');
                 $playStream->playClose();
             }
 

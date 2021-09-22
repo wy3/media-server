@@ -14,14 +14,6 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
     );
 
     public static $prefixLengthsPsr4 = array (
-        'W' => 
-        array (
-            'Workerman\\' => 10,
-        ),
-        'S' => 
-        array (
-            'Socket\\Raw\\' => 11,
-        ),
         'R' => 
         array (
             'RingCentral\\Psr7\\' => 17,
@@ -44,14 +36,6 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         array (
             'MediaServer\\' => 12,
         ),
-        'J' => 
-        array (
-            'JamesHeinrich\\GetID3\\' => 21,
-        ),
-        'C' => 
-        array (
-            'Channel\\' => 8,
-        ),
         'A' => 
         array (
             'Apix\\Log\\' => 9,
@@ -59,14 +43,6 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
     );
 
     public static $prefixDirsPsr4 = array (
-        'Workerman\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/workerman/workerman',
-        ),
-        'Socket\\Raw\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/clue/socket-raw/src',
-        ),
         'RingCentral\\Psr7\\' => 
         array (
             0 => __DIR__ . '/..' . '/ringcentral/psr7/src',
@@ -118,14 +94,6 @@ class ComposerStaticInita60b1fd73bb710b9408177b5b139ff13
         'MediaServer\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
-        ),
-        'JamesHeinrich\\GetID3\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/james-heinrich/getid3/src',
-        ),
-        'Channel\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/workerman/channel/src',
         ),
         'Apix\\Log\\' => 
         array (

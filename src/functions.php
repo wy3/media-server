@@ -17,7 +17,7 @@ if (!function_exists('logger')) {
 
 if (!function_exists('echo_now_init')) {
     /**
-     * @return Stream
+     * @return mixed
      */
     function echo_now_init()
     {
@@ -28,7 +28,7 @@ if (!function_exists('echo_now_init')) {
 
 if (!function_exists('echo_now')) {
     /**
-     * @return Stream
+     * @return mixed
      */
     function echo_now()
     {

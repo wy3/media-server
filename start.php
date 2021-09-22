@@ -75,6 +75,10 @@ $server = new React\Http\HttpServer(
                 return $response;
             case "POST":
                 return $next($request);
+            case "HEAD":
+                return $response= new React\Http\Message\Response(
+                    200
+                );
             default:
                 logger()->warning("unknown method", ['method' => $request->getMethod(), 'path' => $request->getUri()->getPath()]);
                 return new \React\Http\Message\Response(405);

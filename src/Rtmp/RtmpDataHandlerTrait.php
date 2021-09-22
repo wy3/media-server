@@ -42,7 +42,7 @@ trait RtmpDataHandlerTrait
                 ]));
                 $this->metaDataFrame = $metaDataFrame;
 
-                $this->emit('on_frame',[$metaDataFrame]);
+                $this->emit('on_frame', [$metaDataFrame, $this]);
 
             //播放类群发onMetaData
         }

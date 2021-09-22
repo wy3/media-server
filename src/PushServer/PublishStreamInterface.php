@@ -15,6 +15,11 @@ use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 
+/**
+ * Interface PublishStreamInterface
+ * @package MediaServer\PushServer
+ * @property $is_on_frame
+ */
 interface PublishStreamInterface extends EventEmitterInterface
 {
     /**

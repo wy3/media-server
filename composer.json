@@ -14,10 +14,8 @@
         "react/http": "^1.0",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",
-        "workerman/workerman": "^4.0",
-        "workerman/channel": "^1.1",
-        "clue/socket-raw": "^1.5",
-        "james-heinrich/getid3": "2.0.x-dev"
+        "react/socket": "^1.9",
+        "react/event-loop": "^1.2"
     },
     "autoload": {
         "psr-4": { "MediaServer\\": "src" }

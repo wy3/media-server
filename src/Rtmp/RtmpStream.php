@@ -15,8 +15,8 @@ use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
 use MediaServer\Utils\BinaryStream;
+use React\Stream\DuplexStreamInterface;
 use React\Stream\ReadableStreamInterface;
-use Workerman\Connection\ConnectionInterface;
 
 
 /**
@@ -35,7 +35,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
 
     /**
-     * @var ConnectionInterface
+     * @var DuplexStreamInterface
      */
     private $input;
 
