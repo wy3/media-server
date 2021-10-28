@@ -10,27 +10,64 @@ use MediaServer\MediaServer;
 use React\EventLoop\Loop;
 use React\Stream\ThroughStream;
 use RingCentral\Psr7\Response;
+use Symfony\Component\Console\Input\ArgvInput;
+use \Symfony\Component\Console\Input\InputInterface;
+use \Symfony\Component\Console\Output\OutputInterface;
+use \Symfony\Component\Console\Input\InputDefinition;
+use Symfony\Component\Console\Input\InputOption;
+use \Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\SingleCommandApplication;
 
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/functions.php';
 
-use Symfony\Component\Console\Input\ArgvInput;
-use \Symfony\Component\Console\Input\InputInterface;
-use \Symfony\Component\Console\Output\OutputInterface;
+define("IS_WIN", DIRECTORY_SEPARATOR === '\\');
 
 
-class Main extends \Symfony\Component\Console\Command\Command
+class Main extends SingleCommandApplication
 {
+    protected static $master_pid = 0;
 
-    protected static $defaultName = 'main';
+    protected static $pid_file = __DIR__ . '/pid';
 
-    protected $is_daemon=false;
+    protected $is_daemon = false;
 
+    protected function configure()
+    {
+        $this->setDefinition(
+            new \Symfony\Component\Console\Input\InputDefinition([
+                new InputOption('daemon', 'd', null, "Run service in DAEMON mode."),
+                new InputOption('status', 'S', null, "Get service status."),
+                new InputOption('stop', 's', null, "Stop service."),
+            ]));
+    }
+
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void
+     * @throws Exception
+     */
     public function execute(InputInterface $input, OutputInterface $output)
     {
-        
+        $this->command($input);
+        $this->daemon();
+        $this->savePid();
         $this->createRtmpServer();
         $this->createHttpServer();
+        Loop::run();
+    }
+
+    public function command(InputInterface $input)
+    {
+        if ($input->getOption('status')) {
+
+            exit('status');
+        } else if ($input->getOption('stop')) {
+            exit('stop');
+        } else {
+            $this->is_daemon = $input->getOption('daemon');
+        }
     }
 
 
@@ -153,7 +190,14 @@ class Main extends \Symfony\Component\Console\Command\Command
         logger()->info("server " . $socket->getAddress() . " start . ");
     }
 
-    public function daemon(){
+    /**
+     * @throws Exception
+     */
+    public function daemon()
+    {
+        if (!$this->is_daemon || IS_WIN) {
+            return;
+        }
         \umask(0);
         $pid = \pcntl_fork();
         if (-1 === $pid) {
@@ -172,15 +216,28 @@ class Main extends \Symfony\Component\Console\Command\Command
             exit(0);
         }
     }
+
+    /**
+     * Save pid.
+     *
+     * @throws Exception
+     */
+    protected function savePid()
+    {
+        if (IS_WIN) {
+            return;
+        }
+
+        static::$master_pid = \posix_getpid();
+        if (false === \file_put_contents(static::$pid_file, static::$master_pid)) {
+            throw new Exception('can not save pid to ' . static::$pid_file);
+        }
+    }
 }
 
 
 try {
-    $app = new \Symfony\Component\Console\Application();
-    $app->add($main = new Main);
-    $app->setDefaultCommand($main->getName());
-    $app->run();
-
+    (new Main())->run();
 } catch (Throwable $e) {
 
 }
