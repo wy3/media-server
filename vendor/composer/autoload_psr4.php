@@ -6,6 +6,15 @@ $vendorDir = dirname(dirname(__FILE__));
 $baseDir = dirname($vendorDir);
 
 return array(
+    'Symfony\\Polyfill\\Php80\\' => array($vendorDir . '/symfony/polyfill-php80'),
+    'Symfony\\Polyfill\\Php73\\' => array($vendorDir . '/symfony/polyfill-php73'),
+    'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
+    'Symfony\\Polyfill\\Intl\\Normalizer\\' => array($vendorDir . '/symfony/polyfill-intl-normalizer'),
+    'Symfony\\Polyfill\\Intl\\Grapheme\\' => array($vendorDir . '/symfony/polyfill-intl-grapheme'),
+    'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
+    'Symfony\\Contracts\\Service\\' => array($vendorDir . '/symfony/service-contracts'),
+    'Symfony\\Component\\String\\' => array($vendorDir . '/symfony/string'),
+    'Symfony\\Component\\Console\\' => array($vendorDir . '/symfony/console'),
     'RingCentral\\Psr7\\' => array($vendorDir . '/ringcentral/psr7/src'),
     'React\\Stream\\' => array($vendorDir . '/react/stream/src'),
     'React\\Socket\\' => array($vendorDir . '/react/socket/src'),
@@ -18,6 +27,7 @@ return array(
     'React\\Cache\\' => array($vendorDir . '/react/cache/src'),
     'Psr\\Log\\' => array($vendorDir . '/psr/log/Psr/Log'),
     'Psr\\Http\\Message\\' => array($vendorDir . '/psr/http-message/src'),
+    'Psr\\Container\\' => array($vendorDir . '/psr/container/src'),
     'MediaServer\\' => array($baseDir . '/src'),
     'Apix\\Log\\' => array($vendorDir . '/apix/log/src'),
 );
