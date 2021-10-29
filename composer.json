@@ -12,6 +12,7 @@
         "ext-gd": "*",
         "ext-json": "*",
         "ext-pcntl":"*",
+        "ext-posix":"*",
         "react/http": "^1.0",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",

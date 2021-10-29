@@ -21,16 +21,12 @@ use Symfony\Component\Console\SingleCommandApplication;
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/functions.php';
 
-define("IS_WIN", DIRECTORY_SEPARATOR === '\\');
-
 
 class Main extends SingleCommandApplication
 {
-    protected static $master_pid = 0;
 
-    protected static $pid_file = __DIR__ . '/pid';
+    use \MediaServer\Utils\ProcessTrait;
 
-    protected $is_daemon = false;
 
     protected function configure()
     {
@@ -50,26 +46,90 @@ class Main extends SingleCommandApplication
      */
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->setMasterPidFile(__DIR__ . '/pid');
         $this->command($input);
         $this->daemon();
-        $this->savePid();
-        $this->createRtmpServer();
-        $this->createHttpServer();
-        Loop::run();
+        $this->saveMasterPid();
+        $this->setProcessTitle('php-media:master');
+        $this->fork(function () {
+
+            $this->setProcessTitle('php-media');
+            $this->createRtmpServer();
+            $this->createHttpServer();
+            $this->unbindSignal();
+            Loop::addTimer(10, function () {
+                exit(250);
+            });
+            //Loop::addSignal(SIGINT,function(){});
+            //Loop::addSignal(SIGTERM,function(){});
+            //Loop::addSignal(SIGUSR2,function(){});
+            //绑定事件
+            //Loop::run();
+        }, [], true);
+        //主进程绑定事件
+        $this->bindSignal([$this, 'masterSignalHandler']);
+        $this->runProcess();
     }
+
+    /**
+     * Master process signal handler
+     * @param $signal
+     */
+    public function masterSignalHandler($signal)
+    {
+        switch ($signal) {
+            // Stop.
+            case SIGINT:
+                echo \posix_getpid()."stop signal\n";
+                break;
+            // Graceful stop.
+            case SIGTERM:
+                echo \posix_getpid()."term signal\n";
+                break;
+            // Show status.
+            case SIGUSR2:
+                echo \posix_getpid()."status signal\n";
+                break;
+        }
+    }
+
 
     public function command(InputInterface $input)
     {
-        if ($input->getOption('status')) {
+        $master_pid = \is_file(static::$master_pid_file) ? \file_get_contents(static::$master_pid_file) : 0;
+        $master_is_alive = $master_pid && \posix_kill($master_pid, 0) && \posix_getpid() != $master_pid;
 
-            exit('status');
+        if ($input->getOption('status')) {
+            if (!$master_is_alive) {
+                echo "Service not running.";
+                exit;
+            }
+            //向master进程发送SIGUSR2 信号
+            \posix_kill($master_pid, SIGUSR2);
+            exit;
         } else if ($input->getOption('stop')) {
-            exit('stop');
+            if (!$master_is_alive) {
+                echo "Service not running.";
+                exit;
+            }
+            //向master进程发送SIGTERM 信号
+            $sig = SIGTERM;
+            $master_pid && \posix_kill($master_pid, $sig);
+
+            exit;
         } else {
+            if ($master_is_alive) {
+                echo "Service is running.";
+                exit;
+            }
             $this->is_daemon = $input->getOption('daemon');
         }
     }
 
+    public function serviceSignalHandler()
+    {
+
+    }
 
     public function createRtmpServer()
     {
@@ -190,47 +250,21 @@ class Main extends SingleCommandApplication
         logger()->info("server " . $socket->getAddress() . " start . ");
     }
 
-    /**
-     * @throws Exception
-     */
-    public function daemon()
-    {
-        if (!$this->is_daemon || IS_WIN) {
-            return;
-        }
-        \umask(0);
-        $pid = \pcntl_fork();
-        if (-1 === $pid) {
-            throw new Exception('fork fail');
-        } elseif ($pid > 0) {
-            exit(0);
-        }
-        if (-1 === \posix_setsid()) {
-            throw new Exception("setsid fail");
-        }
-        // Fork again avoid SVR4 system regain the control of terminal.
-        $pid = \pcntl_fork();
-        if (-1 === $pid) {
-            throw new Exception("fork fail");
-        } elseif (0 !== $pid) {
-            exit(0);
-        }
-    }
 
     /**
-     * Save pid.
+     * Save master pid.
      *
      * @throws Exception
      */
-    protected function savePid()
+    protected function saveMasterPid()
     {
         if (IS_WIN) {
             return;
         }
 
         static::$master_pid = \posix_getpid();
-        if (false === \file_put_contents(static::$pid_file, static::$master_pid)) {
-            throw new Exception('can not save pid to ' . static::$pid_file);
+        if (false === \file_put_contents(static::$master_pid_file, static::$master_pid)) {
+            throw new Exception('can not save pid to ' . static::$master_pid_file);
         }
     }
 }
