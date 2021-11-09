@@ -24,9 +24,5 @@
         "src/functions.php"
     ],
     "repositories":[
-       {
-            "type":"path",
-            "url":"./packages/james-heinrich/getID3"
-        }
     ]
 }
