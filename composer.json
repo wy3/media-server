@@ -11,14 +11,11 @@
         "ext-bcmath": "*",
         "ext-gd": "*",
         "ext-json": "*",
-        "ext-pcntl":"*",
-        "ext-posix":"*",
-        "react/http": "^1.0",
+        "react/http": "^1.5",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",
         "react/socket": "^1.9",
-        "react/event-loop": "^1.2",
-        "symfony/console": "^5.3"
+        "react/event-loop": "^1.2"
     },
     "autoload": {
         "psr-4": { "MediaServer\\": "src" }

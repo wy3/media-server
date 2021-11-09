@@ -239,9 +239,9 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                 if ($this->videoFps === 0) {
                     //当前帧为第0
                     if ($this->videoCount++ === 0) {
-                        Timer::add(5, function () {
+                        Loop::addPeriodicTimer(5, function () {
                             $this->videoFps = ceil($this->videoCount / 5);
-                        }, [], false);
+                        });
                     }
                 }
 
