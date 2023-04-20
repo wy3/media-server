@@ -237,9 +237,8 @@ class MediaServer
 
         //on close event
         $playerStream->on("on_close", function () use ($path, $objIndex) {
-            echo "play on close", PHP_EOL;
+            //echo "play on close", PHP_EOL;
             self::delPlayerStream($path, $objIndex);
-
         });
 
         self::addPlayerStream($playerStream);

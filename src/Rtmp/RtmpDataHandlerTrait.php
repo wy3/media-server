@@ -10,7 +10,6 @@ namespace MediaServer\Rtmp;
 
 
 use MediaServer\MediaReader\MetaDataFrame;
-use React\EventLoop\Loop;
 use \Exception;
 
 trait RtmpDataHandlerTrait

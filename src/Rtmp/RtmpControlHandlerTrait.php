@@ -9,9 +9,6 @@
 namespace MediaServer\Rtmp;
 
 
-use React\EventLoop\Loop;
-use \Exception;
-
 trait RtmpControlHandlerTrait
 {
     public function rtmpControlHandler()

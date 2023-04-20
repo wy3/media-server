@@ -10,8 +10,7 @@ namespace MediaServer\Rtmp;
 
 use MediaServer\MediaReader\AACPacket;
 use MediaServer\MediaReader\AudioFrame;
-use React\EventLoop\Loop;
-use \Exception;
+
 
 trait RtmpAudioHandlerTrait
 {

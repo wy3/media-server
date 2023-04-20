@@ -10,9 +10,9 @@ namespace MediaServer\Rtmp;
 
 
 use MediaServer\MediaServer;
-use React\EventLoop\Loop;
 use \Exception;
 use React\Promise\PromiseInterface;
+use Workerman\Timer;
 
 trait RtmpInvokeHandlerTrait
 {
@@ -87,7 +87,7 @@ trait RtmpInvokeHandlerTrait
 
         $this->startTimestamp = timestamp();
 
-        $this->pingTimer = Loop::addPeriodicTimer($this->pingTime, function () {
+        $this->pingTimer = Timer::add($this->pingTime,function(){
             $this->sendPingRequest();
         });
 
