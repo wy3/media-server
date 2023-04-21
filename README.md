@@ -31,6 +31,8 @@
 
 ```php 7.4```
 
+```composer install```
+
 ## 启动
 
 ````
