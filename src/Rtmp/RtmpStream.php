@@ -1,8 +1,5 @@
 <?php
-/**
- * Date: 2021/8/13
- * Time: 15:59
- */
+
 
 namespace MediaServer\Rtmp;
 

@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/9/12
- * Time: 3:29
- */
 
 namespace MediaServer\Utils;
 
