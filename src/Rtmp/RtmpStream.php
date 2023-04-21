@@ -1,8 +1,5 @@
 <?php
-/**
- * Date: 2021/8/13
- * Time: 15:59
- */
+
 
 namespace MediaServer\Rtmp;
 
@@ -14,9 +11,7 @@ use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
-use MediaServer\Utils\BinaryStream;
-use React\Stream\DuplexStreamInterface;
-use React\Stream\ReadableStreamInterface;
+use MediaServer\Utils\WMBufferStream;
 
 
 /**
@@ -32,13 +27,6 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         RtmpTrait,
         RtmpPublisherTrait,
         RtmpPlayerTrait;
-
-
-    /**
-     * @var DuplexStreamInterface
-     */
-    private $input;
-
 
     /**
      * @var int handshake state
@@ -138,6 +126,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $videoHeight = 0;
     public $videoFps = 0;
     public $videoCount = 0;
+    public $videoFpsCountTimer;
     public $videoProfileName = '';
     public $videoLevel = 0;
 
@@ -172,30 +161,29 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
 
     /**
-     * @var BinaryStream
+     * @var WMBufferStream
      */
     protected $buffer;
 
     /**
      * PlayerStream constructor.
-     * @param $input EventEmitter|ReadableStreamInterface
+     * @param $bufferStream WMBufferStream
      */
-    public function __construct($input)
+    public function __construct($bufferStream)
     {
         //先随机生成个id
         $this->id = generateNewSessionID();
         $this->handshakeState = RtmpHandshake::RTMP_HANDSHAKE_UNINIT;
-        $this->input = $input;
         $this->ip = '';
-
-        $input->on('data', [$this, 'onStreamData']);
-        $input->on('error', [$this, 'onStreamError']);
-        $input->on('close', [$this, 'onStreamClose']);
-
         $this->isStarting = true;
-        $this->buffer = new BinaryStream();
+        $this->buffer = $bufferStream;
+        $bufferStream->on('onData',[$this,'onStreamData']);
+        $bufferStream->on('onError',[$this,'onStreamError']);
+        $bufferStream->on('onClose',[$this,'onStreamClose']);
 
-        /*        Loop::addPeriodicTimer(5,function(){
+        /*
+         *  统计数据量代码
+                 Loop::addPeriodicTimer(5,function(){
                     $avgTime=$this->frameTimeCount/($this->frameCount?:1);
                     $avgPack=$this->frameCount/5;
                     $packPs=(1/($avgTime?:1));
@@ -209,14 +197,10 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     public $frameCount = 0;
     public $frameTimeCount = 0;
 
-    public function onStreamData($data)
+    public function onStreamData()
     {
         //若干秒后没有收到数据断开
         $b = microtime(true);
-
-        //存入数据
-        $this->buffer->push($data);
-
 
         if ($this->handshakeState < RtmpHandshake::RTMP_HANDSHAKE_C2) {
             $this->onHandShake();
@@ -225,7 +209,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         if ($this->handshakeState === RtmpHandshake::RTMP_HANDSHAKE_C2) {
             $this->onChunkData();
 
-            $this->inAckSize += strlen($data);
+            $this->inAckSize += strlen($this->buffer->recvSize());
             if ($this->inAckSize >= 0xf0000000) {
                 $this->inAckSize = 0;
                 $this->inLastAck = 0;
@@ -239,9 +223,6 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         $this->frameTimeCount += microtime(true) - $b;
         $this->frameCount++;
 
-
-        //已消费数据清理
-        $this->buffer->clear();
 
         //logger()->info("[rtmp on data] per sec handler times: ".(1/($end?:1)));
     }
@@ -259,17 +240,15 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     }
 
 
-    public function write(&$data)
+    public function write($data)
     {
-        return $this->input->write($data);
+        return $this->buffer->connection->send($data,true);
     }
 
-    public function __destruct()
+/*    public function __destruct()
     {
-
-        // TODO: Implement __destruct() method.
         logger()->info("[RtmpStream __destruct] id={$this->id}");
-    }
+    }*/
 
 
 }

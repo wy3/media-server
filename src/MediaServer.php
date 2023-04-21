@@ -1,25 +1,14 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/8/9
- * Time: 2:37
- */
 
 namespace MediaServer;
 
 
-use Channel\Server;
 use Evenement\EventEmitter;
-use Evenement\EventEmitterInterface;
-use MediaServer\FlvStreamConst as flv;
 use MediaServer\MediaReader\MediaFrame;
 use MediaServer\PushServer\PlayStreamInterface;
 use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
-use MediaServer\Rtmp\RtmpStream;
-use Workerman\Timer;
-use Workerman\Worker;
+
 
 class MediaServer
 {
@@ -69,11 +58,6 @@ class MediaServer
     static public function emit($event, array $arguments = [])
     {
         self::ee()->emit($event, $arguments);
-    }
-
-    static function serverCenterInit()
-    {
-        $channelServer = new Server("unix://__DIR__/center");
     }
 
 
@@ -237,9 +221,8 @@ class MediaServer
 
         //on close event
         $playerStream->on("on_close", function () use ($path, $objIndex) {
-            echo "play on close", PHP_EOL;
+            //echo "play on close", PHP_EOL;
             self::delPlayerStream($path, $objIndex);
-
         });
 
         self::addPlayerStream($playerStream);

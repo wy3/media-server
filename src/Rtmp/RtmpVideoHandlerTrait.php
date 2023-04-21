@@ -1,16 +1,11 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/8/23
- * Time: 0:22
- */
+
 
 namespace MediaServer\Rtmp;
 
 use MediaServer\MediaReader\AVCPacket;
 use MediaServer\MediaReader\VideoFrame;
-use React\EventLoop\Loop;
+use Workerman\Timer;
 
 trait RtmpVideoHandlerTrait
 {
@@ -33,9 +28,10 @@ trait RtmpVideoHandlerTrait
         if ($this->videoFps === 0) {
             //当前帧为第0
             if ($this->videoCount++ === 0) {
-                Loop::addTimer(5, function () {
+                $this->videoFpsCountTimer = Timer::add(5,function(){
                     $this->videoFps = ceil($this->videoCount / 5);
-                });
+                    $this->videoFpsCountTimer = null;
+                },[],false);
             }
         }
 

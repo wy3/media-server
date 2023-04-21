@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/8/9
- * Time: 2:35
- */
 
 namespace MediaServer\Flv;
 

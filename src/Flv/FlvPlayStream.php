@@ -1,8 +1,5 @@
 <?php
-/**
- * Date: 2021/9/18
- * Time: 16:30
- */
+
 
 namespace MediaServer\Flv;
 
@@ -14,15 +11,16 @@ use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\MediaServer;
 use MediaServer\PushServer\PlayStreamInterface;
+use MediaServer\Utils\WMChunkStreamInterface;
+use MediaServer\Utils\WMHttpChunkStream;
 use function chr;
 use function ord;
-use React\Stream\WritableStreamInterface;
 
 class FlvPlayStream extends EventEmitter implements PlayStreamInterface
 {
     protected $playPath = '';
     /**
-     * @var WritableStreamInterface
+     * @var WMHttpChunkStream
      */
     protected $input;
 
@@ -36,7 +34,7 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
 
     /**
      * FlvPlayStream constructor.
-     * @param $input EventEmitter
+     * @param $input WMChunkStreamInterface
      * @param $playPath
      */
     public function __construct($input, $playPath)

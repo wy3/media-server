@@ -1,10 +1,5 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/8/9
- * Time: 2:35
- */
+
 
 namespace MediaServer\Flv;
 
@@ -19,12 +14,8 @@ use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\Utils\BinaryStream;
-use Psr\Http\Message\StreamInterface;
-use React\EventLoop\Loop;
-use React\Promise\Deferred;
-use React\Promise\Promise;
 use React\Stream\ReadableStreamInterface;
-use function ord;
+use Workerman\Timer;
 
 class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 {
@@ -82,6 +73,8 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     public $videoHeight = 0;
     public $videoFps = 0;
     public $videoCount = 0;
+    public $videoFpsCountTimer;
+
     public $videoProfileName = '';
     public $videoLevel = 0;
 
@@ -239,9 +232,10 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                 if ($this->videoFps === 0) {
                     //当前帧为第0
                     if ($this->videoCount++ === 0) {
-                        Loop::addPeriodicTimer(5, function () {
+                        $this->videoFpsCountTimer = Timer::add(5, function () {
                             $this->videoFps = ceil($this->videoCount / 5);
-                        });
+                            $this->videoFpsCountTimer = null;
+                        },[],false);
                     }
                 }
 
@@ -346,6 +340,13 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         $this->buffer = null;
         $this->gopCacheQueue = [];
         $this->input->close();
+
+        if($this->videoFpsCountTimer){
+            Timer::del($this->videoFpsCountTimer);
+            $this->videoFpsCountTimer = null;
+        }
+
+
         $this->emit('on_close');
         $this->removeAllListeners();
     }

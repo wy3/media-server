@@ -1,5 +1,7 @@
 {
-    "name": "what_/mjpeg-server-test",
+    "name": "wy/media-server",
+    "type": "project",
+    "license": "MIT",
     "authors": [
         {
             "name": "wy3",
@@ -7,22 +9,19 @@
         }
     ],
     "require": {
-        "php": "^7.2",
-        "ext-bcmath": "*",
-        "ext-gd": "*",
+        "php": "^7.4",
         "ext-json": "*",
-        "react/http": "^1.5",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",
-        "react/socket": "^1.9",
-        "react/event-loop": "^1.2"
+        "workerman/workerman": "^4.1",
+        "react/promise": "^2.9"
     },
     "autoload": {
-        "psr-4": { "MediaServer\\": "src" }
+        "psr-4": { 
+            "MediaServer\\": "src"
+        }
     },
     "files": [
         "src/functions.php"
-    ],
-    "repositories":[
     ]
 }

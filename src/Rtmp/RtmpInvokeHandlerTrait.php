@@ -1,18 +1,13 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/8/23
- * Time: 0:22
- */
+
 
 namespace MediaServer\Rtmp;
 
 
 use MediaServer\MediaServer;
-use React\EventLoop\Loop;
 use \Exception;
 use React\Promise\PromiseInterface;
+use Workerman\Timer;
 
 trait RtmpInvokeHandlerTrait
 {
@@ -87,7 +82,7 @@ trait RtmpInvokeHandlerTrait
 
         $this->startTimestamp = timestamp();
 
-        $this->pingTimer = Loop::addPeriodicTimer($this->pingTime, function () {
+        $this->pingTimer = Timer::add($this->pingTime,function(){
             $this->sendPingRequest();
         });
 
