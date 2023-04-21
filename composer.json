@@ -9,9 +9,7 @@
         }
     ],
     "require": {
-        "php": "^7.2",
-        "ext-bcmath": "*",
-        "ext-gd": "*",
+        "php": "^7.4",
         "ext-json": "*",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",
