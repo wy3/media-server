@@ -38,7 +38,7 @@ class ExtHttpProtocol extends Http
 
         $header = \substr($recv_buffer, 0, $crlf_pos);
 
-        if(\preg_match("/\r\nUpgrade: websocket/i", $header, $match)){
+        if(\preg_match("/\r\nUpgrade: websocket/i", $header)){
             //upgrade websocket
             $connection->protocol = Websocket::class;
             return Websocket::input($recv_buffer,$connection);

@@ -129,7 +129,6 @@ class HttpWMServer extends Worker
     public function playMediaStream(Request $request){
         $path = $request->path();
         if(!preg_match('/(.*)\.flv$/',$path,$matches)){
-            echo $request->connection->protocol;
             if($request->connection->protocol === Websocket::class){
                 $request->connection->close();
             }else{

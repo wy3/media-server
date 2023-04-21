@@ -188,7 +188,6 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
 
     public function playClose()
     {
-        echo "play close";
         $this->input->close();
     }
 
