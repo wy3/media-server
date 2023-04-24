@@ -82,6 +82,9 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     public $videoCodecName = '';
 
 
+    public $startTimestamp;
+
+
     /**
      * @var string
      */
@@ -108,6 +111,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         $this->id = generateNewSessionID();
         $this->input = $input;
         $this->publishPath = $path;
+        $this->startTimestamp = timestamp();
         $input->on('data', [$this, 'onStreamData']);
         $input->on('error', [$this, 'onStreamError']);
         $input->on('close', [$this, 'onStreamClose']);
@@ -235,7 +239,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                         $this->videoFpsCountTimer = Timer::add(5, function () {
                             $this->videoFps = ceil($this->videoCount / 5);
                             $this->videoFpsCountTimer = null;
-                        },[],false);
+                        }, [], false);
                     }
                 }
 
@@ -341,7 +345,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         $this->gopCacheQueue = [];
         $this->input->close();
 
-        if($this->videoFpsCountTimer){
+        if ($this->videoFpsCountTimer) {
             Timer::del($this->videoFpsCountTimer);
             $this->videoFpsCountTimer = null;
         }
@@ -400,5 +404,23 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     public function getGopCacheQueue()
     {
         return $this->gopCacheQueue;
+    }
+
+    public function getPublishStreamInfo()
+    {
+        return [
+            "id"=>$this->id,
+            "startTimestamp"=>$this->startTimestamp,
+            "publishStreamPath" => $this->publishPath,
+            "videoWidth" => $this->videoWidth,
+            "videoHeight" => $this->videoHeight,
+            "videoFps" => $this->videoFps,
+            "videoCodecName" => $this->videoCodecName,
+            "videoProfileName" => $this->videoProfileName,
+            "videoLevel" => $this->videoLevel,
+            "audioSamplerate" => $this->audioSamplerate,
+            "audioChannels" => $this->audioChannels,
+            "audioCodecName" => $this->audioCodecName,
+        ];
     }
 }

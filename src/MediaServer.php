@@ -18,46 +18,13 @@ class MediaServer
      */
     static protected $eventEmitter;
 
-    /**
-     * @return EventEmitter
-     */
-    static protected function ee()
+
+    static function __callStatic($name, $arguments)
     {
         if (!self::$eventEmitter) {
             self::$eventEmitter = new EventEmitter();
         }
-        return self::$eventEmitter;
-    }
-
-    static public function on($event, $listener)
-    {
-        return self::ee()->on($event, $listener);
-    }
-
-    static public function removeListener($event, $listener)
-    {
-        self::ee()->removeListener($event, $listener);
-    }
-
-    static public function removeAllListeners($event = null)
-    {
-        self::ee()->removeAllListeners($event);
-    }
-
-    static public function once($event, $listener)
-    {
-        return self::ee()->once($event, $listener);
-    }
-
-
-    static public function listeners($event = null)
-    {
-        return self::ee()->listeners($event);
-    }
-
-    static public function emit($event, array $arguments = [])
-    {
-        self::ee()->emit($event, $arguments);
+        return call_user_func_array([self::$eventEmitter,$name],$arguments);
     }
 
 
@@ -65,6 +32,26 @@ class MediaServer
      * @var PublishStreamInterface[]
      */
     static public $publishStream = [];
+
+    static public function callApi($name,$args = []){
+        switch ($name){
+            case 'listPushStream':
+                return self::listPushStream(...$args);
+            default:
+                return false;
+        }
+    }
+
+    static public function  listPushStream($path = null){
+        if($path){
+            return isset(self::$publishStream[$path])?[
+                self::$publishStream[$path]->getPublishStreamInfo()
+            ]:[];
+        }
+        return array_map(function($stream){
+            return $stream->getPublishStreamInfo();
+        },array_values(self::$publishStream));
+    }
 
     /**
      * @param $path

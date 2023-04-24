@@ -74,4 +74,7 @@ interface PublishStreamInterface extends EventEmitterInterface
      */
     public function getGopCacheQueue();
 
+
+    public function getPublishStreamInfo();
+
 }

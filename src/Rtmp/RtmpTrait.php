@@ -85,6 +85,11 @@ trait RtmpTrait
                 Timer::del($this->videoFpsCountTimer);
                 $this->videoFpsCountTimer = null;
             }
+
+            if($this->dataCountTimer){
+                Timer::del($this->dataCountTimer);
+                $this->dataCountTimer = null;
+            }
         }
 
         $this->emit('on_close');

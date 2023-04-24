@@ -59,4 +59,25 @@ trait RtmpPublisherTrait
         return $this->gopCacheQueue;
     }
 
+    public function getPublishStreamInfo()
+    {
+        return [
+            "id"=>$this->id,
+            "bytesRead"=>$this->bytesRead,
+            "bytesReadRate"=>$this->bytesReadRate,
+            "startTimestamp"=>$this->startTimestamp,
+            "currentTimestamp"=>timestamp(),
+            "publishStreamPath"=>$this->publishStreamPath,
+            "videoWidth"=>$this->videoWidth,
+            "videoHeight"=>$this->videoHeight,
+            "videoFps"=> $this->videoFps,
+            "videoCodecName"=>$this->videoCodecName,
+            "videoProfileName"=>$this->videoProfileName,
+            "videoLevel"=>$this->videoLevel,
+            "audioSamplerate"=>$this->audioSamplerate,
+            "audioChannels"=>$this->audioChannels,
+            "audioCodecName"=>$this->audioCodecName,
+        ];
+    }
+
 }

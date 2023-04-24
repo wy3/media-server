@@ -18,6 +18,7 @@ use Workerman\Worker;
 
 class HttpWMServer extends Worker
 {
+    static $publicPath = '';
 
     public  function __construct($socket_name = '', array $context_option = array())
     {
@@ -32,7 +33,10 @@ class HttpWMServer extends Worker
         $request->connection = $connection;
         //ignore connection message
         $connection->onMessage = null;
-        $this->playMediaStream($request);
+        if($this->findFlv($request,$request->path())){
+           return;
+        }
+        $request->connection->close();
         return;
     }
 
@@ -63,10 +67,32 @@ class HttpWMServer extends Worker
     public function getHandler(Request $request)
     {
         $path = $request->path();
+
+        //api
+        if($path ==='/api'){
+            $name = $request->get('name');
+            $args = $request->get('args',[]);
+            $data = MediaServer::callApi($name,$args);
+            if(!is_null($data)){
+                $request->connection->send(new Response(200,['Content-Type'=>"application/json"],json_encode($data)));
+            }else{
+                $request->connection->send(new Response(404,[],'404 Not Found'));
+            }
+            return;
+        }
+        //flv
+        if(
+            $this->unsafeUri($request,$path) ||
+            $this->findFlv($request,$path) ||
+            $this->findStaticFile($request,$path)
+        ){
+            return;
+        }
+
         //api
 
-        //flv
-        $this->playMediaStream($request);
+        //404
+        $request->connection->send(new Response(404,[],'404 Not Found'));
         return;
     }
 
@@ -120,22 +146,53 @@ class HttpWMServer extends Worker
         });
     }
 
-
-    public function playMediaStream(Request $request){
-        $path = $request->path();
-        if(!preg_match('/(.*)\.flv$/',$path,$matches)){
-            if($request->connection->protocol === Websocket::class){
-                $request->connection->close();
-            }else{
-                $request->connection->send(new Response(400,
-                    ['Content-Type' => 'text/plain'],
-                    "failed path: {$path} ."));
-            }
-            return;
+    public function unsafeUri(Request $request,$path): bool
+    {
+        if (
+            !$path ||
+            strpos($path, '..') !== false ||
+            strpos($path, "\\") !== false ||
+            strpos($path, "\0") !== false
+        ) {
+            $request->connection->send(new Response(404,[],'404 Not Found.'));
+            return true;
         }
-        list(,$path) = $matches;
+        return false;
+    }
+
+    public function findStaticFile(Request $request,$path){
+
+        if (preg_match('/%[0-9a-f]{2}/i', $path)) {
+            $path = urldecode($path);
+            if ($this->unsafeUri($request,$path)) {
+                return true;
+            }
+        }
+
+        $file = self::$publicPath."/$path";
+        if (!is_file($file)) {
+            return false;
+        }
+
+        $request->connection->send((new Response())->withFile($file));
+
+        return true;
+    }
+
+    public function  findFlv(Request $request,$path){
+        if(!preg_match('/(.*)\.flv$/',$path,$matches)){
+            return false;
+        }else{
+            list(,$flvPath) = $matches;
+            $this->playMediaStream($request,$flvPath);
+            return true;
+        }
+    }
+
+
+    public function playMediaStream(Request $request,$flvPath){
         //check stream
-        if (MediaServer::hasPublishStream($path)) {
+        if (MediaServer::hasPublishStream($flvPath)) {
 
             if($request->connection->protocol === Websocket::class){
                 $request->connection->websocketType = Websocket::BINARY_TYPE_ARRAYBUFFER;
@@ -143,7 +200,7 @@ class HttpWMServer extends Worker
             }else{
                 $throughStream = new WMHttpChunkStream($request->connection);
             }
-            $playerStream = new FlvPlayStream($throughStream, $path);
+            $playerStream = new FlvPlayStream($throughStream, $flvPath);
 
             $disableAudio = $request->get('disableAudio',false);
             if ($disableAudio) {
@@ -161,7 +218,7 @@ class HttpWMServer extends Worker
             }
             MediaServer::addPlayer($playerStream);
         } else {
-            logger()->warning("Stream {path} not found", ['path' => $path]);
+            logger()->warning("Stream {path} not found", ['path' => $flvPath]);
             if($request->connection->protocol === Websocket::class){
                 $request->connection->close();
             }else{

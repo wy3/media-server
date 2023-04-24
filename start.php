@@ -20,6 +20,7 @@ $rtmpServer->onConnect = function (\Workerman\Connection\TcpConnection $connecti
 };
 $rtmpServer->onWorkerStart = function ($worker) {
     logger()->info("rtmp server " . $worker->getSocketName() . " start . ");
+    \MediaServer\Http\HttpWMServer::$publicPath = __DIR__.'/public';
     $httpServer = new \MediaServer\Http\HttpWMServer("\\MediaServer\\Http\\ExtHttpProtocol://127.0.0.1:18080");
     $httpServer->listen();
     logger()->info("http server " . $httpServer->getSocketName() . " start . ");

@@ -12,6 +12,7 @@ use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
 use MediaServer\Utils\WMBufferStream;
+use Workerman\Timer;
 
 
 /**
@@ -183,19 +184,26 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
         /*
          *  统计数据量代码
-                 Loop::addPeriodicTimer(5,function(){
-                    $avgTime=$this->frameTimeCount/($this->frameCount?:1);
-                    $avgPack=$this->frameCount/5;
-                    $packPs=(1/($avgTime?:1));
-                    $s=$packPs/$avgPack;
-                    $this->frameCount=0;
-                    $this->frameTimeCount=0;
-                    logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
-                });*/
+         *
+         */
+         $this->dataCountTimer = Timer::add(5,function(){
+            $avgTime=$this->frameTimeCount/($this->frameCount?:1);
+            $avgPack=$this->frameCount/5;
+            $packPs=(1/($avgTime?:1));
+            $s=$packPs/$avgPack;
+            $this->frameCount=0;
+            $this->frameTimeCount=0;
+            $this->bytesRead = $this->buffer->connection->bytesRead;
+            $this->bytesReadRate = $this->bytesRead/ (timestamp() - $this->startTimestamp) * 1000;
+            //logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
+        });
     }
 
+    public $dataCountTimer;
     public $frameCount = 0;
     public $frameTimeCount = 0;
+    public $bytesRead = 0;
+    public $bytesReadRate = 0;
 
     public function onStreamData()
     {
@@ -249,6 +257,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     {
         logger()->info("[RtmpStream __destruct] id={$this->id}");
     }*/
+
 
 
 }
