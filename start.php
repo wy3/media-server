@@ -1,11 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: what_
- * Date: 2021/8/1
- * Time: 2:37
- */
-
 
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/functions.php';
