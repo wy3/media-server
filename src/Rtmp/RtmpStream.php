@@ -190,7 +190,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
             $avgTime=$this->frameTimeCount/($this->frameCount?:1);
             $avgPack=$this->frameCount/5;
             $packPs=(1/($avgTime?:1));
-            $s=$packPs/$avgPack;
+            // $s=$packPs/$avgPack;
             $this->frameCount=0;
             $this->frameTimeCount=0;
             $this->bytesRead = $this->buffer->connection->bytesRead;

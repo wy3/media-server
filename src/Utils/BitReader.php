@@ -46,10 +46,6 @@ class BitReader
         return $result;
     }
 
-    public function expGolombUe()
-    {
-        for ($n = 0; $this->getBit() == 0 && !$this->isError; $n++) ;
-        return (1 << $n) + $this->getBits($n) - 1;
-    }
+
 
 }

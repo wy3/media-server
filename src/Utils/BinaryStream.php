@@ -4,8 +4,8 @@ namespace MediaServer\Utils;
 
 class BinaryStream
 {
-    private $_index = 0;
-    private $_data;
+    protected $_index = 0;
+    protected $_data;
 
     public function __construct($data = "")
     {

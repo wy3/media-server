@@ -19,6 +19,20 @@ class AVCSequenceParameterSet extends BitReader
         $this->readData();
     }
 
+
+    /**
+     * read unsigned exp golomb code.
+     *
+     * @return int
+     */
+    protected function expGolombUe()
+    {
+        for ($n = 0; $this->getBit() == 0 && !$this->isError; $n++) ;
+        return (1 << $n) + $this->getBits($n) - 1;
+    }
+
+
+
     public function getAVCProfileName()
     {
         switch ($this->profile) {
