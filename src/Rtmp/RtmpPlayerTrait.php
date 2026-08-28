@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -12,40 +13,40 @@ use MediaServer\MediaServer;
 
 trait RtmpPlayerTrait
 {
-    public $isPlayerIdling = true;
+    public bool $isPlayerIdling = true;
 
     /**
      * @return bool
      */
-    public function isPlayerIdling()
+    public function isPlayerIdling(): bool
     {
         return $this->isPlayerIdling;
     }
 
-    public function isEnableAudio()
+    public function isEnableAudio(): bool
     {
         return true;
     }
 
-    public function isEnableVideo()
+    public function isEnableVideo(): bool
     {
         return true;
     }
 
-    public function isEnableGop()
+    public function isEnableGop(): bool
     {
         return true;
     }
 
-    public function setEnableAudio($status)
+    public function setEnableAudio(bool $status): void
     {
     }
 
-    public function setEnableVideo($status)
+    public function setEnableVideo(bool $status): void
     {
     }
 
-    public function setEnableGop($status)
+    public function setEnableGop(bool $status): void
     {
     }
 
@@ -55,7 +56,7 @@ trait RtmpPlayerTrait
      * 播放开始
      * @return mixed
      */
-    public function startPlay()
+    public function startPlay(): void
     {
 
         //各种发送数据包
@@ -101,15 +102,18 @@ trait RtmpPlayerTrait
      * @param $frame MediaFrame
      * @return mixed
      */
-    public function frameSend($frame)
+    public function frameSend(MediaFrame $frame): void
     {
         switch ($frame->FRAME_TYPE) {
             case MediaFrame::VIDEO_FRAME:
-                return $this->sendVideoFrame($frame);
+                $this->sendVideoFrame($frame);
+                break;
             case MediaFrame::AUDIO_FRAME:
-                return $this->sendAudioFrame($frame);
+                $this->sendAudioFrame($frame);
+                break;
             case MediaFrame::META_FRAME:
-                return $this->sendMetaDataFrame($frame);
+                $this->sendMetaDataFrame($frame);
+                break;
         }
     }
 
@@ -117,7 +121,7 @@ trait RtmpPlayerTrait
      * @param $metaDataFrame MetaDataFrame|MediaFrame
      * @return mixed
      */
-    public function sendMetaDataFrame($metaDataFrame)
+    public function sendMetaDataFrame(MediaFrame $metaDataFrame): void
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -134,7 +138,7 @@ trait RtmpPlayerTrait
      * @param $audioFrame AudioFrame|MediaFrame
      * @return mixed
      */
-    public function sendAudioFrame($audioFrame)
+    public function sendAudioFrame(MediaFrame $audioFrame): void
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -152,7 +156,7 @@ trait RtmpPlayerTrait
      * @param $videoFrame VideoFrame|MediaFrame
      * @return mixed
      */
-    public function sendVideoFrame($videoFrame)
+    public function sendVideoFrame(MediaFrame $videoFrame): void
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -167,19 +171,20 @@ trait RtmpPlayerTrait
     }
 
     /**
-     * @return mixed
+     * @return void
      */
-    public function playClose()
+    public function playClose(): void
     {
         $this->stop();
-        $this->input->close();
+        // 关闭底层连接（RtmpStream 无 $input，通过 buffer->connection 关闭）
+        $this->buffer?->connection?->close();
     }
 
     /**
      * 获取当前路径
      * @return string
      */
-    public function getPlayPath()
+    public function getPlayPath(): string
     {
         return $this->playStreamPath;
     }

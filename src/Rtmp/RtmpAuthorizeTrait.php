@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -7,7 +8,8 @@ namespace MediaServer\Rtmp;
 trait RtmpAuthorizeTrait
 {
 
-    public function verifyAuth(){
+    public function verifyAuth(): bool
+    {
         return true;
     }
 

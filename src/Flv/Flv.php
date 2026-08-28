@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\Flv;
 
 require_once __DIR__ . '/../../packages/SabreAMF/OutputStream.php';
@@ -9,7 +11,6 @@ require_once __DIR__ . '/../../packages/SabreAMF/AMF0/Serializer.php';
 require_once __DIR__ . '/../../packages/SabreAMF/AMF0/Deserializer.php';
 
 use Exception;
-use MediaServer\Utils\BinaryStream;
 use SabreAMF_AMF0_Deserializer;
 use SabreAMF_InputStream;
 use function ord;
@@ -20,16 +21,16 @@ class Flv
 
     /**
      * pre tag len 转数字
-     * @param $preLen
-     * @return mixed
+     * @param string $preLen
+     * @return int
      */
-    static function preTagLenRead($preLen)
+    static function preTagLenRead(string $preLen): int
     {
         $up = unpack('N', $preLen);
-        return $up[0];
+        return $up[1];
     }
 
-    static function tagDataRead($tagData)
+    static function tagDataRead(string $tagData): array
     {
         return [
             'type' => ord($tagData[0]),
@@ -42,11 +43,11 @@ class Flv
     }
 
     /**
-     * @param $scriptData
-     * @return null[]
+     * @param string $scriptData
+     * @return array
      * @throws Exception
      */
-    static function scriptFrameDataRead($scriptData)
+    static function scriptFrameDataRead(string $scriptData): array
     {
         static $scriptMetaDataCode = [
             'onMetaData' => ['dataObj']
@@ -71,7 +72,7 @@ class Flv
         return $result;
     }
 
-    static function videoFrameDataRead($videoData)
+    static function videoFrameDataRead(string $videoData): array
     {
         $firstByte = ord($videoData[0]);
         return [
@@ -81,7 +82,7 @@ class Flv
         ];
     }
 
-    static function avcPacketRead($avcPacket)
+    static function avcPacketRead(string $avcPacket): array
     {
         return [
             'avcPacketType' => ord($avcPacket[0]), //if codecId == 7 ,0 avc sequence header,1 avc nalus
@@ -90,7 +91,7 @@ class Flv
         ];
     }
 
-    static function audioFrameDataRead($audioData)
+    static function audioFrameDataRead(string $audioData): array
     {
         $firstByte = ord($audioData[0]);
         return [
@@ -102,7 +103,7 @@ class Flv
         ];
     }
 
-    static function accPacketDataRead($accData)
+    static function accPacketDataRead(string $accData): array
     {
         return [
             'accPacketType' => ord($accData[0]), //0 = AAC sequence header，1 = AAC raw
@@ -121,18 +122,18 @@ class Flv
      * 'data' => $analysis['data']
      * ];
      *
-     * @param $tag FlvTag
+     * @param FlvTag $tag
      * @return string
      */
-    static function createFlvTag($tag)
+    static function createFlvTag(FlvTag $tag): string
     {
-        $preTagLen = 11 +$tag->dataSize;
+        $preTagLen = 11 + $tag->dataSize;
         $packet = pack("Ca3a3Ca3a{$tag->dataSize}N",
             $tag->type,                                       //type
             pack("N", $tag->dataSize << 8),     //dataSize
             pack("N", $tag->timestamp << 8),    //timeStamp
             $tag->timestamp >> 24,                            //timeStampExt
-            pack("N", $tag->streamId<< 8),     //streamId
+            pack("N", $tag->streamId << 8),     //streamId
             $tag->data,                                       //data
             $preTagLen                                          //preTagLen
         );

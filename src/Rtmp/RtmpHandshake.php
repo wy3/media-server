@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -12,7 +13,7 @@ class RtmpHandshake
     const RTMP_HANDSHAKE_C2 = 3;
 
 
-    static function handshakeGenerateS0S1S2($c1)
+    public static function handshakeGenerateS0S1S2(string $c1): string
     {
         $data = pack("Ca1536a1536",
             3,
@@ -22,7 +23,7 @@ class RtmpHandshake
         return $data;
     }
 
-    static function handshakeGenerateS1()
+    public static function handshakeGenerateS1(): string
     {
         $s1 = pack('NNa1528',
             timestamp(),
@@ -32,7 +33,7 @@ class RtmpHandshake
         return $s1;
     }
 
-    static function handshakeGenerateS2($c1)
+    public static function handshakeGenerateS2(string $c1): string
     {
         $c1Data = unpack('Ntimestamp/Nzero/a1528random', $c1);
         $s2 = pack('NNa1528',

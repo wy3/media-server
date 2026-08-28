@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -13,14 +14,12 @@ use MediaServer\Utils\BinaryStream;
 trait RtmpHandshakeTrait
 {
 
-    /**
-     */
-    public function onHandShake()
+    public function onHandShake(): void
     {
         /**
-         * @var $stream BinaryStream
+         * @var BinaryStream $stream
          */
-        $stream=$this->buffer;
+        $stream = $this->buffer;
 
         switch ($this->handshakeState) {
             case RtmpHandshake::RTMP_HANDSHAKE_UNINIT:
@@ -36,7 +35,7 @@ trait RtmpHandshakeTrait
             case RtmpHandshake::RTMP_HANDSHAKE_C0:
                 if ($stream->has(1536)) {
                     logger()->info('RTMP_HANDSHAKE_C0');
-                    $c1=$stream->readRaw(1536);
+                    $c1 = $stream->readRaw(1536);
 
                     //向客户端发送 s0s1s2
                     $s0s1s2 = RtmpHandshake::handshakeGenerateS0S1S2($c1);

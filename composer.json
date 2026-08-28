@@ -9,7 +9,7 @@
         }
     ],
     "require": {
-        "php": "^7.4",
+        "php": "^8.2",
         "ext-json": "*",
         "evenement/evenement": "^3.0",
         "apix/log": "^1.2",
@@ -19,9 +19,9 @@
     "autoload": {
         "psr-4": { 
             "MediaServer\\": "src"
-        }
-    },
-    "files": [
-        "src/functions.php"
-    ]
+        },
+        "files": [
+            "src/functions.php"
+        ]
+    }
 }

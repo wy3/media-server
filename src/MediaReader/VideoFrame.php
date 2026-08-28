@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\MediaReader;
 
@@ -8,7 +9,7 @@ use MediaServer\Utils\BinaryStream;
 
 class VideoFrame extends BinaryStream implements MediaFrame
 {
-    public $FRAME_TYPE=self::VIDEO_FRAME;
+    public int $FRAME_TYPE = self::VIDEO_FRAME;
 
     const VIDEO_CODEC_NAME = [
         '',
@@ -43,23 +44,23 @@ class VideoFrame extends BinaryStream implements MediaFrame
     const VIDEO_CODEC_ID_AVC = 7;
 
 
-    public $frameType;
-    public $codecId;
-    public $timestamp = 0;
+    public int $frameType = 0;
+    public int $codecId = 0;
+    public int $timestamp = 0;
 
-    public function __toString()
+    public function __toString(): string
     {
         return $this->dump();
     }
 
 
-    public function getVideoCodecName()
+    public function getVideoCodecName(): string
     {
         return self::VIDEO_CODEC_NAME[$this->codecId];
     }
 
 
-    public function __construct($data, $timestamp = 0)
+    public function __construct(string $data, int $timestamp = 0)
     {
         parent::__construct($data);
 
@@ -73,12 +74,9 @@ class VideoFrame extends BinaryStream implements MediaFrame
     /**
      * @var AVCPacket
      */
-    protected $avcPacket;
+    protected ?AVCPacket $avcPacket = null;
 
-    /**
-     * @return AVCPacket
-     */
-    public function getAVCPacket()
+    public function getAVCPacket(): AVCPacket
     {
         if (!$this->avcPacket) {
             $this->avcPacket = new AVCPacket($this);
@@ -87,8 +85,9 @@ class VideoFrame extends BinaryStream implements MediaFrame
         return $this->avcPacket;
     }
 
-    public function destroy(){
-        $this->avcPacket=null;
+    public function destroy(): void
+    {
+        $this->avcPacket = null;
     }
 
 }

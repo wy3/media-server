@@ -1,15 +1,16 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Flv;
 
 
 class FlvTag
 {
-    public $type;
-    public $dataSize;
-    public $timestamp;
-    public $streamId = 0;
-    public $data;
+    public int $type = 0;
+    public int $dataSize = 0;
+    public int $timestamp = 0;
+    public int $streamId = 0;
+    public string $data = '';
 
 }

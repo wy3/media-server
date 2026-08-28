@@ -1,11 +1,12 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
 
 use MediaServer\MediaServer;
-use \Exception;
+use Exception;
 use React\Promise\PromiseInterface;
 use Workerman\Timer;
 
@@ -13,10 +14,9 @@ trait RtmpInvokeHandlerTrait
 {
 
     /**
-     * @return mixed | void
      * @throws Exception
      */
-    public function rtmpInvokeHandler()
+    public function rtmpInvokeHandler(): void
     {
 
         $b = microtime(true);
@@ -63,10 +63,10 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $invokeMessage
+     * @param array $invokeMessage
      * @throws Exception
      */
-    public function onConnect($invokeMessage)
+    public function onConnect(array $invokeMessage): void
     {
 
         $b = microtime(true);
@@ -77,7 +77,8 @@ trait RtmpInvokeHandlerTrait
         }
         $this->connectCmdObj = $invokeMessage['cmdObj'];
         $this->appName = $invokeMessage['cmdObj']['app'];
-        $this->objectEncoding = (isset($invokeMessage['cmdObj']['objectEncoding']) && !is_null($invokeMessage['cmdObj']['objectEncoding'])) ? $invokeMessage['cmdObj']['objectEncoding'] : 0;
+        // AMF 数字以 float 反序列化，转 int 后再赋值给强类型属性
+        $this->objectEncoding = (isset($invokeMessage['cmdObj']['objectEncoding']) && !is_null($invokeMessage['cmdObj']['objectEncoding'])) ? (int)$invokeMessage['cmdObj']['objectEncoding'] : 0;
 
 
         $this->startTimestamp = timestamp();
@@ -90,7 +91,7 @@ trait RtmpInvokeHandlerTrait
         $this->setPeerBandwidth(5000000, 2);
         $this->setChunkSize($this->outChunkSize);
 
-        $this->responseConnect($invokeMessage['transId']);
+        $this->responseConnect((int)$invokeMessage['transId']);
 
 
         $this->bitrateCache = [
@@ -103,21 +104,21 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $invokeMessage
+     * @param array $invokeMessage
      * @throws Exception
      */
-    public function onCreateStream($invokeMessage)
+    public function onCreateStream(array $invokeMessage): void
     {
         logger()->info("[rtmp create stream] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-        $this->respondCreateStream($invokeMessage['transId']);
+        $this->respondCreateStream((int)$invokeMessage['transId']);
     }
 
     /**
-     * @param $invokeMessage
-     * @param $isPromise bool
+     * @param array $invokeMessage
+     * @param bool $isPromise
      * @throws Exception
      */
-    public function onPublish($invokeMessage, $isPromise = false)
+    public function onPublish(array $invokeMessage, bool $isPromise = false): void
     {
         if (!$isPromise) {
             //发布一个视频
@@ -175,11 +176,11 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $invokeMessage
-     * @param $isPromise bool
+     * @param array $invokeMessage
+     * @param bool $isPromise
      * @throws Exception
      */
-    public function onPlay($invokeMessage, $isPromise = false)
+    public function onPlay(array $invokeMessage, bool $isPromise = false): void
     {
         if (!$isPromise) {
             logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
@@ -225,35 +226,35 @@ trait RtmpInvokeHandlerTrait
 
     }
 
-    public function onPause($invokeMessage)
+    public function onPause(array $invokeMessage): void
     {
         //暂停视频
     }
 
-    public function onDeleteStream($invokeMessage)
+    public function onDeleteStream(array $invokeMessage): void
     {
         //删除流
     }
 
-    public function onCloseStream()
+    public function onCloseStream(): void
     {
         //关闭流，调用删除流逻辑
         $this->onDeleteStream(['streamId' => $this->currentPacket->streamId]);
     }
 
-    public function onReceiveAudio($invokeMessage)
+    public function onReceiveAudio(array $invokeMessage): void
     {
         logger()->info("[rtmp play] receiveAudio=" . ($invokeMessage['bool'] ? 'true' : 'false'));
         $this->isReceiveAudio = $invokeMessage['bool'];
     }
 
-    public function onReceiveVideo($invokeMessage)
+    public function onReceiveVideo(array $invokeMessage): void
     {
         logger()->info("[rtmp play] receiveVideo=" . ($invokeMessage['bool'] ? 'true' : 'false'));
         $this->isReceiveVideo = $invokeMessage['bool'];
     }
 
-    public function sendStreamStatus($st, $id)
+    public function sendStreamStatus(int $st, int $id): void
     {
 
         $buf = hex2bin('020000000000060400000000000000000000');
@@ -263,11 +264,11 @@ trait RtmpInvokeHandlerTrait
 
 
     /**
-     * @param $sid
-     * @param $opt
+     * @param int $sid
+     * @param array $opt
      * @throws Exception
      */
-    public function sendInvokeMessage($sid, $opt)
+    public function sendInvokeMessage(int $sid, array $opt): void
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -281,11 +282,11 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $sid
-     * @param $opt
+     * @param int $sid
+     * @param array $opt
      * @throws Exception
      */
-    public function sendDataMessage($sid, $opt)
+    public function sendDataMessage(int $sid, array $opt): void
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -299,13 +300,13 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $sid
-     * @param $level
-     * @param $code
-     * @param $description
+     * @param int $sid
+     * @param string $level
+     * @param string $code
+     * @param string $description
      * @throws Exception
      */
-    public function sendStatusMessage($sid, $level, $code, $description)
+    public function sendStatusMessage(int $sid, string $level, string $code, string $description): void
     {
         $opt = [
             'cmd' => 'onStatus',
@@ -321,10 +322,10 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $sid
+     * @param int $sid
      * @throws Exception
      */
-    public function sendRtmpSampleAccess($sid)
+    public function sendRtmpSampleAccess(int $sid): void
     {
         $opt = [
             'cmd' => '|RtmpSampleAccess',
@@ -338,7 +339,7 @@ trait RtmpInvokeHandlerTrait
     /**
      * @throws Exception
      */
-    public function sendPingRequest()
+    public function sendPingRequest(): void
     {
 
         $currentTimestamp = timestamp() - $this->startTimestamp;
@@ -355,10 +356,10 @@ trait RtmpInvokeHandlerTrait
 
 
     /**
-     * @param $tid
+     * @param int $tid
      * @throws Exception
      */
-    public function responseConnect($tid)
+    public function responseConnect(int $tid): void
     {
         $opt = [
             'cmd' => '_result',
@@ -378,10 +379,10 @@ trait RtmpInvokeHandlerTrait
     }
 
     /**
-     * @param $tid
+     * @param int $tid
      * @throws Exception
      */
-    public function respondCreateStream($tid)
+    public function respondCreateStream(int $tid): void
     {
         $this->streams++;
         $opt = [
@@ -396,7 +397,7 @@ trait RtmpInvokeHandlerTrait
     /**
      * @throws Exception
      */
-    public function respondPlay()
+    public function respondPlay(): void
     {
         $this->sendStreamStatus(RtmpPacket::STREAM_BEGIN, $this->playStreamId);
         $this->sendStatusMessage($this->playStreamId, 'status', 'NetStream.Play.Reset', 'Playing and resetting stream.');
@@ -404,7 +405,7 @@ trait RtmpInvokeHandlerTrait
         $this->sendRtmpSampleAccess($this->playStreamId);
     }
 
-    public function reject()
+    public function reject(): void
     {
         logger()->info("[rtmp reject] reject stream publish id={$this->id}");
         $this->stop();

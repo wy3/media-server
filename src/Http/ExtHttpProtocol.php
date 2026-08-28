@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Http;
 
@@ -11,6 +12,8 @@ use Workerman\Protocols\Websocket;
 class ExtHttpProtocol extends Http
 {
 
+    // 注意：覆写 Workerman 协议方法时必须与父类签名一致（父类无参数类型与返回类型），
+    // 因此此处不能添加类型声明，否则会触发 "must be compatible" 致命错误
     public static function input($recv_buffer, TcpConnection $connection)
     {
         static $input = [];

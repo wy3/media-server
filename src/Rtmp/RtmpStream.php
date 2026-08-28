@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -32,145 +33,156 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     /**
      * @var int handshake state
      */
-    public $handshakeState;
+    public int $handshakeState = 0;
 
-    public $id;
+    public string $id = '';
 
-    public $ip;
+    public string $ip = '';
 
-    public $port;
+    public int $port = 0;
 
 
-    protected $chunkHeaderLen = 0;
-    protected $chunkState;
+    protected int $chunkHeaderLen = 0;
+    protected int $chunkState = RtmpChunk::CHUNK_STATE_BEGIN;
 
     /**
      * @var RtmpPacket[]
      */
-    protected $allPackets = [];
+    protected array $allPackets = [];
 
     /**
      * @var int 接收数据时的  chunk size
      */
-    protected $inChunkSize = 128;
+    protected int $inChunkSize = 128;
     /**
      * @var int 发送数据时的 chunk size
      */
-    protected $outChunkSize = 60000;
+    protected int $outChunkSize = 60000;
 
 
     /**
-     * @var RtmpPacket
+     * @var RtmpPacket|null
      */
-    protected $currentPacket;
+    protected ?RtmpPacket $currentPacket = null;
 
 
-    public $startTimestamp;
+    public int $startTimestamp = 0;
 
-    public $objectEncoding;
+    public int $objectEncoding = 0;
 
-    public $streams = 0;
+    public int $streams = 0;
 
-    public $playStreamId = 0;
-    public $playStreamPath = '';
-    public $playArgs = [];
+    public int $playStreamId = 0;
+    public string $playStreamPath = '';
+    public array $playArgs = [];
 
-    public $isStarting = false;
+    public bool $isStarting = false;
 
-    public $connectCmdObj = null;
+    public ?array $connectCmdObj = null;
 
-    public $appName = '';
+    public string $appName = '';
 
-    public $isReceiveAudio = true;
-    public $isReceiveVideo = true;
+    public bool $isReceiveAudio = true;
+    public bool $isReceiveVideo = true;
 
 
     /**
-     * @var int
+     * @var int|null
      */
-    public $pingTimer;
+    public ?int $pingTimer = null;
 
     /**
      * @var int ping interval
      */
-    public $pingTime = 60;
-    public $bitrateCache;
+    public int $pingTime = 60;
+    public ?array $bitrateCache = null;
 
 
-    public $publishStreamPath;
-    public $publishArgs;
-    public $publishStreamId;
+    public ?string $publishStreamPath = null;
+    public array $publishArgs = [];
+    public int $publishStreamId = 0;
 
 
     /**
      * @var int 发送ack的长度
      */
-    protected $ackSize = 0;
+    protected int $ackSize = 0;
 
     /**
      * @var int 当前size统计
      */
-    protected $inAckSize = 0;
+    protected int $inAckSize = 0;
     /**
      * @var int 上次ack的size
      */
-    protected $inLastAck = 0;
+    protected int $inLastAck = 0;
 
-    public $isMetaData = false;
+    public bool $isMetaData = false;
     /**
-     * @var MetaDataFrame
+     * @var MetaDataFrame|null
      */
-    public $metaDataFrame;
+    public ?MetaDataFrame $metaDataFrame = null;
 
 
-    public $videoWidth = 0;
-    public $videoHeight = 0;
-    public $videoFps = 0;
-    public $videoCount = 0;
-    public $videoFpsCountTimer;
-    public $videoProfileName = '';
-    public $videoLevel = 0;
+    public int $videoWidth = 0;
+    public int $videoHeight = 0;
+    public int|float $videoFps = 0;
+    public int $videoCount = 0;
+    public ?int $videoFpsCountTimer = null;
+    public string $videoProfileName = '';
+    public int|float $videoLevel = 0;
 
-    public $videoCodec = 0;
-    public $videoCodecName = '';
-    public $isAVCSequence = false;
+    public int $videoCodec = 0;
+    public string $videoCodecName = '';
+    public bool $isAVCSequence = false;
     /**
-     * @var VideoFrame
+     * @var VideoFrame|null
      */
-    public $avcSequenceHeaderFrame;
+    public ?VideoFrame $avcSequenceHeaderFrame = null;
 
-    public $audioCodec = 0;
-    public $audioCodecName = '';
-    public $audioSamplerate = 0;
-    public $audioChannels = 1;
-    public $isAACSequence = false;
+    public int $audioCodec = 0;
+    public string $audioCodecName = '';
+    public int $audioSamplerate = 0;
+    public int $audioChannels = 1;
+    public bool $isAACSequence = false;
     /**
-     * @var AudioFrame
+     * @var AudioFrame|null
      */
-    public $aacSequenceHeaderFrame;
-    public $audioProfileName = '';
+    public ?AudioFrame $aacSequenceHeaderFrame = null;
+    public string $audioProfileName = '';
 
-    public $isPublishing = false;
-    public $isPlaying = false;
+    public bool $isPublishing = false;
+    public bool $isPlaying = false;
 
-    public $enableGop = true;
+    /**
+     * 是否已注册 on_frame 事件监听（由 MediaServer 动态赋值，显式声明以避免 PHP 8.2+ 动态属性弃用）
+     */
+    public bool $is_on_frame = false;
+
+    public bool $enableGop = true;
 
     /**
      * @var MediaFrame[]
      */
-    public $gopCacheQueue = [];
+    public array $gopCacheQueue = [];
 
 
     /**
-     * @var WMBufferStream
+     * @var WMBufferStream|null
      */
-    protected $buffer;
+    protected ?WMBufferStream $buffer = null;
+
+    public ?int $dataCountTimer = null;
+    public int $frameCount = 0;
+    public float $frameTimeCount = 0;
+    public int $bytesRead = 0;
+    public float $bytesReadRate = 0;
 
     /**
      * PlayerStream constructor.
-     * @param $bufferStream WMBufferStream
+     * @param WMBufferStream $bufferStream
      */
-    public function __construct($bufferStream)
+    public function __construct(WMBufferStream $bufferStream)
     {
         //先随机生成个id
         $this->id = generateNewSessionID();
@@ -178,34 +190,28 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         $this->ip = '';
         $this->isStarting = true;
         $this->buffer = $bufferStream;
-        $bufferStream->on('onData',[$this,'onStreamData']);
-        $bufferStream->on('onError',[$this,'onStreamError']);
-        $bufferStream->on('onClose',[$this,'onStreamClose']);
+        $bufferStream->on('onData', [$this, 'onStreamData']);
+        $bufferStream->on('onError', [$this, 'onStreamError']);
+        $bufferStream->on('onClose', [$this, 'onStreamClose']);
 
         /*
          *  统计数据量代码
          *
          */
-         $this->dataCountTimer = Timer::add(5,function(){
-            $avgTime=$this->frameTimeCount/($this->frameCount?:1);
-            $avgPack=$this->frameCount/5;
-            $packPs=(1/($avgTime?:1));
+        $this->dataCountTimer = Timer::add(5, function () {
+            $avgTime = $this->frameTimeCount / ($this->frameCount ?: 1);
+            $avgPack = $this->frameCount / 5;
+            $packPs = (1 / ($avgTime ?: 1));
             // $s=$packPs/$avgPack;
-            $this->frameCount=0;
-            $this->frameTimeCount=0;
+            $this->frameCount = 0;
+            $this->frameTimeCount = 0;
             $this->bytesRead = $this->buffer->connection->bytesRead;
-            $this->bytesReadRate = $this->bytesRead/ (timestamp() - $this->startTimestamp) * 1000;
+            $this->bytesReadRate = $this->bytesRead / (timestamp() - $this->startTimestamp) * 1000;
             //logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
         });
     }
 
-    public $dataCountTimer;
-    public $frameCount = 0;
-    public $frameTimeCount = 0;
-    public $bytesRead = 0;
-    public $bytesReadRate = 0;
-
-    public function onStreamData()
+    public function onStreamData(): void
     {
         //若干秒后没有收到数据断开
         $b = microtime(true);
@@ -217,7 +223,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
         if ($this->handshakeState === RtmpHandshake::RTMP_HANDSHAKE_C2) {
             $this->onChunkData();
 
-            $this->inAckSize += strlen($this->buffer->recvSize());
+            $this->inAckSize += $this->buffer->recvSize();
             if ($this->inAckSize >= 0xf0000000) {
                 $this->inAckSize = 0;
                 $this->inLastAck = 0;
@@ -236,21 +242,21 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
     }
 
 
-    public function onStreamClose()
+    public function onStreamClose(): void
     {
         $this->stop();
     }
 
 
-    public function onStreamError()
+    public function onStreamError(): void
     {
         $this->stop();
     }
 
 
-    public function write($data)
+    public function write(string $data): ?bool
     {
-        return $this->buffer->connection->send($data,true);
+        return $this->buffer->connection->send($data, true);
     }
 
 /*    public function __destruct()

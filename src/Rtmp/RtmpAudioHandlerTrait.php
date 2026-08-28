@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -10,7 +11,7 @@ use MediaServer\MediaReader\AudioFrame;
 trait RtmpAudioHandlerTrait
 {
 
-    public function rtmpAudioHandler()
+    public function rtmpAudioHandler(): void
     {
         //音频包拆解
         /**
@@ -37,7 +38,8 @@ trait RtmpAudioHandlerTrait
                 $set = $aacPack->getAACSequenceParameterSet();
                 $this->audioProfileName = $set->getAACProfileName();
                 $this->audioSamplerate = $set->sampleRate;
-                $this->audioChannels = $set->channels;
+                // channels 可能为 null，回退默认单声道
+                $this->audioChannels = $set->channels ?? 1;
                 //logger()->info("publisher {path} recv acc sequence.", ['path' => $this->pathIndex]);
             }
 

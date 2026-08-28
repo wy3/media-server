@@ -1,19 +1,21 @@
 <?php
 
 
+declare(strict_types=1);
+
 namespace MediaServer\MediaReader;
 
 use MediaServer\Utils\BitReader;
 
 class AVCSequenceParameterSet extends BitReader
 {
-    public $profile;
-    public $level;
-    public $width;
-    public $height;
-    public $avc_ref_frames = 0;
+    public int $profile = 0;
+    public int|float $level = 0;
+    public int $width = 0;
+    public int $height = 0;
+    public int $avc_ref_frames = 0;
 
-    public function __construct($data)
+    public function __construct(string $data)
     {
         parent::__construct($data);
         $this->readData();
@@ -25,7 +27,7 @@ class AVCSequenceParameterSet extends BitReader
      *
      * @return int
      */
-    protected function expGolombUe()
+    protected function expGolombUe(): int
     {
         for ($n = 0; $this->getBit() == 0 && !$this->isError; $n++) ;
         return (1 << $n) + $this->getBits($n) - 1;
@@ -33,7 +35,7 @@ class AVCSequenceParameterSet extends BitReader
 
 
 
-    public function getAVCProfileName()
+    public function getAVCProfileName(): string
     {
         switch ($this->profile) {
             case 1:
@@ -53,7 +55,7 @@ class AVCSequenceParameterSet extends BitReader
         }
     }
 
-    public function readData()
+    public function readData(): void
     {
         /*$data = [];
         $data['version'] = ord($this->data[$this->currentBytes++]);

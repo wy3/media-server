@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\Rtmp;
 
 
@@ -37,7 +39,7 @@ class RtmpPacket
     const TYPE_INVOKE = 20; // AMF0
 
     /* Aggregate Message */
-    const TYPE_METADATA = 22;  //flv tags
+    const TYPE_METADATA = 22; //flv tags
 
 
     const STREAM_BEGIN = 0x00;
@@ -49,27 +51,27 @@ class RtmpPacket
     const MAX_TIMESTAMP = 0xffffff;
 
 
-    public $baseHeaderLen = 0;
-    public $msgHeaderLen = 0;
-    public $chunkHeaderLen = 0;
-    public $chunkType = 0;
-    public $chunkStreamId = 0;
+    public int $baseHeaderLen = 0;
+    public int $msgHeaderLen = 0;
+    public int $chunkHeaderLen = 0;
+    public int $chunkType = 0;
+    public int $chunkStreamId = 0;
 
-    public $timestamp = 0;
-    public $length = 0;
-    public $type = 0;
-    public $streamId = 0;
+    public int $timestamp = 0;
+    public int $length = 0;
+    public int $type = 0;
+    public int $streamId = 0;
 
-    public $clock = 0;
-    public $hasAbsTimestamp = false;
-    public $hasExtTimestamp = false;
+    public int $clock = 0;
+    public bool $hasAbsTimestamp = false;
+    public bool $hasExtTimestamp = false;
 
-    public $bytesRead = 0;
-    public $payload = "";
+    public int $bytesRead = 0;
+    public string $payload = "";
 
-    public $state = self::PACKET_STATE_BEGIN;
+    public int $state = self::PACKET_STATE_BEGIN;
 
-    public function reset()
+    public function reset(): void
     {
         $this->chunkType = 0;
         $this->chunkStreamId = 0;
@@ -84,15 +86,14 @@ class RtmpPacket
         $this->state = self::PACKET_STATE_BEGIN;
     }
 
-    public function free()
+    public function free(): void
     {
         $this->payload = "";
         $this->bytesRead = 0;
     }
 
-    public function isReady()
+    public function isReady(): bool
     {
         return $this->bytesRead == $this->length;
     }
 }
-

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\MediaReader;
 
 
@@ -7,21 +9,21 @@ use MediaServer\Utils\BitReader;
 
 class AACSequenceParameterSet extends BitReader
 {
-    public $objType;
-    public $sampleIndex;
-    public $sampleRate;
-    public $channels;
-    public $sbr;
-    public $ps;
-    public $extObjectType;
+    public int $objType = 0;
+    public int $sampleIndex = 0;
+    public int $sampleRate = 0;
+    public ?int $channels = null;
+    public int $sbr = -1;
+    public int $ps = -1;
+    public ?int $extObjectType = null;
 
-    public function __construct($data)
+    public function __construct(string $data)
     {
         parent::__construct($data);
         $this->readData();
     }
 
-    public function getAACProfileName()
+    public function getAACProfileName(): string
     {
         switch ($this->objType) {
             case 1:
@@ -45,7 +47,7 @@ class AACSequenceParameterSet extends BitReader
         }
     }
 
-    public function readData()
+    public function readData(): void
     {
         $objectType = ($objectType = $this->getBits(5)) === 31 ? ($this->getBits(6) + 32) : $objectType;
         $this->objType = $objectType;

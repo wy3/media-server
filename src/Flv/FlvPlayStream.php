@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Flv;
 
@@ -18,26 +19,26 @@ use function ord;
 
 class FlvPlayStream extends EventEmitter implements PlayStreamInterface
 {
-    protected $playPath = '';
+    protected string $playPath = '';
     /**
-     * @var WMHttpChunkStream
+     * @var WMChunkStreamInterface
      */
-    protected $input;
+    protected WMChunkStreamInterface $input;
 
 
-    protected $isPlayerIdling = true;
-    protected $isPlaying = false;
+    protected bool $isPlayerIdling = true;
+    protected bool $isPlaying = false;
 
-    protected $isFlvHeader = false;
+    protected bool $isFlvHeader = false;
 
-    protected $closed = false;
+    protected bool $closed = false;
 
     /**
      * FlvPlayStream constructor.
-     * @param $input WMChunkStreamInterface
-     * @param $playPath
+     * @param WMChunkStreamInterface $input
+     * @param string $playPath
      */
-    public function __construct($input, $playPath)
+    public function __construct(WMChunkStreamInterface $input, string $playPath)
     {
         $this->input = $input;
         $input->on('error', [$this, 'onStreamError']);
@@ -54,12 +55,12 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
      * @param \Exception $e
      * @internal
      */
-    public function onStreamError(\Exception $e)
+    public function onStreamError(\Exception $e): void
     {
         $this->close();
     }
 
-    public function close()
+    public function close(): void
     {
         if ($this->closed) {
             return;
@@ -72,45 +73,45 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
     }
 
 
-    public function isPlayerIdling()
+    public function isPlayerIdling(): bool
     {
         return $this->isPlayerIdling;
     }
 
-    public function write($data)
+    public function write(string $data): void
     {
-        return $this->input->write($data);
+        $this->input->write($data);
     }
 
-    public function isEnableAudio()
-    {
-        return true;
-    }
-
-    public function isEnableVideo()
+    public function isEnableAudio(): bool
     {
         return true;
     }
 
-    public function isEnableGop()
+    public function isEnableVideo(): bool
     {
         return true;
     }
 
-    public function setEnableAudio($status)
+    public function isEnableGop(): bool
+    {
+        return true;
+    }
+
+    public function setEnableAudio(bool $status): void
     {
     }
 
-    public function setEnableVideo($status)
+    public function setEnableVideo(bool $status): void
     {
     }
 
-    public function setEnableGop($status)
+    public function setEnableGop(bool $status): void
     {
     }
 
 
-    public function startPlay()
+    public function startPlay(): void
     {
         //各种发送数据包
         $path = $this->getPlayPath();
@@ -167,38 +168,39 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
     }
 
     /**
-     * @param $frame MediaFrame
-     * @return mixed
+     * @param MediaFrame $frame
      */
-    public function frameSend($frame)
+    public function frameSend(MediaFrame $frame): void
     {
         //   logger()->info("send ".get_class($frame)." timestamp:".($frame->timestamp??0));
         switch ($frame->FRAME_TYPE) {
             case MediaFrame::VIDEO_FRAME:
-                return $this->sendVideoFrame($frame);
+                $this->sendVideoFrame($frame);
+                break;
             case MediaFrame::AUDIO_FRAME:
-                return $this->sendAudioFrame($frame);
+                $this->sendAudioFrame($frame);
+                break;
             case MediaFrame::META_FRAME:
-                return $this->sendMetaDataFrame($frame);
+                $this->sendMetaDataFrame($frame);
+                break;
         }
     }
 
-    public function playClose()
+    public function playClose(): void
     {
         $this->input->close();
     }
 
-    public function getPlayPath()
+    public function getPlayPath(): string
     {
         return $this->playPath;
     }
 
 
     /**
-     * @param $metaDataFrame MetaDataFrame|MediaFrame
-     * @return mixed
+     * @param MediaFrame $metaDataFrame
      */
-    public function sendMetaDataFrame($metaDataFrame)
+    public function sendMetaDataFrame(MediaFrame $metaDataFrame): void
     {
         $tag = new FlvTag();
         $tag->type = Flv::SCRIPT_TAG;
@@ -210,10 +212,9 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
     }
 
     /**
-     * @param $audioFrame AudioFrame|MediaFrame
-     * @return mixed
+     * @param MediaFrame $audioFrame
      */
-    public function sendAudioFrame($audioFrame)
+    public function sendAudioFrame(MediaFrame $audioFrame): void
     {
         $tag = new FlvTag();
         $tag->type = Flv::AUDIO_TAG;
@@ -225,10 +226,9 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
     }
 
     /**
-     * @param $videoFrame VideoFrame|MediaFrame
-     * @return mixed
+     * @param MediaFrame $videoFrame
      */
-    public function sendVideoFrame($videoFrame)
+    public function sendVideoFrame(MediaFrame $videoFrame): void
     {
         $tag = new FlvTag();
         $tag->type = Flv::VIDEO_TAG;

@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -11,7 +12,7 @@ trait RtmpVideoHandlerTrait
 {
 
 
-    public function rtmpVideoHandler()
+    public function rtmpVideoHandler(): void
     {
         //视频包拆解
         /**

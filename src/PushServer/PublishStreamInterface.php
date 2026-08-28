@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\PushServer;
 
@@ -13,68 +14,51 @@ use MediaServer\MediaReader\VideoFrame;
 /**
  * Interface PublishStreamInterface
  * @package MediaServer\PushServer
- * @property $is_on_frame
  */
 interface PublishStreamInterface extends EventEmitterInterface
 {
     /**
      * 获取当前推流路径
-     * @return string
      */
-    public function getPublishPath();
+    public function getPublishPath(): string;
 
     /**
      * Have meta data
-     * @return bool
      */
-    public function isMetaData();
+    public function isMetaData(): bool;
 
-    /**
-     * @return MetaDataFrame
-     */
-    public function getMetaDataFrame();
+    public function getMetaDataFrame(): ?MetaDataFrame;
 
     /**
      * Have aac sequence header
-     * @return bool
      */
-    public function isAACSequence();
+    public function isAACSequence(): bool;
 
-    /**
-     * @return AudioFrame
-     */
-    public function getAACSequenceFrame();
+    public function getAACSequenceFrame(): ?AudioFrame;
 
     /**
      * Have avc sequence header
-     * @return bool
      */
-    public function isAVCSequence();
+    public function isAVCSequence(): bool;
 
-    /**
-     * @return VideoFrame
-     */
-    public function getAVCSequenceFrame();
+    public function getAVCSequenceFrame(): ?VideoFrame;
 
     /**
      * 是否包含音频
-     * @return bool
      */
-    public function hasAudio();
+    public function hasAudio(): bool;
 
     /**
      * 是否包含视频
-     * @return mixed
      */
-    public function hasVideo();
+    public function hasVideo(): bool;
 
     /**
      * 获取gop
      * @return MediaFrame[]
      */
-    public function getGopCacheQueue();
+    public function getGopCacheQueue(): array;
 
-
-    public function getPublishStreamInfo();
+    public function getPublishStreamInfo(): array;
 
 }

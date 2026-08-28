@@ -1,9 +1,9 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
-use \Exception;
 use Workerman\Timer;
 
 trait RtmpTrait
@@ -19,10 +19,8 @@ trait RtmpTrait
 
     /**
      * @param RtmpPacket $p
-     * @return int|mixed|void
-     * @throws Exception
      */
-    public function rtmpHandler(RtmpPacket $p)
+    public function rtmpHandler(RtmpPacket $p): void
     {
         //根据 msg type 进入处理流程
         //logger()->info("[packet] {$p->type}");
@@ -34,11 +32,11 @@ trait RtmpTrait
             case RtmpPacket::TYPE_WINDOW_ACKNOWLEDGEMENT_SIZE:
             case RtmpPacket::TYPE_SET_PEER_BANDWIDTH:
                 //上面的类型全部进入协议控制信息处理流程
-                0 === $this->rtmpControlHandler() ? -1 : 0;
+                $this->rtmpControlHandler();
                 break;
             case RtmpPacket::TYPE_EVENT:
                 //event 信息进入event 处理流程，不处理 event 信息
-                0 === $this->rtmpEventHandler() ? -1 : 0;
+                $this->rtmpEventHandler();
                 break;
             case RtmpPacket::TYPE_AUDIO:
                 //audio 信息进入 audio 处理流程
@@ -63,7 +61,7 @@ trait RtmpTrait
     }
 
 
-    public function stop()
+    public function stop(): void
     {
 
         if ($this->isStarting) {
@@ -81,12 +79,12 @@ trait RtmpTrait
                 $this->pingTimer = null;
             }
 
-            if($this->videoFpsCountTimer){
+            if ($this->videoFpsCountTimer) {
                 Timer::del($this->videoFpsCountTimer);
                 $this->videoFpsCountTimer = null;
             }
 
-            if($this->dataCountTimer){
+            if ($this->dataCountTimer) {
                 Timer::del($this->dataCountTimer);
                 $this->dataCountTimer = null;
             }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer;
 
 
@@ -14,27 +16,28 @@ class MediaServer
 {
 
     /**
-     * @var EventEmitter
+     * @var EventEmitter|null
      */
-    static protected $eventEmitter;
+    static protected ?EventEmitter $eventEmitter = null;
 
 
-    static function __callStatic($name, $arguments)
+    static function __callStatic(string $name, array $arguments): mixed
     {
         if (!self::$eventEmitter) {
             self::$eventEmitter = new EventEmitter();
         }
-        return call_user_func_array([self::$eventEmitter,$name],$arguments);
+        return call_user_func_array([self::$eventEmitter, $name], $arguments);
     }
 
 
     /**
      * @var PublishStreamInterface[]
      */
-    static public $publishStream = [];
+    static public array $publishStream = [];
 
-    static public function callApi($name,$args = []){
-        switch ($name){
+    static public function callApi(?string $name, array $args = []): array|false
+    {
+        switch ($name) {
             case 'listPushStream':
                 return self::listPushStream(...$args);
             default:
@@ -42,45 +45,46 @@ class MediaServer
         }
     }
 
-    static public function  listPushStream($path = null){
-        if($path){
-            return isset(self::$publishStream[$path])?[
+    static public function listPushStream(?string $path = null): array
+    {
+        if ($path) {
+            return isset(self::$publishStream[$path]) ? [
                 self::$publishStream[$path]->getPublishStreamInfo()
-            ]:[];
+            ] : [];
         }
-        return array_map(function($stream){
+        return array_map(function ($stream) {
             return $stream->getPublishStreamInfo();
-        },array_values(self::$publishStream));
+        }, array_values(self::$publishStream));
     }
 
     /**
-     * @param $path
+     * @param string $path
      * @return bool
      */
-    static public function hasPublishStream($path)
+    static public function hasPublishStream(string $path): bool
     {
         return isset(self::$publishStream[$path]);
     }
 
     /**
-     * @param $path
+     * @param string $path
      * @return PublishStreamInterface
      */
-    static public function getPublishStream($path)
+    static public function getPublishStream(string $path): PublishStreamInterface
     {
         return self::$publishStream[$path];
     }
 
     /**
-     * @param $stream PublishStreamInterface
+     * @param PublishStreamInterface $stream
      */
-    static protected function addPublishStream($stream)
+    static protected function addPublishStream(PublishStreamInterface $stream): void
     {
         $path = $stream->getPublishPath();
         self::$publishStream[$path] = $stream;
     }
 
-    static protected function delPublishStream($path)
+    static protected function delPublishStream(string $path): void
     {
         unset(self::$publishStream[$path]);
     }
@@ -88,23 +92,23 @@ class MediaServer
     /**
      * @var PlayStreamInterface[][]
      */
-    static public $playerStream = [];
+    static public array $playerStream = [];
 
     /**
-     * @param $path
+     * @param string $path
      * @return array|PlayStreamInterface[]
      */
-    static public function getPlayStreams($path)
+    static public function getPlayStreams(string $path): array
     {
         return self::$playerStream[$path] ?? [];
     }
 
 
     /**
-     * @param $path
-     * @param $objId
+     * @param string $path
+     * @param int $objId
      */
-    static protected function delPlayerStream($path, $objId)
+    static protected function delPlayerStream(string $path, int $objId): void
     {
         unset(self::$playerStream[$path][$objId]);
         //一个播放设备都没有
@@ -116,9 +120,9 @@ class MediaServer
     }
 
     /**
-     * @param $playerStream PlayStreamInterface
+     * @param PlayStreamInterface $playerStream
      */
-    static protected function addPlayerStream($playerStream)
+    static protected function addPlayerStream(PlayStreamInterface $playerStream): void
     {
 
         $path = $playerStream->getPlayPath();
@@ -143,10 +147,10 @@ class MediaServer
 
 
     /**
-     * @param $publisher PublishStreamInterface
-     * @param $frame MediaFrame
+     * @param PublishStreamInterface $publisher
+     * @param MediaFrame $frame
      */
-    static function publisherOnFrame($frame, $publisher)
+    static function publisherOnFrame(MediaFrame $frame, PublishStreamInterface $publisher): void
     {
         foreach (self::getPlayStreams($publisher->getPublishPath()) as $playStream) {
             if (!$playStream->isPlayerIdling()) {
@@ -157,11 +161,10 @@ class MediaServer
 
 
     /**
-     *
      * @param PublishStreamInterface $stream
-     * @return mixed
+     * @return bool
      */
-    static public function addPublish($stream)
+    static public function addPublish(PublishStreamInterface $stream): bool
     {
         $path = $stream->getPublishPath();
         $stream->is_on_frame = false;
@@ -200,7 +203,7 @@ class MediaServer
     /**
      * @param PlayStreamInterface $playerStream
      */
-    static public function addPlayer($playerStream)
+    static public function addPlayer(PlayStreamInterface $playerStream): void
     {
 
         $objIndex = spl_object_id($playerStream);
@@ -224,10 +227,10 @@ class MediaServer
     }
 
     /**
-     * @param $stream VerifyAuthStreamInterface
+     * @param VerifyAuthStreamInterface $stream
      * @return bool
      */
-    static public function verifyAuth($stream)
+    static public function verifyAuth(VerifyAuthStreamInterface $stream): bool
     {
         return true;
     }

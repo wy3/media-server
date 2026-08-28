@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/functions.php';
 
@@ -11,7 +13,7 @@ $rtmpServer->onConnect = function (\Workerman\Connection\TcpConnection $connecti
         new \MediaServer\Utils\WMBufferStream($connection)
     );
 };
-$rtmpServer->onWorkerStart = function ($worker) {
+$rtmpServer->onWorkerStart = function (\Workerman\Worker $worker) {
     logger()->info("rtmp server " . $worker->getSocketName() . " start . ");
     \MediaServer\Http\HttpWMServer::$publicPath = __DIR__.'/public';
     $httpServer = new \MediaServer\Http\HttpWMServer("\\MediaServer\\Http\\ExtHttpProtocol://127.0.0.1:18080");
@@ -20,4 +22,3 @@ $rtmpServer->onWorkerStart = function ($worker) {
 };
 
 \Workerman\Worker::runAll();
-

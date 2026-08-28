@@ -1,8 +1,12 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
+use MediaServer\MediaReader\AudioFrame;
+use MediaServer\MediaReader\MetaDataFrame;
+use MediaServer\MediaReader\VideoFrame;
 
 trait RtmpPublisherTrait
 {
@@ -10,56 +14,59 @@ trait RtmpPublisherTrait
      * 获取当前推流路径
      * @return string
      */
-    public function getPublishPath()
+    public function getPublishPath(): string
     {
         return $this->publishStreamPath;
     }
 
 
-    public function isAACSequence()
+    public function isAACSequence(): bool
     {
         return $this->isAACSequence;
     }
 
-    public function getAACSequenceFrame()
+    public function getAACSequenceFrame(): ?AudioFrame
     {
         return $this->aacSequenceHeaderFrame;
     }
 
-    public function isAVCSequence()
+    public function isAVCSequence(): bool
     {
         return $this->isAVCSequence;
     }
 
-    public function getAVCSequenceFrame()
+    public function getAVCSequenceFrame(): ?VideoFrame
     {
         return $this->avcSequenceHeaderFrame;
     }
 
 
-    public function isMetaData()
+    public function isMetaData(): bool
     {
         return $this->isMetaData;
     }
 
-    public function getMetaDataFrame()
+    public function getMetaDataFrame(): ?MetaDataFrame
     {
         return $this->metaDataFrame;
     }
 
-    public function hasAudio(){
+    public function hasAudio(): bool
+    {
         return $this->isAACSequence();
     }
 
-    public function hasVideo(){
+    public function hasVideo(): bool
+    {
         return $this->isAVCSequence();
     }
 
-    public function getGopCacheQueue(){
+    public function getGopCacheQueue(): array
+    {
         return $this->gopCacheQueue;
     }
 
-    public function getPublishStreamInfo()
+    public function getPublishStreamInfo(): array
     {
         return [
             "id"=>$this->id,

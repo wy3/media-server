@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -16,7 +17,7 @@ trait RtmpChunkHandlerTrait
     /**
      *
      */
-    public function onChunkData()
+    public function onChunkData(): void
     {
         /**
          * @var $stream BinaryStream
@@ -113,7 +114,7 @@ trait RtmpChunkHandlerTrait
      * @param $packet
      * @return string
      */
-    public function rtmpChunksCreate(&$packet)
+    public function rtmpChunksCreate(RtmpPacket &$packet): string
     {
         $baseHeader = $this->rtmpChunkBasicHeaderCreate($packet->chunkType, $packet->chunkStreamId);
         $baseHeader3 = $this->rtmpChunkBasicHeaderCreate(RtmpChunk::CHUNK_TYPE_3, $packet->chunkStreamId);
@@ -155,7 +156,7 @@ trait RtmpChunkHandlerTrait
      * @param $fmt
      * @param $cid
      */
-    public function rtmpChunkBasicHeaderCreate($fmt, $cid)
+    public function rtmpChunkBasicHeaderCreate(int $fmt, int $cid): string
     {
         if ($cid >= 64 + 255) {
             //cid 小端字节序
@@ -171,7 +172,7 @@ trait RtmpChunkHandlerTrait
     /**
      * @param $packet RtmpPacket
      */
-    public function rtmpChunkMessageHeaderCreate($packet)
+    public function rtmpChunkMessageHeaderCreate(RtmpPacket $packet): string
     {
         $out = "";
         if ($packet->chunkType <= RtmpChunk::CHUNK_TYPE_2) {
@@ -197,21 +198,21 @@ trait RtmpChunkHandlerTrait
     }
 
 
-    public function sendACK($size)
+    public function sendACK(int $size): void
     {
         $buf = hex2bin('02000000000004030000000000000000');
         $buf = substr_replace($buf, pack('N', $size), 12);
         $this->write($buf);
     }
 
-    public function sendWindowACK($size)
+    public function sendWindowACK(int $size): void
     {
         $buf = hex2bin('02000000000004050000000000000000');
         $buf = substr_replace($buf, pack('N', $size), 12);
         $this->write($buf);
     }
 
-    public function setPeerBandwidth($size, $type)
+    public function setPeerBandwidth(int $size, int $type): void
     {
         $buf = hex2bin('0200000000000506000000000000000000');
         $buf = substr_replace($buf, pack('NC', $size, $type), 12);
@@ -219,7 +220,7 @@ trait RtmpChunkHandlerTrait
 
     }
 
-    public function setChunkSize($size)
+    public function setChunkSize(int $size): void
     {
         $buf = hex2bin('02000000000004010000000000000000');
         $buf = substr_replace($buf, pack('N', $size), 12);

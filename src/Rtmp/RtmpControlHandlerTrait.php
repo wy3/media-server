@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
 
 trait RtmpControlHandlerTrait
 {
-    public function rtmpControlHandler()
+    public function rtmpControlHandler(): void
     {
         $b = microtime(true);
         $p = $this->currentPacket;

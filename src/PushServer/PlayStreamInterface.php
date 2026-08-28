@@ -1,84 +1,50 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\PushServer;
 
 
 use Evenement\EventEmitterInterface;
-use MediaServer\MediaReader\AudioFrame;
 use MediaServer\MediaReader\MediaFrame;
-use MediaServer\MediaReader\MetaDataFrame;
-use MediaServer\MediaReader\VideoFrame;
 
 interface PlayStreamInterface extends EventEmitterInterface
 {
 
-    /**
-     * @return bool
-     */
-    public function isPlayerIdling();
+    public function isPlayerIdling(): bool;
 
     /**
      * 播放开始
-     * @return mixed
      */
-    public function startPlay();
+    public function startPlay(): void;
 
-    /**
-     * @param $frame MediaFrame
-     * @return mixed
-     */
-    public function frameSend($frame);
+    public function frameSend(MediaFrame $frame): void;
 
-    /**
-     * @return mixed
-     */
-    public function playClose();
+    public function playClose(): void;
 
     /**
      * 获取当前路径
-     * @return string
      */
-    public function getPlayPath();
+    public function getPlayPath(): string;
 
     /**
      * 是否启用音频
-     * @return bool
      */
-    public function isEnableAudio();
+    public function isEnableAudio(): bool;
 
     /**
      * 是否启用视频
-     * @return bool
      */
-    public function isEnableVideo();
-
+    public function isEnableVideo(): bool;
 
     /**
      * 是否启用gop，关闭能降低延迟
-     * @return bool
      */
-    public function isEnableGop();
+    public function isEnableGop(): bool;
 
+    public function setEnableAudio(bool $status): void;
 
-    /**
-     * 音频开关
-     * @param $status bool
-     * @return mixed
-     */
-    public function setEnableAudio($status);
+    public function setEnableVideo(bool $status): void;
 
-    /**
-     * 视频开关
-     * @param $status bool
-     * @return mixed
-     */
-    public function setEnableVideo($status);
-
-    /**
-     * gop开关
-     * @param $status bool
-     * @return mixed
-     */
-    public function setEnableGop($status);
+    public function setEnableGop(bool $status): void;
 }

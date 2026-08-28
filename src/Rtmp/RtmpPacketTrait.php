@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -14,7 +15,7 @@ use MediaServer\Utils\BinaryStream;
 trait RtmpPacketTrait
 {
 
-    public function onPacketHandler()
+    public function onPacketHandler(): bool
     {
         /**
          * @var $stream BinaryStream
@@ -124,6 +125,6 @@ trait RtmpPacketTrait
                 }
         }
 
-
+        return true;
     }
 }

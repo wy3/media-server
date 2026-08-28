@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\MediaReader;
 
@@ -7,7 +8,7 @@ use MediaServer\Utils\BinaryStream;
 
 class AudioFrame extends BinaryStream implements MediaFrame
 {
-    public $FRAME_TYPE=self::AUDIO_FRAME;
+    public int $FRAME_TYPE = self::AUDIO_FRAME;
 
     const AUDIO_CODEC_NAME = [
         '',
@@ -36,14 +37,14 @@ class AudioFrame extends BinaryStream implements MediaFrame
 
     const SOUND_FORMAT_AAC = 10;
 
-    public $soundFormat;
-    public $soundRate;
-    public $soundSize;
-    public $soundType;
-    public $timestamp = 0;
+    public int $soundFormat = 0;
+    public int $soundRate = 0;
+    public int $soundSize = 0;
+    public int $soundType = 0;
+    public int $timestamp = 0;
 
 
-    public function __construct($data, $timestamp = 0)
+    public function __construct(string $data, int $timestamp = 0)
     {
         parent::__construct($data);
         $this->timestamp = $timestamp;
@@ -55,18 +56,18 @@ class AudioFrame extends BinaryStream implements MediaFrame
 
     }
 
-    public function __toString()
+    public function __toString(): string
     {
         return $this->dump();
     }
 
 
-    public function getAudioCodecName()
+    public function getAudioCodecName(): string
     {
         return self::AUDIO_CODEC_NAME[$this->soundFormat];
     }
 
-    public function getAudioSamplerate()
+    public function getAudioSamplerate(): int
     {
         $rate = self::AUDIO_SOUND_RATE[$this->soundRate];
         switch ($this->soundFormat) {
@@ -89,12 +90,9 @@ class AudioFrame extends BinaryStream implements MediaFrame
     /**
      * @var AACPacket
      */
-    protected $aacPacket;
+    protected ?AACPacket $aacPacket = null;
 
-    /**
-     * @return AACPacket
-     */
-    public function getAACPacket()
+    public function getAACPacket(): AACPacket
     {
         if (!$this->aacPacket) {
             $this->aacPacket = new AACPacket($this);
@@ -104,7 +102,7 @@ class AudioFrame extends BinaryStream implements MediaFrame
     }
 
 
-    public function destroy()
+    public function destroy(): void
     {
         $this->aacPacket = null;
     }

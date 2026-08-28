@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\Utils;
 
 use Evenement\EventEmitterTrait;
@@ -7,44 +9,38 @@ use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Chunk;
 use Workerman\Protocols\Http\Response;
 
-class WMWsChunkStream implements  WMChunkStreamInterface
+class WMWsChunkStream implements WMChunkStreamInterface
 {
     use EventEmitterTrait;
 
-    /**
-     * @var TcpConnection
-     */
-    protected $connection;
+    protected ?TcpConnection $connection = null;
 
-    /**
-     * WMHttpChunkStream constructor.
-     * @param $connection TcpConnection
-     */
-    public function __construct($connection){
+    public function __construct(TcpConnection $connection)
+    {
         $this->connection = $connection;
-        $this->connection->onClose = function ($con){
+        $this->connection->onClose = function ($con) {
             $this->emit('close');
             $this->connection = null;
             $this->removeAllListeners();
         };
-        $this->connection->onError = function ($con,$code,$msg){
-            $this->emit('error',[new \Exception($msg,$code)]);
+        $this->connection->onError = function ($con, $code, $msg) {
+            $this->emit('error', [new \Exception($msg, $code)]);
         };
     }
 
 
-    public function write($data)
+    public function write(string $data): void
     {
         $this->connection->send($data);
     }
 
-    public function end($data = null)
+    public function end(?string $data = null): void
     {
         //empty chunk end
         $this->connection->send(new Chunk(''));
     }
 
-    public function close()
+    public function close(): void
     {
         $this->connection->close();
     }

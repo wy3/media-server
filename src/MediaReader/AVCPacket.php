@@ -1,8 +1,8 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\MediaReader;
-
 
 
 use MediaServer\Utils\BinaryStream;
@@ -14,35 +14,27 @@ class AVCPacket
     const AVC_PACKET_TYPE_END_SEQUENCE = 2;
 
 
+    public int $avcPacketType;
+    public int $compositionTime;
+    public BinaryStream $stream;
 
-    public $avcPacketType;
-    public $compositionTime;
-    public $stream;
-
-    /**
-     * AVCPacket constructor.
-     * @param $stream BinaryStream
-     */
-    public function __construct($stream)
+    public function __construct(BinaryStream $stream)
     {
-        $this->stream=$stream;
-        $this->avcPacketType=$stream->readTinyInt();
-        $this->compositionTime=$stream->readInt24();
+        $this->stream = $stream;
+        $this->avcPacketType = $stream->readTinyInt();
+        $this->compositionTime = $stream->readInt24();
     }
 
 
     /**
-     * @var AACSequenceParameterSet
+     * @var AVCSequenceParameterSet
      */
-    protected $avcSequenceParameterSet;
+    protected ?AVCSequenceParameterSet $avcSequenceParameterSet = null;
 
-    /**
-     * @return AVCSequenceParameterSet
-     */
-    public function getAVCSequenceParameterSet(){
-
-        if(!$this->avcSequenceParameterSet){
-            $this->avcSequenceParameterSet=new AVCSequenceParameterSet($this->stream->readRaw());
+    public function getAVCSequenceParameterSet(): AVCSequenceParameterSet
+    {
+        if (!$this->avcSequenceParameterSet) {
+            $this->avcSequenceParameterSet = new AVCSequenceParameterSet($this->stream->readRaw());
         }
         return $this->avcSequenceParameterSet;
     }

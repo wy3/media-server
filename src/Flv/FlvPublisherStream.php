@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Flv;
 
@@ -23,77 +24,82 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     const FLV_STATE_TAG_HEADER = 1;
     const FLV_STATE_TAG_DATA = 2;
 
-    public $id;
+    public string $id = '';
 
     /**
      * @var EventEmitter|ReadableStreamInterface
      */
-    private $input;
-    private $closed = false;
+    private EventEmitter|ReadableStreamInterface $input;
+    private bool $closed = false;
 
 
     /**
-     * @var BinaryStream
+     * @var BinaryStream|null
      */
-    protected $buffer;
+    protected ?BinaryStream $buffer = null;
 
 
-    public $flvHeader;
-    public $hasFlvHeader = false;
+    public ?FlvHeader $flvHeader = null;
+    public bool $hasFlvHeader = false;
 
-    public $hasAudio = false;
-    public $hasVideo = false;
+    public bool $hasAudio = false;
+    public bool $hasVideo = false;
 
-    public $audioCodec = 0;
-    public $audioCodecName = '';
-    public $audioSamplerate = 0;
-    public $audioChannels = 1;
-    public $isAACSequence = false;
+    public int $audioCodec = 0;
+    public string $audioCodecName = '';
+    public int $audioSamplerate = 0;
+    public int $audioChannels = 1;
+    public bool $isAACSequence = false;
 
     /**
-     * @var AudioFrame
+     * @var AudioFrame|null
      */
-    public $aacSequenceHeaderFrame;
-    public $audioProfileName = '';
+    public ?AudioFrame $aacSequenceHeaderFrame = null;
+    public string $audioProfileName = '';
 
 
-    public $isMetaData = false;
+    public bool $isMetaData = false;
     /**
-     * @var MetaDataFrame
+     * @var MetaDataFrame|null
      */
-    public $metaDataFrame;
+    public ?MetaDataFrame $metaDataFrame = null;
 
 
-    public $isAVCSequence = false;
+    public bool $isAVCSequence = false;
     /**
-     * @var VideoFrame
+     * @var VideoFrame|null
      */
-    public $avcSequenceHeaderFrame;
-    public $videoWidth = 0;
-    public $videoHeight = 0;
-    public $videoFps = 0;
-    public $videoCount = 0;
-    public $videoFpsCountTimer;
+    public ?VideoFrame $avcSequenceHeaderFrame = null;
+    public int $videoWidth = 0;
+    public int $videoHeight = 0;
+    public int|float $videoFps = 0;
+    public int $videoCount = 0;
+    public ?int $videoFpsCountTimer = null;
 
-    public $videoProfileName = '';
-    public $videoLevel = 0;
+    public string $videoProfileName = '';
+    public int|float $videoLevel = 0;
 
-    public $videoCodec = 0;
-    public $videoCodecName = '';
+    public int $videoCodec = 0;
+    public string $videoCodecName = '';
 
 
-    public $startTimestamp;
+    public int $startTimestamp = 0;
 
 
     /**
      * @var string
      */
-    public $publishPath;
+    public string $publishPath = '';
 
     /**
      * @var MediaFrame[]
      */
-    public $gopCacheQueue = [];
+    public array $gopCacheQueue = [];
+
+    /**
+     * 是否已注册 on_frame 事件监听（由 MediaServer 动态赋值，显式声明以避免 PHP 8.2+ 动态属性弃用）
+     */
+    public bool $is_on_frame = false;
 
     public function __destruct()
     {
@@ -102,10 +108,10 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
     /**
      * FlvStream constructor.
-     * @param $input EventEmitter|ReadableStreamInterface
-     * @param $path  string
+     * @param EventEmitter|ReadableStreamInterface $input
+     * @param string $path
      */
-    public function __construct($input, $path)
+    public function __construct(EventEmitter|ReadableStreamInterface $input, string $path)
     {
         //先随机生成个id
         $this->id = generateNewSessionID();
@@ -120,20 +126,20 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
 
     /**
-     * @var FlvTag
+     * @var FlvTag|null
      */
-    protected $currentTag;
+    protected ?FlvTag $currentTag = null;
 
 
-    protected $steamStatus = self::FLV_STATE_FLV_HEADER;
+    protected int $steamStatus = self::FLV_STATE_FLV_HEADER;
 
 
     /**
-     * @param $data
+     * @param string $data
      * @throws Exception
      * @internal
      */
-    public function onStreamData($data)
+    public function onStreamData(string $data): void
     {
         //若干秒后没有收到数据断开
         $this->buffer->push($data);
@@ -163,7 +169,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     /**
      * @throws Exception
      */
-    public function flvTagHandler()
+    public function flvTagHandler(): void
     {
         //若干秒后没有收到数据断开
         switch ($this->steamStatus) {
@@ -207,19 +213,20 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     /**
      * @throws Exception
      */
-    public function onTagEvent()
+    public function onTagEvent(): void
     {
         $tag = $this->currentTag;
         switch ($tag->type) {
             case Flv::SCRIPT_TAG:
                 $metaData = Flv::scriptFrameDataRead($tag->data);
                 logger()->info("publisher {path} metaData: " . json_encode($metaData));
-                $this->videoWidth = $metaData['dataObj']['width'] ?? 0;
-                $this->videoHeight = $metaData['dataObj']['height'] ?? 0;
+                // AMF 数字以 float 反序列化，强类型下需转 int 后再赋值；stereo 为 bool 需换算为声道数
+                $this->videoWidth = (int)($metaData['dataObj']['width'] ?? 0);
+                $this->videoHeight = (int)($metaData['dataObj']['height'] ?? 0);
                 $this->videoFps = $metaData['dataObj']['framerate'] ?? 0;
 
-                $this->audioSamplerate = $metaData['dataObj']['audiosamplerate'] ?? 0;
-                $this->audioChannels = $metaData['dataObj']['stereo'] ?? 1;
+                $this->audioSamplerate = (int)($metaData['dataObj']['audiosamplerate'] ?? 0);
+                $this->audioChannels = isset($metaData['dataObj']['stereo']) ? ($metaData['dataObj']['stereo'] ? 2 : 1) : 1;
 
                 $this->metaDataFrame = new MetaDataFrame($tag->data);
                 $this->isMetaData = true;
@@ -300,7 +307,8 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                         $set = $aacPack->getAACSequenceParameterSet();
                         $this->audioProfileName = $set->getAACProfileName();
                         $this->audioSamplerate = $set->sampleRate;
-                        $this->audioChannels = $set->channels;
+                        // channels 可能为 null，回退默认单声道
+                        $this->audioChannels = $set->channels ?? 1;
                         //logger()->info("publisher {path} recv acc sequence.", ['path' => $this->pathIndex]);
                     }
 
@@ -328,13 +336,13 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
      * @param Exception $e
      * @internal
      */
-    public function onStreamError(\Exception $e)
+    public function onStreamError(\Exception $e): void
     {
         $this->emit('on_error', [$e]);
         $this->onStreamClose();
     }
 
-    public function onStreamClose()
+    public function onStreamClose(): void
     {
         if ($this->closed) {
             return;
@@ -356,58 +364,58 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         $this->removeAllListeners();
     }
 
-    public function getPublishPath()
+    public function getPublishPath(): string
     {
         return $this->publishPath;
     }
 
-    public function isMetaData()
+    public function isMetaData(): bool
     {
         return $this->isMetaData;
     }
 
 
-    public function getMetaDataFrame()
+    public function getMetaDataFrame(): ?MetaDataFrame
     {
         return $this->metaDataFrame;
     }
 
-    public function isAACSequence()
+    public function isAACSequence(): bool
     {
         return $this->isAACSequence;
     }
 
-    public function getAACSequenceFrame()
+    public function getAACSequenceFrame(): ?AudioFrame
     {
         return $this->aacSequenceHeaderFrame;
     }
 
-    public function isAVCSequence()
+    public function isAVCSequence(): bool
     {
         return $this->isAVCSequence;
     }
 
-    public function getAVCSequenceFrame()
+    public function getAVCSequenceFrame(): ?VideoFrame
     {
         return $this->avcSequenceHeaderFrame;
     }
 
-    public function hasAudio()
+    public function hasAudio(): bool
     {
         return $this->hasAudio;
     }
 
-    public function hasVideo()
+    public function hasVideo(): bool
     {
         return $this->hasVideo;
     }
 
-    public function getGopCacheQueue()
+    public function getGopCacheQueue(): array
     {
         return $this->gopCacheQueue;
     }
 
-    public function getPublishStreamInfo()
+    public function getPublishStreamInfo(): array
     {
         return [
             "id"=>$this->id,

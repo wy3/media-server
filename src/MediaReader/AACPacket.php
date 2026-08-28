@@ -1,11 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\MediaReader;
 
 
-
 use MediaServer\Utils\BinaryStream;
-use MediaServer\Utils\BitReader;
 
 class AACPacket
 {
@@ -24,37 +24,29 @@ class AACPacket
     const AAC_PACKET_TYPE_RAW = 1;
 
 
-
-    public $aacPacketType;
+    public int $aacPacketType;
 
     /**
      * @var BinaryStream
      */
-    public $stream;
+    public BinaryStream $stream;
 
-    /**
-     * AACPacket constructor.
-     * @param $stream BinaryStream
-     */
-    public function __construct($stream)
+    public function __construct(BinaryStream $stream)
     {
-        $this->stream=$stream;
-        $this->aacPacketType=$stream->readTinyInt();
+        $this->stream = $stream;
+        $this->aacPacketType = $stream->readTinyInt();
 
     }
 
     /**
      * @var AACSequenceParameterSet
      */
-    protected $aacSequenceParameterSet;
+    protected ?AACSequenceParameterSet $aacSequenceParameterSet = null;
 
-    /**
-     * @return AACSequenceParameterSet
-     */
-    public function getAACSequenceParameterSet(){
-
-        if(!$this->aacSequenceParameterSet){
-            $this->aacSequenceParameterSet=new AACSequenceParameterSet($this->stream->readRaw());
+    public function getAACSequenceParameterSet(): AACSequenceParameterSet
+    {
+        if (!$this->aacSequenceParameterSet) {
+            $this->aacSequenceParameterSet = new AACSequenceParameterSet($this->stream->readRaw());
         }
         return $this->aacSequenceParameterSet;
     }

@@ -1,28 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\Utils;
 
 class BinaryStream
 {
-    protected $_index = 0;
-    protected $_data;
+    protected int $_index = 0;
+    protected string $_data = '';
 
-    public function __construct($data = "")
+    public function __construct(string $data = "")
     {
         $this->_data = $data;
     }
 
-    public function reset()
+    public function reset(): void
     {
         $this->_index = 0;
     }
 
-    public function skip($length)
+    public function skip(int $length): void
     {
         $this->_index += $length;
     }
 
-    public function flush($length = -1)
+    public function flush(int $length = -1): string
     {
         if ($length == -1) {
             $d = $this->_data;
@@ -36,81 +38,82 @@ class BinaryStream
     }
 
 
-    public function dump()
+    public function dump(): string
     {
         return $this->_data;
     }
 
-    public function has($len)
+    public function has(int $len): bool
     {
         $pos = $len - 1;
         return isset($this->_data[$this->_index + $pos]);
     }
 
-    public function clear()
+    public function clear(): void
     {
         $this->_data = substr($this->_data, $this->_index);
         $this->_index = 0;
     }
 
-    public function begin()
+    public function begin(): self
     {
         $this->_index = 0;
         return $this;
     }
 
-    public function move($pos)
+    public function move(int $pos): self
     {
         $this->_index = max(array(0, min(array($pos, strlen($this->_data)))));
         return $this;
     }
 
-    public function end()
+    public function end(): self
     {
         $this->_index = strlen($this->_data);
         return $this;
     }
 
-    public function push($data)
+    public function push(string $data): self
     {
         $this->_data .= $data;
         return $this;
     }
+
     //--------------------------------
     //		Writer
     //--------------------------------
 
-    public function writeByte($value)
+    public function writeByte(int|string $value): void
     {
         $this->_data .= is_int($value) ? chr($value) : $value;
         $this->_index++;
     }
 
-    public function writeInt16($value)
+    public function writeInt16(int $value): void
     {
         $this->_data .= pack("s", $value);
         $this->_index += 2;
     }
 
-    public function writeInt24($value)
+    public function writeInt24(int $value): void
     {
         $this->_data .= substr(pack("N", $value), 1);
         $this->_index += 3;
     }
 
-    public function writeInt32($value)
+    public function writeInt32(int $value): void
     {
         $this->_data .= pack("N", $value);
         $this->_index += 4;
     }
 
-    public function writeInt32LE($value)
+    public function writeInt32LE(int $value): void
     {
         $this->_data .= pack("V", $value);
         $this->_index += 4;
     }
 
-    public function write($value)
+    public function write(string $value): void
     {
         $this->_data .= $value;
         $this->_index += strlen($value);
@@ -120,44 +123,44 @@ class BinaryStream
     //		Reader
     //-------------------------------
 
-    public function readByte()
+    public function readByte(): string
     {
         return ($this->_data[$this->_index++]);
     }
 
-    public function readTinyInt()
+    public function readTinyInt(): int
     {
         return ord($this->readByte());
     }
 
-    public function readInt16()
+    public function readInt16(): int
     {
         return ($this->readTinyInt() << 8) + $this->readTinyInt();
     }
 
-    public function readInt16LE()
+    public function readInt16LE(): int
     {
         return $this->readTinyInt() + ($this->readTinyInt() << 8);
     }
 
-    public function readInt24()
+    public function readInt24(): int
     {
         $m = unpack("N", "\x00" . substr($this->_data, $this->_index, 3));
         $this->_index += 3;
         return $m[1];
     }
 
-    public function readInt32()
+    public function readInt32(): int
     {
         return $this->read("N", 4);
     }
 
-    public function readInt32LE()
+    public function readInt32LE(): int
     {
         return $this->read("V", 4);
     }
 
-    public function readRaw($length = 0)
+    public function readRaw(int $length = 0): string
     {
         if ($length == 0)
             $length = strlen($this->_data) - $this->_index;
@@ -166,7 +169,7 @@ class BinaryStream
         return $datas;
     }
 
-    private function read($type, $size)
+    private function read(string $type, int $size): int
     {
         $m = unpack("$type", substr($this->_data, $this->_index, $size));
         $this->_index += $size;
@@ -177,14 +180,14 @@ class BinaryStream
     //		Tag & rollback
     //-------------------------------
 
-    protected $tagPos;
+    protected int $tagPos = 0;
 
-    public function tag()
+    public function tag(): void
     {
         $this->tagPos = $this->_index;
     }
 
-    public function rollBack()
+    public function rollBack(): void
     {
         $this->_index = $this->tagPos;
     }

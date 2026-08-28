@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Http;
 
@@ -9,6 +10,9 @@ use MediaServer\MediaServer;
 use MediaServer\Utils\WMHttpChunkStream;
 use MediaServer\Utils\WMWsChunkStream;
 use Psr\Http\Message\StreamInterface;
+use React\Promise\Promise;
+use React\Promise\PromiseInterface;
+use React\Stream\ReadableStreamInterface;
 use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
@@ -18,9 +22,9 @@ use Workerman\Worker;
 
 class HttpWMServer extends Worker
 {
-    static $publicPath = '';
+    static string $publicPath = '';
 
-    public  function __construct($socket_name = '', array $context_option = array())
+    public  function __construct(string $socket_name = '', array $context_option = [])
     {
         parent::__construct($socket_name, $context_option);
         //使用扩展的协议
@@ -28,13 +32,14 @@ class HttpWMServer extends Worker
         $this->onMessage = [$this,'onHttpRequest'];
     }
 
-    public function onWebsocketRequest($connection,$headerData){
+    public function onWebsocketRequest(TcpConnection $connection, string $headerData): void
+    {
         $request = new Request($headerData);
         $request->connection = $connection;
         //ignore connection message
         $connection->onMessage = null;
-        if($this->findFlv($request,$request->path())){
-           return;
+        if ($this->findFlv($request, $request->path())) {
+            return;
         }
         $request->connection->close();
         return;
@@ -42,21 +47,24 @@ class HttpWMServer extends Worker
 
 
     /**
-     * @param $connection TcpConnection
+     * @param TcpConnection $connection
      * @param Request $request
      */
-    public function onHttpRequest($connection,Request  $request)
+    public function onHttpRequest(TcpConnection $connection, Request $request): ?PromiseInterface
     {
         switch ($request->method()) {
             case "GET":
-                return $this->getHandler($request);
+                $this->getHandler($request);
+                return null;
             case "POST":
                 return $this->postHandler($request);
             case "HEAD":
-                return $connection->send(new \Workerman\Protocols\Http\Response(200));
+                $connection->send(new \Workerman\Protocols\Http\Response(200));
+                return null;
             default:
                 logger()->warning("unknown method", ['method' => $request->method(), 'path' => $request->path()]);
-                return $connection->send(new \Workerman\Protocols\Http\Response(405));
+                $connection->send(new \Workerman\Protocols\Http\Response(405));
+                return null;
         }
     }
 
@@ -64,7 +72,7 @@ class HttpWMServer extends Worker
     /**
      * @param Request $request
      */
-    public function getHandler(Request $request)
+    public function getHandler(Request $request): void
     {
         $path = $request->path();
 
@@ -100,9 +108,9 @@ class HttpWMServer extends Worker
 
     /**
      * @param Request $request
-     * @return Promise|Response
+     * @return PromiseInterface|Response
      */
-    public function postHandler(Request $request)
+    public function postHandler(Request $request): PromiseInterface|Response
     {
         $path = $request->getUri()->getPath();
         $bodyStream = $request->getBody();
@@ -136,7 +144,7 @@ class HttpWMServer extends Worker
             $flvReadStream->on('on_end', function () use ($resolve) {
                 $resolve(new Response(200));
             });
-            $flvReadStream->on('error', function (\Exception $exception) use ($reject, &$bytes) {
+            $flvReadStream->on('error', function (\Exception $exception) use ($reject) {
                 $reject(new Response(
                     400,
                     ['Content-Type' => 'text/plain'],
@@ -146,7 +154,7 @@ class HttpWMServer extends Worker
         });
     }
 
-    public function unsafeUri(Request $request,$path): bool
+    public function unsafeUri(Request $request, string $path): bool
     {
         if (
             !$path ||
@@ -160,7 +168,8 @@ class HttpWMServer extends Worker
         return false;
     }
 
-    public function findStaticFile(Request $request,$path){
+    public function findStaticFile(Request $request, string $path): bool
+    {
 
         if (preg_match('/%[0-9a-f]{2}/i', $path)) {
             $path = urldecode($path);
@@ -179,7 +188,8 @@ class HttpWMServer extends Worker
         return true;
     }
 
-    public function  findFlv(Request $request,$path){
+    public function findFlv(Request $request, string $path): bool
+    {
         if(!preg_match('/(.*)\.flv$/',$path,$matches)){
             return false;
         }else{
@@ -190,7 +200,8 @@ class HttpWMServer extends Worker
     }
 
 
-    public function playMediaStream(Request $request,$flvPath){
+    public function playMediaStream(Request $request, string $flvPath): void
+    {
         //check stream
         if (MediaServer::hasPublishStream($flvPath)) {
 

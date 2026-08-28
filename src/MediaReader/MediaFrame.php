@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\MediaReader;
 
@@ -11,8 +12,8 @@ namespace MediaServer\MediaReader;
  */
 interface MediaFrame
 {
-    const   VIDEO_FRAME = 1;
-    const   AUDIO_FRAME = 2;
-    const   META_FRAME = 0;
+    const VIDEO_FRAME = 1;
+    const AUDIO_FRAME = 2;
+    const META_FRAME = 0;
 
 }

@@ -1,36 +1,34 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MediaServer\Utils;
 
 
 class BitReader
 {
-    public $data;
-    public $currentBytes = 0;
-    public $currentBits = 0;
-    public $isError=false;
+    public string $data;
+    public int $currentBytes = 0;
+    public int $currentBits = 0;
+    public bool $isError = false;
 
 
-    public  function __construct(&$data)
+    public function __construct(string &$data)
     {
-        $this->data=$data;
+        $this->data = $data;
     }
 
-    /**
-     * @param int $bits
-     */
-    public function skipBits($bits) {
+    public function skipBits(int $bits): void
+    {
         $newBits = $this->currentBits + $bits;
         $this->currentBytes += (int)floor($newBits / 8);
         $this->currentBits = $newBits % 8;
     }
 
-    /**
-     * @return int
-     */
-    public function getBit() {
-        if(!isset($this->data[$this->currentBytes])){
-            $this->isError=true;
+    public function getBit(): int
+    {
+        if (!isset($this->data[$this->currentBytes])) {
+            $this->isError = true;
             return 0;
         }
         $result = (ord($this->data[$this->currentBytes]) >> (7 - $this->currentBits)) & 0x01;
@@ -38,14 +36,14 @@ class BitReader
         return $result;
     }
 
-    public function getBits($bits){
+    public function getBits(int $bits): int
+    {
         $result = 0;
         for ($i = 0; $i < $bits; $i++) {
             $result = ($result << 1) + $this->getBit();
         }
         return $result;
     }
-
 
 
 }

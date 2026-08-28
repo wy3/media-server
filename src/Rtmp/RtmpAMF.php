@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
@@ -46,12 +47,7 @@ class RtmpAMF
     ];
 
 
-    /**
-     * @param $payload
-     * @return null[]
-     * @throws \Exception
-     */
-    static function rtmpCMDAmf0Reader($payload)
+    public static function rtmpCMDAmf0Reader(string $payload): array
     {
         $stream = new \SabreAMF_InputStream($payload);
         $deserializer = new \SabreAMF_AMF0_Deserializer($stream);
@@ -78,12 +74,7 @@ class RtmpAMF
     }
 
 
-    /**
-     * @param $payload
-     * @return null[]
-     * @throws \Exception
-     */
-    static function rtmpDataAmf0Reader($payload)
+    public static function rtmpDataAmf0Reader(string $payload): array
     {
 
         $stream = new \SabreAMF_InputStream($payload);
@@ -111,11 +102,8 @@ class RtmpAMF
 
     /**
      * Encode AMF0 Command
-     * @param $opt
-     * @throws \Exception
-     * @return string
      */
-    static function rtmpCMDAmf0Creator($opt)
+    public static function rtmpCMDAmf0Creator(array $opt): string
     {
 
         $outputStream = new \SabreAMF_OutputStream();
@@ -132,17 +120,13 @@ class RtmpAMF
         } else {
             logger()->debug('AMF Unknown command {cmd}', $opt);
         }
-        //logger()->debug('Encoded as ' . bin2hex($outputStream->getRawData()));
         return $outputStream->getRawData();
     }
 
     /**
      * Encode AMF0 Command
-     * @param $opt
-     * @throws \Exception
-     * @return string
      */
-    static function rtmpDATAAmf0Creator($opt)
+    public static function rtmpDATAAmf0Creator(array $opt): string
     {
 
         $outputStream = new \SabreAMF_OutputStream();
@@ -157,7 +141,6 @@ class RtmpAMF
         } else {
             logger()->debug('AMF Unknown command {cmd}', $opt);
         }
-        //logger()->debug('Encoded as' . bin2hex($outputStream->getRawData()));
         return $outputStream->getRawData();
     }
 }
