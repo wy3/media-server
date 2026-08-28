@@ -24,7 +24,8 @@ trait RtmpAudioHandlerTrait
             $this->audioCodec = $audioFrame->soundFormat;
             $this->audioCodecName = $audioFrame->getAudioCodecName();
             $this->audioSamplerate = $audioFrame->getAudioSamplerate();
-            $this->audioChannels = ++$audioFrame->soundType;
+            // soundType 取值 0(单声道)/1(立体声)，+1 转换为声道数，避免自增修改 Frame 对象属性
+            $this->audioChannels = $audioFrame->soundType + 1;
         }
 
 
