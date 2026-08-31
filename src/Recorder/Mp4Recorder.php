@@ -15,7 +15,7 @@ use MediaServer\PushServer\PublishStreamInterface;
  * fMP4 实时录制器。
  *
  * 订阅推流 on_frame 事件，将 H264/AAC 样本按片段（关键帧边界）封装为
- * moof+mdat 增量写入分段 .mp4 文件；分段结束时生成同名 .json 索引。
+ * moof+mdat 增量写入分段 .mp4 文件；分段结束时写入统一时间线索引（SQLite recordings.db）。
  *
  * 每个分段内部时间戳自 0 起，索引记录分段首个样本的墙钟时间，用于回放换算。
  */
@@ -25,10 +25,12 @@ class Mp4Recorder
     protected $fileHandle = null;
 
     protected string $segmentFile = '';
-    protected string $segmentIndexFile = '';
     protected int $segmentSeq = 0;
     protected int $segmentStartWall = 0;
     protected bool $segmentHasAudio = false;
+
+    /** 编码元数据，随分段写入统一时间线索引（SQLite recordings.db） */
+    protected array $streamMeta = [];
 
     /** 当前分段首个样本的原始时间戳，用于归一化 dts */
     protected ?int $firstDts = null;
@@ -123,6 +125,11 @@ class Mp4Recorder
                 $this->finalizeSegment();
                 $this->startSegment($now);
                 $needNewFragment = true; // 新分段首样本
+                if ($this->segmentActive()) {
+                    // 新分段 firstDts 已重置，重新归一化当前关键帧 dts（新分段内自 0 起）；
+                    // 否则 fragmentStartDts 会带着旧分段的大 dts，导致新分段内不再按分片时长切分。
+                    $dts = $this->normalizeDts($frame->timestamp);
+                }
             } elseif ($needNewFragment) {
                 $this->finalizeFragment();
             }
@@ -204,10 +211,11 @@ class Mp4Recorder
             return;
         }
 
+        // 文件名带毫秒时间戳，避免同一秒内重复推流导致序号从 0 重新计数时冲突覆盖
+        $ms = str_pad((string)((int)(microtime(true) * 1000) % 1000), 3, '0', STR_PAD_LEFT);
         $base = RecorderManager::sanitizePath($this->publisher->getPublishPath())
-            . '_' . date('Ymd_His') . '_' . $this->segmentSeq;
+            . '_' . date('Ymd_His') . $ms . '_' . $this->segmentSeq;
         $this->segmentFile = $dir . DIRECTORY_SEPARATOR . $base . '.mp4';
-        $this->segmentIndexFile = $dir . DIRECTORY_SEPARATOR . $base . '.json';
         $this->segmentSeq++;
         $this->segmentStartWall = $now;
         $this->segmentHasAudio = $this->audioConfigReady;
@@ -216,6 +224,14 @@ class Mp4Recorder
         $this->fragmentStartDts = null;
         $this->videoSamples = [];
         $this->audioSamples = [];
+
+        // 编码元数据（视频/音频）随分段写入统一时间线索引
+        $this->streamMeta = [
+            'video' => ['codec' => 'h264', 'width' => $this->videoWidth, 'height' => $this->videoHeight],
+            'audio' => $this->segmentHasAudio
+                ? ['codec' => 'aac', 'samplerate' => $this->audioSamplerate, 'channels' => $this->audioChannels]
+                : null,
+        ];
 
         $handle = @fopen($this->segmentFile, 'wb');
         if ($handle === false) {
@@ -317,7 +333,7 @@ class Mp4Recorder
         }
         fwrite($this->fileHandle, $data);
         $this->index['end'] = timestamp();
-        $this->index['duration'] = $this->index['end'] - $this->index['start'];
+        $this->index['duration'] = max(0, $this->index['end'] - $this->index['start']);
     }
 
     protected function finalizeSegment(): void
@@ -331,10 +347,17 @@ class Mp4Recorder
 
         $this->index['end'] = timestamp();
         $this->index['duration'] = max(0, $this->index['end'] - $this->index['start']);
-        $json = json_encode($this->index, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        if ($json !== false) {
-            file_put_contents($this->segmentIndexFile, $json);
-        }
-        logger()->info("recorder segment saved {file}", ['file' => $this->segmentFile]);
+        $this->index['size'] = (int)@filesize($this->segmentFile);
+
+        // 写入统一时间线索引（SQLite recordings.db）
+        $ok = RecorderManager::appendSegmentToIndex(
+            $this->publisher->getPublishPath(),
+            $this->streamMeta,
+            $this->index
+        );
+        logger()->info(
+            'recorder segment saved {file} indexed={ok}',
+            ['file' => $this->segmentFile, 'ok' => $ok ? 1 : 0]
+        );
     }
 }

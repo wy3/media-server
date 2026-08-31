@@ -8,7 +8,8 @@ require_once __DIR__ . '/src/functions.php';
 
 //录像配置
 \MediaServer\Recorder\RecorderManager::$enabled = true;
-\MediaServer\Recorder\RecorderManager::$recordPath = __DIR__ . '/public/record';
+// 录像数据存放在 public 之外，避免 recordings.db 与分段 .mp4 被 HTTP 直接下载
+\MediaServer\Recorder\RecorderManager::$recordPath = __DIR__ . '/record';
 \MediaServer\Recorder\RecorderManager::$fragmentDurationMs = 2000;  //fMP4 分片时长
 \MediaServer\Recorder\RecorderManager::$segmentDurationMs = 60000;  //单个 .mp4 文件时长
 

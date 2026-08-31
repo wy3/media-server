@@ -394,7 +394,7 @@
   function toLocalInput(ms) {
     var d = new Date(ms);
     return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
-      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
   }
 
   /* ---------------- 初始化 ---------------- */

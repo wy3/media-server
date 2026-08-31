@@ -1,3 +1,7 @@
 /.idea
 composer.lock
 /vendor/
+
+# 录像数据（分段 mp4 + SQLite 索引）
+/record/
+/public/record/
