@@ -77,9 +77,10 @@ class Mp4Muxer
             }
         }
 
-        $flags = 0x000001 | 0x000004 | 0x000008 | 0x000100;
+        // trun flags：data-offset(0x1) + first-sample-flags(0x4) + sample-duration(0x100) + sample-size(0x200)
+        $flags = 0x000001 | 0x000004 | 0x000100 | 0x000200;
         if ($hasCts) {
-            $flags |= 0x000200;
+            $flags |= 0x000800; // sample-composition-time-offset
         }
 
         $trunPayload = pack('N', $flags) . pack('N', $count) . pack('N', 0) . pack('N', (int)($samples[0]['flags'] ?? 0x02000000));
@@ -92,7 +93,7 @@ class Mp4Muxer
         }
 
         $tfhd = self::box('tfhd', pack('N', 0x020000) . pack('N', $trackId));
-        $tfdt = self::box('tfdt', "\x00\x00\x00\x01" . pack('NN', ($baseDecodeTime >> 32) & 0xFFFFFFFF, $baseDecodeTime & 0xFFFFFFFF));
+        $tfdt = self::box('tfdt', "\x01\x00\x00\x00" . pack('NN', ($baseDecodeTime >> 32) & 0xFFFFFFFF, $baseDecodeTime & 0xFFFFFFFF));
         $trun = self::box('trun', $trunPayload);
         $mfhd = self::box('mfhd', "\x00\x00\x00\x00" . pack('N', $sequence));
 

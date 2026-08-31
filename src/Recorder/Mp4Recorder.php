@@ -112,22 +112,39 @@ class Mp4Recorder
             if (!$this->segmentActive()) {
                 return; // 目录创建失败等
             }
-            if ($this->shouldFinalizeFragment($frame->timestamp)) {
+
+            $dts = $this->normalizeDts($frame->timestamp);
+            $needNewFragment = $this->fragmentStartDts === null
+                || $dts - $this->fragmentStartDts >= RecorderManager::$fragmentDurationMs;
+
+            // 分段到期轮转优先于分片切分
+            if ($now - $this->segmentStartWall >= RecorderManager::$segmentDurationMs) {
                 $this->finalizeFragment();
-                if ($now - $this->segmentStartWall >= RecorderManager::$segmentDurationMs) {
-                    $this->finalizeSegment();
-                    $this->startSegment($now);
-                }
+                $this->finalizeSegment();
+                $this->startSegment($now);
+                $needNewFragment = true; // 新分段首样本
+            } elseif ($needNewFragment) {
+                $this->finalizeFragment();
             }
-            $this->fragmentStartDts = $this->normalizeDts($frame->timestamp);
+
+            // 仅在真正开启新分片（首个样本或分片时长达标）时重置基准，
+            // 避免在每个关键帧处重基准导致永远达不到分片时长。
+            if ($needNewFragment) {
+                $this->fragmentStartDts = $dts;
+            }
         } elseif ($this->fragmentStartDts === null) {
             return; // 等待关键帧开启新片段，丢弃片头帧间帧
+        }
+
+        $data = $avc->stream->readRaw();
+        if ($data === '') {
+            return; // AVC END_OF_SEQUENCE 等无 NALU 载荷的空包，跳过
         }
 
         $this->videoSamples[] = [
             'dts' => $this->normalizeDts($frame->timestamp),
             'cts' => $avc->compositionTime & 0xFFFFFFFF,
-            'data' => $avc->stream->readRaw(),
+            'data' => $data,
             'key' => $isKey,
         ];
     }
@@ -153,10 +170,15 @@ class Mp4Recorder
             return;
         }
 
+        $data = $aac->stream->readRaw();
+        if ($data === '') {
+            return; // 空音频包，跳过
+        }
+
         $this->audioSamples[] = [
             'dts' => $this->normalizeDts($frame->timestamp),
             'cts' => 0,
-            'data' => $aac->stream->readRaw(),
+            'data' => $data,
         ];
     }
 
@@ -226,15 +248,6 @@ class Mp4Recorder
             $this->firstDts = $timestamp;
         }
         return max(0, $timestamp - $this->firstDts);
-    }
-
-    protected function shouldFinalizeFragment(int $currentTimestamp): bool
-    {
-        if ($this->fragmentStartDts === null || empty($this->videoSamples)) {
-            return false;
-        }
-        $elapsed = $this->normalizeDts($currentTimestamp) - $this->fragmentStartDts;
-        return $elapsed >= RecorderManager::$fragmentDurationMs;
     }
 
     protected function finalizeFragment(): void

@@ -273,7 +273,7 @@
           '<td>' + esc(r.path || '-') + '</td>' +
           '<td>' + fmt(r.start) + '</td>' +
           '<td>' + fmt(r.end) + '</td>' +
-          '<td>' + fmtDuration(r.duration || 0) + '</td>' +
+          '<td>' + fmtDuration((r.duration || 0) / 1000) + '</td>' +
           '<td>' + esc(r.file || '-') + '</td>' +
           '<td><button class="btn sm" data-record-path="' + esc(r.path || '') + '" data-start="' + (r.start || 0) + '" data-end="' + (r.end || 0) + '">回放</button></td>' +
           '</tr>';

@@ -169,6 +169,15 @@ class BinaryStream
         return $datas;
     }
 
+    /**
+     * 非破坏性读取剩余字节（不推进指针）。
+     * 用于解析 SPS/AudioSpecificConfig 等需要保留原始字节供后续读取的场景。
+     */
+    public function readRawRemaining(): string
+    {
+        return substr($this->_data, $this->_index);
+    }
+
     private function read(string $type, int $size): int
     {
         $m = unpack("$type", substr($this->_data, $this->_index, $size));

@@ -34,7 +34,7 @@ class AVCPacket
     public function getAVCSequenceParameterSet(): AVCSequenceParameterSet
     {
         if (!$this->avcSequenceParameterSet) {
-            $this->avcSequenceParameterSet = new AVCSequenceParameterSet($this->stream->readRaw());
+            $this->avcSequenceParameterSet = new AVCSequenceParameterSet($this->stream->readRawRemaining());
         }
         return $this->avcSequenceParameterSet;
     }

@@ -231,11 +231,11 @@ class Mp4Parser
         $count = unpack('N', substr($p, 4, 4))[1];
         $pos = 8;
 
-        if ($flags & 0x01) {
+        if ($flags & 0x000001) {
             $pos += 4; // data_offset
         }
         $firstFlags = 0;
-        if ($flags & 0x100) {
+        if ($flags & 0x000004) {
             $firstFlags = unpack('N', substr($p, $pos, 4))[1];
             $pos += 4;
         }
@@ -249,19 +249,19 @@ class Mp4Parser
             // 取默认 0x00010000（trex 默认 sample_depends_on=2，非同步帧）
             $sflags = $i === 0 ? $firstFlags : 0x00010000;
             $cts = 0;
-            if ($flags & 0x04) {
+            if ($flags & 0x000100) {
                 $dur = unpack('N', substr($p, $pos, 4))[1];
                 $pos += 4;
             }
-            if ($flags & 0x08) {
+            if ($flags & 0x000200) {
                 $size = unpack('N', substr($p, $pos, 4))[1];
                 $pos += 4;
             }
-            if ($flags & 0x10) {
+            if ($flags & 0x000400) {
                 $sflags = unpack('N', substr($p, $pos, 4))[1];
                 $pos += 4;
             }
-            if ($flags & 0x200) {
+            if ($flags & 0x000800) {
                 $v = unpack('N', substr($p, $pos, 4))[1];
                 $cts = $version === 1 ? self::toSigned32($v) : $v;
                 $pos += 4;

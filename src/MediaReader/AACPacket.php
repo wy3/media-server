@@ -46,7 +46,7 @@ class AACPacket
     public function getAACSequenceParameterSet(): AACSequenceParameterSet
     {
         if (!$this->aacSequenceParameterSet) {
-            $this->aacSequenceParameterSet = new AACSequenceParameterSet($this->stream->readRaw());
+            $this->aacSequenceParameterSet = new AACSequenceParameterSet($this->stream->readRawRemaining());
         }
         return $this->aacSequenceParameterSet;
     }
