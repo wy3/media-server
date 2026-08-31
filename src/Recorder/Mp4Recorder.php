@@ -173,8 +173,37 @@ class Mp4Recorder
             return;
         }
 
-        if (!$this->audioConfigReady || !$this->segmentHasAudio || $this->fragmentStartDts === null) {
+        if (!$this->audioConfigReady) {
             return;
+        }
+
+        if (!$this->publisher->hasVideo()) {
+            // 纯音频流：由音频驱动分段轮转与分片切分
+            $now = timestamp();
+            $dts = $this->normalizeDts($frame->timestamp);
+            if (!$this->segmentActive()) {
+                $this->startSegment($now);
+                if (!$this->segmentActive()) {
+                    return;
+                }
+                $dts = $this->normalizeDts($frame->timestamp);
+            } elseif ($now - $this->segmentStartWall >= RecorderManager::$segmentDurationMs) {
+                $this->finalizeFragment();
+                $this->finalizeSegment();
+                $this->startSegment($now);
+                if (!$this->segmentActive()) {
+                    return;
+                }
+                $dts = $this->normalizeDts($frame->timestamp);
+            }
+            if ($this->fragmentStartDts === null || $dts - $this->fragmentStartDts >= RecorderManager::$fragmentDurationMs) {
+                if ($this->fragmentStartDts !== null) {
+                    $this->finalizeFragment();
+                }
+                $this->fragmentStartDts = $dts;
+            }
+        } elseif (!$this->segmentHasAudio || $this->fragmentStartDts === null) {
+            return; // 音视频流：等待视频关键帧开片，丢弃片头音频
         }
 
         $data = $aac->stream->readRaw();
@@ -200,8 +229,9 @@ class Mp4Recorder
 
     protected function startSegment(int $now): void
     {
-        // 等待视频配置就绪；若流含音频则需音频配置就绪后才落盘
-        if (!$this->videoConfigReady || ($this->publisher->hasAudio() && !$this->audioConfigReady)) {
+        // 流含视频/音频则需对应编码配置就绪后才落盘
+        if (($this->publisher->hasVideo() && !$this->videoConfigReady)
+            || ($this->publisher->hasAudio() && !$this->audioConfigReady)) {
             return;
         }
 
@@ -226,8 +256,11 @@ class Mp4Recorder
         $this->audioSamples = [];
 
         // 编码元数据（视频/音频）随分段写入统一时间线索引
+        $hasVideo = $this->videoConfigReady;
         $this->streamMeta = [
-            'video' => ['codec' => 'h264', 'width' => $this->videoWidth, 'height' => $this->videoHeight],
+            'video' => $hasVideo
+                ? ['codec' => 'h264', 'width' => $this->videoWidth, 'height' => $this->videoHeight]
+                : null,
             'audio' => $this->segmentHasAudio
                 ? ['codec' => 'aac', 'samplerate' => $this->audioSamplerate, 'channels' => $this->audioChannels]
                 : null,
@@ -242,7 +275,9 @@ class Mp4Recorder
         $this->fileHandle = $handle;
 
         $moov = Mp4Muxer::moov(
-            ['avcC' => $this->avcC, 'width' => $this->videoWidth, 'height' => $this->videoHeight],
+            $hasVideo
+                ? ['avcC' => $this->avcC, 'width' => $this->videoWidth, 'height' => $this->videoHeight]
+                : [],
             $this->segmentHasAudio
                 ? ['esds' => $this->audioSpecificConfig, 'channels' => $this->audioChannels, 'samplerate' => $this->audioSamplerate]
                 : []
@@ -295,11 +330,20 @@ class Mp4Recorder
     protected function buildFragment(int $trackId, array $samples): string
     {
         $n = count($samples);
+        // 末样本无后继可求差：沿用前一真实帧间隔；音频标称帧时长按 1024 采样计算，
+        // 避免固定 40ms 造成音轨时长虚高（AAC 44.1kHz 实际约 23ms）
+        $fallbackDur = $trackId === Mp4Muxer::AUDIO_TRACK_ID
+            ? max(1, (int)round(1024 * 1000 / max(1, $this->audioSamplerate)))
+            : 40;
         $moofSamples = [];
         foreach ($samples as $i => $s) {
-            $dur = $i + 1 < $n ? $samples[$i + 1]['dts'] - $s['dts'] : 40;
+            if ($i + 1 < $n) {
+                $dur = (int)$samples[$i + 1]['dts'] - (int)$s['dts'];
+            } else {
+                $dur = $n > 1 ? (int)$samples[$n - 1]['dts'] - (int)$samples[$n - 2]['dts'] : $fallbackDur;
+            }
             if ($dur <= 0) {
-                $dur = 40;
+                $dur = $fallbackDur;
             }
             $moofSamples[] = [
                 'dts' => $s['dts'],

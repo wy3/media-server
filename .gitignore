@@ -5,3 +5,6 @@ composer.lock
 # 录像数据（分段 mp4 + SQLite 索引）
 /record/
 /public/record/
+
+# E2E 测试产物
+/tests/tmp/
