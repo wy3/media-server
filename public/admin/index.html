@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>媒体服务器管理系统</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="loginView" class="login-wrap">
+  <div class="login-card">
+    <h1>媒体服务器管理系统</h1>
+    <p class="login-sub">Media Server Management Console</p>
+    <form id="loginForm" autocomplete="off">
+      <label class="field">
+        <span>账号</span>
+        <input type="text" id="loginUser" value="admin" required>
+      </label>
+      <label class="field">
+        <span>密码</span>
+        <input type="password" id="loginPass" placeholder="请输入密码" required>
+      </label>
+      <p id="loginError" class="error hidden"></p>
+      <button type="submit" class="btn primary block">登 录</button>
+    </form>
+  </div>
+</div>
+
+<!-- 主界面 -->
+<div id="appView" class="app hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <span>媒体服务器</span>
+    </div>
+    <nav id="nav">
+      <a class="nav-item active" data-panel="dashboard">仪表盘</a>
+      <a class="nav-item" data-panel="live">直播管理</a>
+      <a class="nav-item" data-panel="record">录像管理</a>
+      <a class="nav-item" data-panel="settings">系统设置</a>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="sideUser" class="side-user"></span>
+      <a id="logoutBtn" class="logout-btn">退出登录</a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <h2 id="panelTitle">仪表盘</h2>
+      <span id="connStatus" class="conn-status">已连接</span>
+    </header>
+
+    <!-- 仪表盘 -->
+    <section id="panel-dashboard" class="panel">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-num" id="statPublish">0</div>
+          <div class="stat-label">直播推流</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statPlay">0</div>
+          <div class="stat-label">播放连接</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statUptime">0</div>
+          <div class="stat-label">运行时长</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="statMemory">0</div>
+          <div class="stat-label">内存占用</div>
+        </div>
+      </div>
+      <div class="panel-card">
+        <div class="card-head">
+          <h3>当前直播</h3>
+          <span class="muted" id="dashLiveCount"></span>
+        </div>
+        <table class="table">
+          <thead><tr><th>路径</th><th>分辨率</th><th>播放数</th></tr></thead>
+          <tbody id="dashLiveBody"><tr><td colspan="3" class="empty">暂无直播</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 直播管理 -->
+    <section id="panel-live" class="panel hidden">
+      <div class="toolbar">
+        <button class="btn" id="refreshLive">刷新</button>
+        <span class="muted" id="liveCount"></span>
+      </div>
+      <div class="panel-card">
+        <table class="table">
+          <thead>
+            <tr><th>路径</th><th>分辨率</th><th>帧率</th><th>编码</th><th>播放数</th><th>操作</th></tr>
+          </thead>
+          <tbody id="liveBody"><tr><td colspan="6" class="empty">暂无直播流</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 录像管理 -->
+    <section id="panel-record" class="panel hidden">
+      <div class="toolbar">
+        <button class="btn" id="refreshRecord">刷新</button>
+        <span class="muted" id="recordCount"></span>
+      </div>
+      <div class="panel-card">
+        <table class="table">
+          <thead>
+            <tr><th>推流路径</th><th>开始时间</th><th>结束时间</th><th>时长</th><th>文件</th><th>操作</th></tr>
+          </thead>
+          <tbody id="recordBody"><tr><td colspan="6" class="empty">暂无录像</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 系统设置 -->
+    <section id="panel-settings" class="panel hidden">
+      <div class="panel-card">
+        <h3>录像配置</h3>
+        <dl class="kv" id="settingsRecorder"></dl>
+      </div>
+      <div class="panel-card">
+        <h3>管理账号</h3>
+        <dl class="kv" id="settingsAdmin"></dl>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- 直播预览弹窗 -->
+<div id="liveModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="liveModalTitle">直播预览</h3><button class="close" data-close="liveModal">×</button></div>
+    <div class="modal-body">
+      <video id="liveVideo" controls autoplay muted></video>
+      <p id="liveMsg" class="muted"></p>
+    </div>
+  </div>
+</div>
+
+<!-- 回放弹窗 -->
+<div id="playModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head"><h3 id="playModalTitle">录像回放</h3><button class="close" data-close="playModal">×</button></div>
+    <div class="modal-body">
+      <div class="play-controls">
+        <label class="field inline">
+          <span>开始时间</span>
+          <input type="datetime-local" id="playStart">
+        </label>
+        <label class="field inline">
+          <span>结束时间</span>
+          <input type="datetime-local" id="playEnd">
+        </label>
+        <button class="btn primary" id="playBtn">播放</button>
+        <p id="playMsg" class="muted"></p>
+      </div>
+      <video id="playVideo" controls></video>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

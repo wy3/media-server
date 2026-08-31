@@ -12,6 +12,10 @@ require_once __DIR__ . '/src/functions.php';
 \MediaServer\Recorder\RecorderManager::$fragmentDurationMs = 2000;  //fMP4 分片时长
 \MediaServer\Recorder\RecorderManager::$segmentDurationMs = 60000;  //单个 .mp4 文件时长
 
+//管理后台账号配置
+\MediaServer\Admin\AdminAuth::$username = 'admin';
+\MediaServer\Admin\AdminAuth::$password = 'admin123';
+
 
 $rtmpServer = new \Workerman\Worker('tcp://0.0.0.0:1935');
 $rtmpServer->onConnect = function (\Workerman\Connection\TcpConnection $connection) {
@@ -22,6 +26,7 @@ $rtmpServer->onConnect = function (\Workerman\Connection\TcpConnection $connecti
 };
 $rtmpServer->onWorkerStart = function (\Workerman\Worker $worker) {
     logger()->info("rtmp server " . $worker->getSocketName() . " start . ");
+    \MediaServer\Admin\AdminAuth::$startTime = timestamp();
     \MediaServer\Http\HttpWMServer::$publicPath = __DIR__.'/public';
     $httpServer = new \MediaServer\Http\HttpWMServer("\\MediaServer\\Http\\ExtHttpProtocol://127.0.0.1:18080");
     $httpServer->listen();

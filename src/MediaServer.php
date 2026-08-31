@@ -6,6 +6,7 @@ namespace MediaServer;
 
 
 use Evenement\EventEmitter;
+use MediaServer\Admin\AdminAuth;
 use MediaServer\MediaReader\MediaFrame;
 use MediaServer\PushServer\PlayStreamInterface;
 use MediaServer\PushServer\PublishStreamInterface;
@@ -37,13 +38,23 @@ class MediaServer
      */
     static public array $publishStream = [];
 
-    static public function callApi(?string $name, array $args = []): array|false
+    static public function callApi(?string $name, array $args = []): array|false|null
     {
         switch ($name) {
             case 'listPushStream':
                 return self::listPushStream(...$args);
             case 'listRecordFiles':
                 return RecorderManager::listRecordFiles(...$args);
+            case 'getPlayStreamCount':
+                return self::getPlayStreamCount(...$args);
+            case 'getServerStats':
+                return self::getServerStats();
+            case 'getSettings':
+                return self::getSettings();
+            case 'login':
+                return AdminAuth::login(...$args);
+            case 'logout':
+                return ['ok' => AdminAuth::logout(...$args)];
             default:
                 return false;
         }
@@ -59,6 +70,60 @@ class MediaServer
         return array_map(function ($stream) {
             return $stream->getPublishStreamInfo();
         }, array_values(self::$publishStream));
+    }
+
+    /**
+     * 各推流路径对应的播放连接数统计。
+     */
+    static public function getPlayStreamCount(?string $path = null): array
+    {
+        if ($path) {
+            return [
+                'path' => $path,
+                'count' => count(self::getPlayStreams($path)),
+            ];
+        }
+        $result = [];
+        foreach (array_keys(self::$playerStream) as $p) {
+            $result[] = [
+                'path' => $p,
+                'count' => count(self::getPlayStreams($p)),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * 服务运行状态统计。
+     */
+    static public function getServerStats(): array
+    {
+        return [
+            'publishCount' => count(self::$publishStream),
+            'playCount' => array_sum(array_map('count', self::$playerStream)),
+            'uptime' => AdminAuth::$startTime > 0 ? max(0, intdiv(timestamp() - AdminAuth::$startTime, 1000)) : 0,
+            'memory' => memory_get_usage(),
+            'memoryPeak' => memory_get_peak_usage(),
+            'time' => time(),
+        ];
+    }
+
+    /**
+     * 当前服务配置（不包含任何敏感信息）。
+     */
+    static public function getSettings(): array
+    {
+        return [
+            'recorder' => [
+                'enabled' => RecorderManager::$enabled,
+                'recordPath' => RecorderManager::$recordPath,
+                'fragmentDurationMs' => RecorderManager::$fragmentDurationMs,
+                'segmentDurationMs' => RecorderManager::$segmentDurationMs,
+            ],
+            'admin' => [
+                'username' => AdminAuth::$username,
+            ],
+        ];
     }
 
     /**

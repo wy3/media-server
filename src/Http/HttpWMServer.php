@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace MediaServer\Http;
 
+use MediaServer\Admin\AdminAuth;
 use MediaServer\Flv\FlvPlayStream;
 use MediaServer\Flv\FlvPublisherStream;
 use MediaServer\MediaServer;
@@ -51,7 +52,7 @@ class HttpWMServer extends Worker
      * @param TcpConnection $connection
      * @param Request $request
      */
-    public function onHttpRequest(TcpConnection $connection, Request $request): ?PromiseInterface
+    public function onHttpRequest(TcpConnection $connection, Request $request): PromiseInterface|Response|null
     {
         switch ($request->method()) {
             case "GET":
@@ -79,15 +80,37 @@ class HttpWMServer extends Worker
 
         //api
         if($path ==='/api'){
-            $name = $request->get('name');
+            $name = (string)$request->get('name','');
             $args = $request->get('args',[]);
+            if(is_string($args)){
+                $decoded = json_decode($args, true);
+                $args = is_array($decoded) ? $decoded : [];
+            }
+            if(!is_array($args)){
+                $args = [];
+            }
+            //除 login 外均需鉴权
+            if($name !== 'login' && !self::isAuthorized($request)){
+                $request->connection->send(new Response(401,['Content-Type'=>"application/json"],json_encode(['code'=>401,'msg'=>'Unauthorized'])));
+                return;
+            }
             $data = MediaServer::callApi($name,$args);
-            if(!is_null($data)){
-                $request->connection->send(new Response(200,['Content-Type'=>"application/json"],json_encode($data)));
-            }else{
+            if($data === false){
                 $request->connection->send(new Response(404,[],'404 Not Found'));
+            }elseif($name === 'login' && $data === null){
+                $request->connection->send(new Response(401,['Content-Type'=>"application/json"],json_encode(['code'=>401,'msg'=>'用户名或密码错误'])));
+            }else{
+                $request->connection->send(new Response(200,['Content-Type'=>"application/json"],json_encode($data)));
             }
             return;
+        }
+        //admin 管理后台入口
+        if($path === '/admin' || $path === '/admin/'){
+            $file = self::$publicPath.'/admin/index.html';
+            if(is_file($file)){
+                $request->connection->send((new Response())->withFile($file));
+                return;
+            }
         }
         //playback (指定时间回放)
         if (strpos($path, '/playback/') === 0) {
@@ -117,9 +140,38 @@ class HttpWMServer extends Worker
      * @param Request $request
      * @return PromiseInterface|Response
      */
-    public function postHandler(Request $request): PromiseInterface|Response
+    public function postHandler(Request $request): PromiseInterface|Response|null
     {
-        $path = $request->getUri()->getPath();
+        $path = $request->path();
+
+        //api (POST JSON)
+        if($path === '/api'){
+            $raw = $request->rawBody();
+            $body = json_decode($raw === '' ? '{}' : $raw, true);
+            if(!is_array($body)){
+                $request->connection->send(new Response(400,['Content-Type' => 'application/json'],json_encode(['code'=>400,'msg'=>'Invalid JSON'])));
+                return null;
+            }
+            $name = (string)($body['name'] ?? '');
+            $args = $body['args'] ?? [];
+            if(!is_array($args)){
+                $args = [];
+            }
+            if($name !== 'login' && !self::isAuthorized($request)){
+                $request->connection->send(new Response(401,['Content-Type' => 'application/json'],json_encode(['code'=>401,'msg'=>'Unauthorized'])));
+                return null;
+            }
+            $data = MediaServer::callApi($name,$args);
+            if($data === false){
+                $request->connection->send(new Response(404,[],'404 Not Found'));
+            }elseif($name === 'login' && $data === null){
+                $request->connection->send(new Response(401,['Content-Type' => 'application/json'],json_encode(['code'=>401,'msg'=>'用户名或密码错误'])));
+            }else{
+                $request->connection->send(new Response(200,['Content-Type' => 'application/json'],json_encode($data)));
+            }
+            return null;
+        }
+
         $bodyStream = $request->getBody();
         if(!$bodyStream instanceof StreamInterface || !$bodyStream instanceof ReadableStreamInterface){
             return new Response(
@@ -159,6 +211,25 @@ class HttpWMServer extends Worker
                 ));
             });
         });
+    }
+
+    /**
+     * 校验请求是否携带有效管理 token。
+     * 支持 X-Auth-Token / Authorization: Bearer 头或 query 参数 token。
+     */
+    protected static function isAuthorized(Request $request): bool
+    {
+        $token = (string)$request->get('token', '');
+        if($token === ''){
+            $token = (string)$request->header('x-auth-token', '');
+        }
+        if($token === ''){
+            $auth = (string)$request->header('authorization', '');
+            if(stripos($auth, 'bearer ') === 0){
+                $token = trim(substr($auth, 7));
+            }
+        }
+        return AdminAuth::check($token);
     }
 
     public function unsafeUri(Request $request, string $path): bool
