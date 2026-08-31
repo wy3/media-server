@@ -245,7 +245,7 @@ class PlaybackServer
         }
 
         // 输出布局按 box 顺序交错：moof 头与对应 mdat 数据必须相邻，
-        // mdat 仅写 8 字节头，数据走流式发送
+        // mdat 仅写 8 字节头，数据按源文件连续区间流式发送（区间聚合 I/O）
         $parts = [];
         $parts[] = ['bytes' => Mp4Muxer::ftyp() . Mp4Muxer::moov($videoCfg ?? [], $audioCfg ?? [])];
         $seq = 1;
@@ -254,26 +254,63 @@ class PlaybackServer
             $moofSamples = self::toMoofSamples($videoSelected, $base);
             $parts[] = ['bytes' => Mp4Muxer::buildTrackFragment($seq, Mp4Muxer::VIDEO_TRACK_ID, $moofSamples, Mp4Muxer::VIDEO_TIMESCALE, $moofSamples[0]['dts'])
                 . self::mdatHeader(array_sum(array_column($videoSelected, 'size')))];
-            $parts[] = ['samples' => $videoSelected];
+            $parts[] = ['ranges' => self::toRanges($videoSelected)];
             $seq++;
         }
         if ($audioSelected) {
             $moofSamples = self::toMoofSamples($audioSelected, $base, $audioNominal);
             $parts[] = ['bytes' => Mp4Muxer::buildTrackFragment($seq, Mp4Muxer::AUDIO_TRACK_ID, $moofSamples, Mp4Muxer::AUDIO_TIMESCALE, $moofSamples[0]['dts'])
                 . self::mdatHeader(array_sum(array_column($audioSelected, 'size')))];
-            $parts[] = ['samples' => $audioSelected];
+            $parts[] = ['ranges' => self::toRanges($audioSelected)];
         }
 
         $bytes = 0;
         foreach ($parts as $part) {
-            if (isset($part['samples'])) {
-                foreach ($part['samples'] as $s) {
-                    $bytes += (int)$s['size'];
+            if (isset($part['ranges'])) {
+                foreach ($part['ranges'] as $r) {
+                    $bytes += (int)$r['size'];
                 }
             }
         }
 
         return ['parts' => $parts, 'bytes' => $bytes];
+    }
+
+    /**
+     * 将样本序列归并为源文件内的连续读取区间：样本在 mdat 内连续存放，
+     * 相邻且偏移衔接的样本合并为一个区间，减少流式发送时的 fseek/fread 次数；
+     * 超过块预算的区间切分为连续子区间，保证每个区间单次读完（无需断点续读状态）。
+     *
+     * @param array<int, array{file:string,offset:int,size:int}> $samples
+     * @return array<int, array{file:string,offset:int,size:int}>
+     */
+    protected static function toRanges(array $samples): array
+    {
+        $ranges = [];
+        foreach ($samples as $s) {
+            $n = count($ranges);
+            $file = (string)$s['file'];
+            $offset = (int)$s['offset'];
+            $size = (int)$s['size'];
+            if ($n > 0 && $ranges[$n - 1]['file'] === $file
+                && $ranges[$n - 1]['offset'] + $ranges[$n - 1]['size'] === $offset) {
+                $ranges[$n - 1]['size'] += $size;
+            } else {
+                $ranges[] = ['file' => $file, 'offset' => $offset, 'size' => $size];
+            }
+        }
+        $out = [];
+        foreach ($ranges as $r) {
+            while ($r['size'] > self::STREAM_CHUNK) {
+                $out[] = ['file' => $r['file'], 'offset' => $r['offset'], 'size' => self::STREAM_CHUNK];
+                $r['offset'] += self::STREAM_CHUNK;
+                $r['size'] -= self::STREAM_CHUNK;
+            }
+            if ($r['size'] > 0) {
+                $out[] = $r;
+            }
+        }
+        return $out;
     }
 
     protected static function mdatHeader(int $payloadLen): string
@@ -284,16 +321,17 @@ class PlaybackServer
     /**
      * 按顺序发送 parts（带背压的事件驱动状态机）。
      *
-     * bytes 部件同步直发；samples 部件按块读取源文件直发。发送缓冲写满时挂起，
-     * 待 onBufferDrain 后从断点继续。所有部件共用一套回调，避免相互覆盖导致流遗弃。
+     * bytes 部件同步直发；ranges 部件按连续区间读取源文件直发。发送缓冲写满时挂起，
+     * 待 onBufferDrain 后从断点继续（协作式分时，单次事件内的读盘量受块预算约束，
+     * 不会长时间阻塞事件循环）。所有部件共用一套回调，避免相互覆盖导致流遗弃。
      *
-     * @param array<int, array{bytes?:string,samples?:array}> $parts
+     * @param array<int, array{bytes?:string,ranges?:array}> $parts
      */
     protected static function sendParts($connection, array $parts): void
     {
         $connection->bufferFull = false;
         $n = count($parts);
-        $state = ['i' => 0, 'si' => 0, 'fh' => null, 'file' => null, 'buf' => ''];
+        $state = ['i' => 0, 'ri' => 0, 'fh' => null, 'file' => null, 'buf' => ''];
 
         $closeFh = function () use (&$state) {
             if (is_resource($state['fh'])) {
@@ -321,20 +359,20 @@ class PlaybackServer
                     $state['i']++;
                     continue;
                 }
-                $samples = $part['samples'];
-                $sn = count($samples);
-                while (strlen($state['buf']) < self::STREAM_CHUNK && $state['si'] < $sn) {
-                    $s = $samples[$state['si']++];
-                    $state['buf'] .= self::readSampleData($state, $s);
+                $ranges = $part['ranges'];
+                $rn = count($ranges);
+                while (strlen($state['buf']) < self::STREAM_CHUNK && $state['ri'] < $rn) {
+                    $r = $ranges[$state['ri']++];
+                    $state['buf'] .= self::readRangeData($state, $r);
                 }
                 if ($state['buf'] !== '') {
                     $connection->send($state['buf'], true);
                     $state['buf'] = '';
                 }
-                if ($state['si'] >= $sn) {
+                if ($state['ri'] >= $rn) {
                     $closeFh();
                     $state['i']++;
-                    $state['si'] = 0;
+                    $state['ri'] = 0;
                 }
             }
         };
@@ -350,26 +388,30 @@ class PlaybackServer
     }
 
     /**
+     * 读取一个连续区间的数据（区间已在构建时切分至块预算内，单次读完）。
+     *
      * @param array{fh:resource|null,file:string|null,buf:string} $state
-     * @param array{file:string,offset:int,size:int} $s
+     * @param array{file:string,offset:int,size:int} $r
      */
-    protected static function readSampleData(array &$state, array $s): string
+    protected static function readRangeData(array &$state, array $r): string
     {
-        $size = (int)$s['size'];
-        if (!is_resource($state['fh']) || $state['file'] !== $s['file']) {
+        $file = (string)$r['file'];
+        if (!is_resource($state['fh']) || $state['file'] !== $file) {
             if (is_resource($state['fh'])) {
                 fclose($state['fh']);
             }
-            $state['fh'] = @fopen($s['file'], 'rb');
-            $state['file'] = $s['file'];
+            $state['fh'] = @fopen($file, 'rb');
+            $state['file'] = $file;
         }
+        $size = (int)$r['size'];
         if ($state['fh'] === false || $state['fh'] === null) {
             return str_repeat("\x00", $size); // 读取失败以零填充，保持 Content-Length 精确
         }
-        fseek($state['fh'], (int)$s['offset']);
+        fseek($state['fh'], (int)$r['offset']);
         $data = (string)@fread($state['fh'], $size);
-        if (strlen($data) < $size) {
-            $data .= str_repeat("\x00", $size - strlen($data));
+        $len = strlen($data);
+        if ($len < $size) {
+            $data .= str_repeat("\x00", $size - $len);
         }
         return $data;
     }
