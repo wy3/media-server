@@ -7,6 +7,7 @@ namespace MediaServer\Http;
 use MediaServer\Flv\FlvPlayStream;
 use MediaServer\Flv\FlvPublisherStream;
 use MediaServer\MediaServer;
+use MediaServer\Recorder\PlaybackServer;
 use MediaServer\Utils\WMHttpChunkStream;
 use MediaServer\Utils\WMWsChunkStream;
 use Psr\Http\Message\StreamInterface;
@@ -88,8 +89,14 @@ class HttpWMServer extends Worker
             }
             return;
         }
+        //playback (指定时间回放)
+        if (strpos($path, '/playback/') === 0) {
+            $recordPath = substr($path, strlen('/playback/'));
+            PlaybackServer::handlePlaybackRequest($request, $recordPath);
+            return;
+        }
         //flv
-        if(
+        if (
             $this->unsafeUri($request,$path) ||
             $this->findFlv($request,$path) ||
             $this->findStaticFile($request,$path)

@@ -10,6 +10,8 @@ use MediaServer\MediaReader\MediaFrame;
 use MediaServer\PushServer\PlayStreamInterface;
 use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
+use MediaServer\Recorder\Mp4Recorder;
+use MediaServer\Recorder\RecorderManager;
 
 
 class MediaServer
@@ -40,6 +42,8 @@ class MediaServer
         switch ($name) {
             case 'listPushStream':
                 return self::listPushStream(...$args);
+            case 'listRecordFiles':
+                return RecorderManager::listRecordFiles(...$args);
             default:
                 return false;
         }
@@ -191,6 +195,13 @@ class MediaServer
             self::delPublishStream($path);
 
         });
+
+        //录像
+        if (RecorderManager::isEnabled($path)) {
+            $recorder = new Mp4Recorder($stream);
+            $stream->on('on_frame', [$recorder, 'onFrame']);
+            $stream->on('on_close', [$recorder, 'onClose']);
+        }
 
         self::addPublishStream($stream);
 
