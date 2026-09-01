@@ -252,7 +252,12 @@ class SwooleHttpApp
         if ($this->queryGet($req, 'disableGop', false)) {
             $playerStream->setEnableGop(false);
         }
-        MediaServer::addPlayer($playerStream);
+        try {
+            MediaServer::addPlayer($playerStream);
+        } catch (\Throwable $e) {
+            \logger()->warning('ws player init fail: {msg}', ['msg' => $e->getMessage()]);
+            $throughStream->close();
+        }
     }
 
     /** WebSocket 数据帧：FLV 播放是单向流，客户端帧（含 ping/pong）由 Swoole 协议层处理 */
