@@ -131,6 +131,38 @@ tests/            Playback pipeline E2E tests
 - Playback sample-table memory/CPU grows linearly with the requested time range; prefer bounded ranges for long recordings
 - Composition timestamp (CTS) sign handling for B-frame sources is incomplete; disable B-frames on the encoder side (e.g. `-bf 0`)
 
+## Known Issues from AI Analysis
+
+The issues below were found through code review (AI analysis). Full symptom / root cause / fix details are in [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+Status markers: ❌ = not fixed, ✅ = fixed.
+
+### Recorder: mid-stream track switching
+
+| ID | Issue | Severity | Fixed? |
+|---|---|---|---|
+| KI-1 | Audio-only then video added mid-segment → corrupted segment (moov lacks video trak/trex) | High | ❌ Not fixed |
+| KI-2 | Video-only then audio added mid-segment → corrupted segment (symmetric issue) | High | ❌ Not fixed |
+| KI-3 | Frame drops around the mid-segment track-switch point | Medium | ❌ Not fixed |
+
+### Playback server
+
+| ID | Issue | Severity | Fixed? |
+|---|---|---|---|
+| KI-4 | Keep-alive re-entry silently loses data (callbacks / bufferFull overwritten) | High | ❌ Not fixed |
+| KI-5 | Client disconnect leaks file handles / leaves stale callbacks | High | ❌ Not fixed |
+| KI-6 | First segment without a track → empty moov trak / duration=0 / dts gap | Medium | ❌ Not fixed |
+| KI-7 | Response headers not queued → interleaved bytes under pipelining | Medium | ❌ Not fixed |
+| KI-8 | Playback and live-FLV onClose handlers clobber each other | Medium | ❌ Not fixed |
+
+### Path security
+
+| ID | Issue | Severity | Fixed? |
+|---|---|---|---|
+| KI-9 | Directory traversal via sanitizePath | High | ❌ Not fixed |
+| KI-10 | Legacy compatibility layer reintroduces traversal (regression of KI-9) | High | ❌ Not fixed |
+
+> Detailed entries (symptom / root cause / impact / fix / related commits) see [KNOWN_ISSUES.md](KNOWN_ISSUES.md).
+
 ## Acknowledgements
 
 - [workerman](https://www.workerman.net)
