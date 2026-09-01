@@ -176,8 +176,8 @@ trait RtmpPlayerTrait
     public function playClose(): void
     {
         $this->stop();
-        // 关闭底层连接（RtmpStream 无 $input，通过 buffer->connection 关闭）
-        $this->buffer?->connection?->close();
+        // 关闭底层连接（通过 BufferStream 接口，运行时无关）
+        $this->buffer?->close();
     }
 
     /**

@@ -8,7 +8,7 @@ namespace MediaServer\Rtmp;
 use MediaServer\MediaServer;
 use Exception;
 use React\Promise\PromiseInterface;
-use Workerman\Timer;
+use MediaServer\Utils\RuntimeTimer as Timer;
 
 trait RtmpInvokeHandlerTrait
 {

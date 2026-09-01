@@ -12,8 +12,8 @@ use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
 use MediaServer\PushServer\VerifyAuthStreamInterface;
-use MediaServer\Utils\WMBufferStream;
-use Workerman\Timer;
+use MediaServer\Contracts\BufferStreamInterface;
+use MediaServer\Utils\RuntimeTimer as Timer;
 
 
 /**
@@ -168,9 +168,9 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
 
     /**
-     * @var WMBufferStream|null
+     * @var BufferStreamInterface|null
      */
-    protected ?WMBufferStream $buffer = null;
+    protected ?BufferStreamInterface $buffer = null;
 
     public ?int $dataCountTimer = null;
     public int $frameCount = 0;
@@ -180,9 +180,9 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     /**
      * PlayerStream constructor.
-     * @param WMBufferStream $bufferStream
+     * @param BufferStreamInterface $bufferStream
      */
-    public function __construct(WMBufferStream $bufferStream)
+    public function __construct(BufferStreamInterface $bufferStream)
     {
         //先随机生成个id
         $this->id = generateNewSessionID();
@@ -205,7 +205,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
             // $s=$packPs/$avgPack;
             $this->frameCount = 0;
             $this->frameTimeCount = 0;
-            $this->bytesRead = $this->buffer->connection->bytesRead;
+            $this->bytesRead = $this->buffer->getBytesRead();
             $this->bytesReadRate = $this->bytesRead / (timestamp() - $this->startTimestamp) * 1000;
             //logger()->info("[rtmp on data] {$packPs} pps {$avgPack} ps {$s} stream");
         });
@@ -256,7 +256,7 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
 
     public function write(string $data): ?bool
     {
-        return $this->buffer->connection->send($data, true);
+        return $this->buffer->send($data);
     }
 
 /*    public function __destruct()

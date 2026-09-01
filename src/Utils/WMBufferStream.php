@@ -6,9 +6,10 @@ namespace MediaServer\Utils;
 
 use Evenement\EventEmitterInterface;
 use Evenement\EventEmitterTrait;
+use MediaServer\Contracts\BufferStreamInterface;
 use Workerman\Connection\TcpConnection;
 
-class WMBufferStream extends BinaryStream implements EventEmitterInterface
+class WMBufferStream extends BinaryStream implements BufferStreamInterface
 {
     use EventEmitterTrait;
 
@@ -83,5 +84,23 @@ class WMBufferStream extends BinaryStream implements EventEmitterInterface
         $this->connection->consumeRecvBuffer($this->_index);
     }
 
+    public function send(string $data): bool
+    {
+        return $this->connection !== null && $this->connection->send($data, true);
+    }
 
+    public function close(): void
+    {
+        $this->connection?->close();
+    }
+
+    public function getBytesRead(): int
+    {
+        return $this->connection?->bytesRead ?? 0;
+    }
+
+    public function getRemoteAddress(): string
+    {
+        return $this->connection?->getRemoteAddress() ?? '';
+    }
 }

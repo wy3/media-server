@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace MediaServer\Rtmp;
 
-use Workerman\Timer;
+use MediaServer\Utils\RuntimeTimer as Timer;
 
 trait RtmpTrait
 {
