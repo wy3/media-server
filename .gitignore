@@ -8,3 +8,6 @@ composer.lock
 
 # E2E 测试产物
 /tests/tmp/
+
+# AI 助手本地工作目录
+/.workbuddy/
