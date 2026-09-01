@@ -33,18 +33,36 @@ class RecorderManager
 
     /**
      * 将推流路径安全化为目录名（如 /live/cam1 -> live_cam1）。
+     *
+     * 白名单策略：仅保留 Unicode 字母/数字与 _ -，其余（含 "."、".."、
+     * 斜杠、反斜杠、空字符、空格）一律折叠为 "_"。
+     * 旧实现放行了 "." 与 ".."，单个 ".." 分量可向上逃逸一级目录。
      */
     public static function sanitizePath(string $path): string
     {
         $path = trim($path, "/\\");
-        $path = str_replace(["\\", " ", "\0"], "_", $path);
-        $path = preg_replace('#/+#', '_', $path) ?? $path;
+        // u 修饰符保留中文名；非法 UTF-8 或替换失败时回退为空，走 default
+        $path = preg_replace('#[^\p{L}\p{N}_-]+#u', '_', $path) ?? '';
+        $path = trim($path, '_');
         return $path === '' ? 'default' : $path;
     }
 
     public static function recordDir(string $path): string
     {
-        return rtrim(self::$recordPath, '/\\') . DIRECTORY_SEPARATOR . self::sanitizePath($path);
+        $dir = rtrim(self::$recordPath, '/\\') . DIRECTORY_SEPARATOR . self::sanitizePath($path);
+
+        // 纵深防御：目录已存在时校验 realpath 未逃逸出 recordPath。
+        // 注意不得抛异常 —— onMessage 内未捕获的 Throwable 会被
+        // Workerman 转为 Worker::stopAll()，直接终止整个进程。
+        $base = realpath(self::$recordPath);
+        $real = realpath($dir);
+        if ($base !== false && $real !== false
+            && !str_starts_with($real, $base . DIRECTORY_SEPARATOR) && $real !== $base) {
+            logger()->error('recordDir escaped recordPath, fallback: {dir}', ['dir' => $dir]);
+            return $base . DIRECTORY_SEPARATOR . 'invalid_path';
+        }
+
+        return $dir;
     }
 
     /**
