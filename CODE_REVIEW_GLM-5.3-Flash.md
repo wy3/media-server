@@ -186,6 +186,12 @@ $this->publishStreamPath = '/' . $this->appName . '/' . $streamInfo[0];
 
 任何人可以：推流占用任意路径、拉取任意流、并触发录像落盘。目前路径安全**单点依赖**下游 `RecorderManager::sanitizePath`（已证实不完备，见 A3）。建议实现 `verifyAuth` 并对 app/streamName 做白名单校验。
 
+### B6. 畸形 AMF 载荷抛异常 → 同样整进程退出（测试驱动发现，已修复）
+
+`RtmpAMF::rtmpCMDAmf0Reader` 对截断的 AMF0 载荷（如 2 字节 `\x02\x00`，字符串头声明长度与实际不符）会让 `SabreAMF_InputStream` 抛出 `Buffer underrun` 异常，该异常沿 `rtmpInvokeHandler → onPacketHandler → onMessage` 逃逸后触发 `Worker::stopAll()` —— 与 A1/A2 同族的远程崩溃向量。**已于 2026-09-01 修复**：两个 reader 外层捕获 `Throwable`，畸形载荷降级为 `cmd=null` 并记日志（`tests/unit/amf_test.php` 锁定该行为）。
+
+> 另：单元测试还锁定了一处已知行为 —— `RecordIndex::normalizePath` 只处理首尾斜杠，不折叠内部连续斜杠，`/live//x` 与 `/live/x` 不等价（`tests/unit/record_index_test.php`）。当前无实际危害，如未来改进需同步更新用例。
+
 ---
 
 ## 四、P2 中
