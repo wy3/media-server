@@ -2,7 +2,25 @@
 
 [简体中文](README.md) | English
 
+[![CI](https://github.com/wy3/media-server/actions/workflows/ci.yml/badge.svg)](https://github.com/wy3/media-server/actions/workflows/ci.yml)
+[![PHP](https://img.shields.io/badge/php-%3E%3D8.2-777bb4.svg)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/wy3/media-server?color=green)](https://github.com/wy3/media-server/releases)
+
 > A pure-PHP media server built on [Workerman](https://www.workerman.net): RTMP/HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording and time-range playback, plus a built-in admin console.
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Recording and Playback](#recording-and-playback)
+- [Admin API](#admin-api)
+- [Tests](#tests)
+- [Project Layout](#project-layout)
+- [Known Limitations](#known-limitations)
+- [Acknowledgements](#acknowledgements)
 
 ## Features
 
@@ -156,9 +174,19 @@ Every call except `login` requires a valid token, supplied via `X-Auth-Token`, `
 
 `GET /api?name=...&args=[...]` is also supported for read-only calls.
 
-## E2E Tests
+## Tests
 
-With the server running and `ffmpeg` / `ffprobe` available:
+Two suites are provided.
+
+**Smoke tests** — no running server, no ffmpeg required (this is what CI runs):
+
+```bash
+php tests/smoke.php
+```
+
+Covers autoloading, MP4 box byte layout, RTMP handshake echo behaviour, AVC SPS parsing, recording path sanitization and SQLite index read/write.
+
+**Playback E2E tests** — requires a running server plus `ffmpeg` / `ffprobe`:
 
 ```bash
 php tests/playback_e2e.php            # run all cases
@@ -166,6 +194,8 @@ php tests/playback_e2e.php aonly      # run cases whose name matches
 ```
 
 Cases are data-driven — add an entry to `$CASES` in `tests/playback_e2e.php`. Each case cleans old recordings, pushes with ffmpeg, waits for segments to land, issues playback requests, then validates tracks and duration with `ffprobe` and performs a full decode pass with `ffmpeg`.
+
+CI runs syntax checks and the smoke suite on PHP 8.2 / 8.3 / 8.4 via GitHub Actions.
 
 ## Project Layout
 

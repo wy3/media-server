@@ -2,7 +2,25 @@
 
 简体中文 | [English](README_EN.md)
 
+[![CI](https://github.com/wy3/media-server/actions/workflows/ci.yml/badge.svg)](https://github.com/wy3/media-server/actions/workflows/ci.yml)
+[![PHP](https://img.shields.io/badge/php-%3E%3D8.2-777bb4.svg)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Latest Release](https://img.shields.io/github/v/release/wy3/media-server?color=green)](https://github.com/wy3/media-server/releases)
+
 > 基于 [Workerman](https://www.workerman.net) 实现的纯 PHP 流媒体服务器：RTMP / HTTP-FLV 推流接入，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与指定时间回放，内置管理后台。
+
+## 目录
+
+- [功能特性](#功能特性)
+- [环境要求](#环境要求)
+- [快速开始](#快速开始)
+- [配置](#配置)
+- [录像与回放](#录像与回放)
+- [管理 API](#管理-api)
+- [测试](#测试)
+- [目录结构](#目录结构)
+- [已知限制](#已知限制)
+- [致谢](#致谢)
 
 ## 功能特性
 
@@ -156,9 +174,19 @@ X-Auth-Token: <token>
 
 只读调用也支持 `GET /api?name=...&args=[...]`。
 
-## E2E 测试
+## 测试
 
-前提：服务器已启动，且 `ffmpeg` / `ffprobe` 可用。
+仓库提供两套测试：
+
+**冒烟测试**（不启动服务、不需要 ffmpeg，适合 CI）：
+
+```bash
+php tests/smoke.php
+```
+
+覆盖自动加载、MP4 box 字节结构、RTMP 握手回显、AVC SPS 解析、录像路径归一与 SQLite 索引读写。
+
+**回放链路 E2E 测试**（需服务器已启动，且 `ffmpeg` / `ffprobe` 可用）：
 
 ```bash
 php tests/playback_e2e.php            # 运行全部用例
@@ -166,6 +194,8 @@ php tests/playback_e2e.php aonly      # 只运行名称匹配的用例
 ```
 
 用例为数据驱动，新增场景只需在 `tests/playback_e2e.php` 的 `$CASES` 中加一项。每个用例会清理旧录像、用 ffmpeg 推流、等待分段落盘、发起回放请求，再用 `ffprobe` 校验轨道与时长、用 `ffmpeg` 做全量解码校验。
+
+CI 在 GitHub Actions 上对 PHP 8.2 / 8.3 / 8.4 执行语法检查与冒烟测试。
 
 ## 目录结构
 
