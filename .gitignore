@@ -8,3 +8,12 @@ composer.lock
 
 # E2E 测试产物
 /tests/tmp/
+.workbuddy/check_pdo.sh
+.workbuddy/check_sqlite_hgfs.sh
+.workbuddy/ms.bundle
+.workbuddy/probe_rtmp2.py
+.workbuddy/probe_ws_flv.py
+.workbuddy/sftp_put.py
+.workbuddy/ssh_run.py
+.workbuddy/memory/2026-09-01.md
+.workbuddy/memory/MEMORY.md

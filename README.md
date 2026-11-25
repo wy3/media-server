@@ -14,6 +14,7 @@
 - [功能特性](#功能特性)
 - [环境要求](#环境要求)
 - [快速开始](#快速开始)
+- [界面预览](#界面预览)
 - [配置](#配置)
 - [录像与回放](#录像与回放)
 - [管理 API](#管理-api)
@@ -59,6 +60,7 @@
 - 入口：`http://<host>:18080/admin/`
 - Token 登录鉴权（进程内 token，默认有效期 24 小时，服务重启后失效）
 - 面板：仪表盘、直播管理、录像管理（含指定时间回放）、系统设置
+- 中英双语界面，右上角切换语言，选择记录在浏览器 localStorage
 
 ### E2E 测试
 
@@ -106,6 +108,32 @@ Web 播放可配合 [mpegts.js](https://github.com/xqq/mpegts.js)、[Aliplayer](
 ### 管理后台
 
 浏览器打开 `http://127.0.0.1:18080/admin/`，默认账号在 `start.php` 中配置。
+
+## 界面预览
+
+管理后台默认简体中文，点击右上角语言下拉框可切换 English，选择会保存在浏览器本地。
+
+| 登录 | 仪表盘 |
+|---|---|
+| ![登录](docs/screenshots/login.png) | ![仪表盘](docs/screenshots/dashboard.png) |
+
+| 直播管理与预览 | 录像回放 |
+|---|---|
+| ![直播预览](docs/screenshots/live-preview.png) | ![录像回放](docs/screenshots/playback.png) |
+
+| 录像列表 | 系统设置 |
+|---|---|
+| ![录像管理](docs/screenshots/record.png) | ![系统设置](docs/screenshots/settings.png) |
+
+英文界面：
+
+| Dashboard | Live streams |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard-en.png) | ![Live streams](docs/screenshots/live-en.png) |
+
+| Login | Settings |
+|---|---|
+| ![Login](docs/screenshots/login-en.png) | ![Settings](docs/screenshots/settings-en.png) |
 
 ## 配置
 
@@ -209,9 +237,10 @@ src/
 ├── Recorder/     fMP4 封装与录像、回放切片、MP4 解析、SQLite 索引
 ├── Rtmp/         RTMP 协议处理
 └── Utils/        二进制/HTTP/WS 流工具
-public/admin/     管理后台 SPA（原生 JS）
+public/admin/     管理后台 SPA（原生 JS，i18n.js 提供中英文词典）
 packages/         vendored SabreAMF
 tests/            回放链路 E2E 测试
+docs/screenshots/ README 使用的管理后台截图
 record/           录像输出目录（已 git 忽略）
 ```
 

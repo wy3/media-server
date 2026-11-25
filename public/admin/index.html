@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>媒体服务器管理系统</title>
+<title data-i18n="app.title">媒体服务器管理系统</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,19 +11,23 @@
 <!-- 登录页 -->
 <div id="loginView" class="login-wrap">
   <div class="login-card">
-    <h1>媒体服务器管理系统</h1>
-    <p class="login-sub">Media Server Management Console</p>
+    <div class="login-lang">
+      <label for="loginLang" class="sr-only" data-i18n="lang.label">语言</label>
+      <select id="loginLang" class="lang-select" data-lang-select></select>
+    </div>
+    <h1 data-i18n="app.title">媒体服务器管理系统</h1>
+    <p class="login-sub" data-i18n="login.subtitle">Media Server Management Console</p>
     <form id="loginForm" autocomplete="off">
       <label class="field">
-        <span>账号</span>
+        <span data-i18n="login.username">账号</span>
         <input type="text" id="loginUser" value="admin" required>
       </label>
       <label class="field">
-        <span>密码</span>
-        <input type="password" id="loginPass" placeholder="请输入密码" required>
+        <span data-i18n="login.password">密码</span>
+        <input type="password" id="loginPass" data-i18n-placeholder="login.passwordPlaceholder" placeholder="请输入密码" required>
       </label>
       <p id="loginError" class="error hidden"></p>
-      <button type="submit" class="btn primary block">登 录</button>
+      <button type="submit" class="btn primary block" data-i18n="login.submit">登 录</button>
     </form>
   </div>
 </div>
@@ -33,24 +37,28 @@
   <aside class="sidebar">
     <div class="brand">
       <span class="brand-dot"></span>
-      <span>媒体服务器</span>
+      <span data-i18n="brand.name">媒体服务器</span>
     </div>
     <nav id="nav">
-      <a class="nav-item active" data-panel="dashboard">仪表盘</a>
-      <a class="nav-item" data-panel="live">直播管理</a>
-      <a class="nav-item" data-panel="record">录像管理</a>
-      <a class="nav-item" data-panel="settings">系统设置</a>
+      <a class="nav-item active" data-panel="dashboard" data-i18n="nav.dashboard">仪表盘</a>
+      <a class="nav-item" data-panel="live" data-i18n="nav.live">直播管理</a>
+      <a class="nav-item" data-panel="record" data-i18n="nav.record">录像管理</a>
+      <a class="nav-item" data-panel="settings" data-i18n="nav.settings">系统设置</a>
     </nav>
     <div class="sidebar-foot">
       <span id="sideUser" class="side-user"></span>
-      <a id="logoutBtn" class="logout-btn">退出登录</a>
+      <a id="logoutBtn" class="logout-btn" data-i18n="sidebar.logout">退出登录</a>
     </div>
   </aside>
 
   <main class="main">
     <header class="topbar">
       <h2 id="panelTitle">仪表盘</h2>
-      <span id="connStatus" class="conn-status">已连接</span>
+      <div class="topbar-right">
+        <span id="connStatus" class="conn-status">已连接</span>
+        <label for="appLang" class="sr-only" data-i18n="lang.label">语言</label>
+        <select id="appLang" class="lang-select" data-lang-select></select>
+      </div>
     </header>
 
     <!-- 仪表盘 -->
@@ -58,29 +66,33 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-num" id="statPublish">0</div>
-          <div class="stat-label">直播推流</div>
+          <div class="stat-label" data-i18n="stat.publish">直播推流</div>
         </div>
         <div class="stat-card">
           <div class="stat-num" id="statPlay">0</div>
-          <div class="stat-label">播放连接</div>
+          <div class="stat-label" data-i18n="stat.play">播放连接</div>
         </div>
         <div class="stat-card">
           <div class="stat-num" id="statUptime">0</div>
-          <div class="stat-label">运行时长</div>
+          <div class="stat-label" data-i18n="stat.uptime">运行时长</div>
         </div>
         <div class="stat-card">
           <div class="stat-num" id="statMemory">0</div>
-          <div class="stat-label">内存占用</div>
+          <div class="stat-label" data-i18n="stat.memory">内存占用</div>
         </div>
       </div>
       <div class="panel-card">
         <div class="card-head">
-          <h3>当前直播</h3>
+          <h3 data-i18n="dashboard.currentLive">当前直播</h3>
           <span class="muted" id="dashLiveCount"></span>
         </div>
         <table class="table">
-          <thead><tr><th>路径</th><th>分辨率</th><th>播放数</th></tr></thead>
-          <tbody id="dashLiveBody"><tr><td colspan="3" class="empty">暂无直播</td></tr></tbody>
+          <thead><tr>
+            <th data-i18n="table.path">路径</th>
+            <th data-i18n="table.resolution">分辨率</th>
+            <th data-i18n="table.players">播放数</th>
+          </tr></thead>
+          <tbody id="dashLiveBody"></tbody>
         </table>
       </div>
     </section>
@@ -88,15 +100,22 @@
     <!-- 直播管理 -->
     <section id="panel-live" class="panel hidden">
       <div class="toolbar">
-        <button class="btn" id="refreshLive">刷新</button>
+        <button class="btn" id="refreshLive" data-i18n="action.refresh">刷新</button>
         <span class="muted" id="liveCount"></span>
       </div>
       <div class="panel-card">
         <table class="table">
           <thead>
-            <tr><th>路径</th><th>分辨率</th><th>帧率</th><th>编码</th><th>播放数</th><th>操作</th></tr>
+            <tr>
+              <th data-i18n="table.path">路径</th>
+              <th data-i18n="table.resolution">分辨率</th>
+              <th data-i18n="table.fps">帧率</th>
+              <th data-i18n="table.codec">编码</th>
+              <th data-i18n="table.players">播放数</th>
+              <th data-i18n="table.actions">操作</th>
+            </tr>
           </thead>
-          <tbody id="liveBody"><tr><td colspan="6" class="empty">暂无直播流</td></tr></tbody>
+          <tbody id="liveBody"></tbody>
         </table>
       </div>
     </section>
@@ -104,15 +123,22 @@
     <!-- 录像管理 -->
     <section id="panel-record" class="panel hidden">
       <div class="toolbar">
-        <button class="btn" id="refreshRecord">刷新</button>
+        <button class="btn" id="refreshRecord" data-i18n="action.refresh">刷新</button>
         <span class="muted" id="recordCount"></span>
       </div>
       <div class="panel-card">
         <table class="table">
           <thead>
-            <tr><th>推流路径</th><th>开始时间</th><th>结束时间</th><th>时长</th><th>文件</th><th>操作</th></tr>
+            <tr>
+              <th data-i18n="table.recordPath">推流路径</th>
+              <th data-i18n="table.start">开始时间</th>
+              <th data-i18n="table.end">结束时间</th>
+              <th data-i18n="table.duration">时长</th>
+              <th data-i18n="table.file">文件</th>
+              <th data-i18n="table.actions">操作</th>
+            </tr>
           </thead>
-          <tbody id="recordBody"><tr><td colspan="6" class="empty">暂无录像</td></tr></tbody>
+          <tbody id="recordBody"></tbody>
         </table>
       </div>
     </section>
@@ -120,11 +146,11 @@
     <!-- 系统设置 -->
     <section id="panel-settings" class="panel hidden">
       <div class="panel-card">
-        <h3>录像配置</h3>
+        <h3 data-i18n="settings.recorder">录像配置</h3>
         <dl class="kv" id="settingsRecorder"></dl>
       </div>
       <div class="panel-card">
-        <h3>管理账号</h3>
+        <h3 data-i18n="settings.admin">管理账号</h3>
         <dl class="kv" id="settingsAdmin"></dl>
       </div>
     </section>
@@ -149,14 +175,14 @@
     <div class="modal-body">
       <div class="play-controls">
         <label class="field inline">
-          <span>开始时间</span>
+          <span data-i18n="record.startTime">开始时间</span>
           <input type="datetime-local" id="playStart" step="1">
         </label>
         <label class="field inline">
-          <span>结束时间</span>
+          <span data-i18n="record.endTime">结束时间</span>
           <input type="datetime-local" id="playEnd" step="1">
         </label>
-        <button class="btn primary" id="playBtn">播放</button>
+        <button class="btn primary" id="playBtn" data-i18n="action.play">播放</button>
         <p id="playMsg" class="muted"></p>
       </div>
       <video id="playVideo" controls></video>
@@ -165,6 +191,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.js"></script>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

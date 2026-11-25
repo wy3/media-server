@@ -1,19 +1,136 @@
-/* 媒体服务器管理后台 - 单页应用逻辑 */
+/**
+ * 媒体服务器管理后台 - 单页应用逻辑。
+ *
+ * 界面文案统一走 `AdminI18n.t()`（见 i18n.js），切换语言后重新渲染当前面板。
+ */
 (function () {
   'use strict';
+
+  var i18n = window.AdminI18n;
+
+  /**
+   * 取翻译文本。
+   *
+   * @param {string} key 词典键
+   * @param {Object<string, (string|number)>} [params] 插值参数
+   * @returns {string} 翻译后的文本
+   */
+  function t(key, params) { return i18n.t(key, params); }
+
+  /** 语言下拉框的显示名（用各自母语书写，不随界面语言变化） */
+  var LANG_LABELS = { 'zh-CN': '简体中文', 'en-US': 'English' };
 
   var token = localStorage.getItem('admin_token') || '';
   var currentPanel = 'dashboard';
   var livePlayer = null;      // mpegts.js 直播播放器
+  var currentLivePath = '';   // 当前预览的推流路径
   var currentRecordPath = ''; // 当前回放的推流路径
   var pollTimer = null;
+  var loggedIn = false;
+  var connOk = true;
+  var currentUser = 'admin';
+
+  /**
+   * 弹窗内提示文案的状态，用于切换语言时按当前语言重新渲染。
+   *
+   * @type {{live: ?{key: string, params: ?Object}, play: ?{key: string, params: ?Object}}}
+   */
+  var msgState = { live: null, play: null };
+
+  /** 登录错误提示的词典键，切换语言时用于重绘 */
+  var loginErrorKey = '';
 
   var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------------- 多语言 ---------------- */
+
+  /**
+   * 初始化所有语言下拉框并绑定切换事件。
+   *
+   * @returns {void}
+   */
+  function initLangSelectors() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-lang-select]'), function (sel) {
+      sel.innerHTML = i18n.LANGS.map(function (lang) {
+        return '<option value="' + lang + '">' + LANG_LABELS[lang] + '</option>';
+      }).join('');
+      sel.value = i18n.getLang();
+      sel.addEventListener('change', function () { applyLang(sel.value); });
+    });
+  }
+
+  /**
+   * 切换界面语言并重新渲染。
+   *
+   * 已登录时会重新拉取当前面板数据，保证表格内的动态文案（如按钮、空状态）同步切换。
+   *
+   * @param {string} lang 语言标记
+   * @returns {void}
+   */
+  function applyLang(lang) {
+    i18n.setLang(lang);
+    i18n.apply(document);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-lang-select]'), function (sel) {
+      sel.value = i18n.getLang();
+    });
+    renderChrome();
+    if (loggedIn) {
+      switchPanel(currentPanel);
+    }
+  }
+
+  /**
+   * 重新渲染不依赖接口数据的静态文案（面板标题、连接状态、侧栏用户、弹窗标题）。
+   *
+   * @returns {void}
+   */
+  function renderChrome() {
+    $('panelTitle').textContent = t('nav.' + currentPanel);
+    setConn(connOk);
+    $('sideUser').textContent = t('sidebar.user', { name: currentUser });
+    if (currentLivePath) {
+      $('liveModalTitle').textContent = t('live.previewTitle', { path: currentLivePath });
+    }
+    if (currentRecordPath) {
+      $('playModalTitle').textContent = t('record.playbackTitle', { path: currentRecordPath });
+    }
+    renderMsg('live');
+    renderMsg('play');
+    if (loginErrorKey) {
+      $('loginError').textContent = t(loginErrorKey);
+    }
+  }
+
+  /**
+   * 设置弹窗提示文案，并记录对应的词典键，便于切换语言后重绘。
+   *
+   * @param {'live'|'play'} which 弹窗标识
+   * @param {?string} key 词典键；传 null 表示清空
+   * @param {Object<string, (string|number)>} [params] 插值参数
+   * @returns {void}
+   */
+  function setMsg(which, key, params) {
+    msgState[which] = key ? { key: key, params: params || null } : null;
+    renderMsg(which);
+  }
+
+  /**
+   * 按当前语言重绘弹窗提示文案。
+   *
+   * @param {'live'|'play'} which 弹窗标识
+   * @returns {void}
+   */
+  function renderMsg(which) {
+    var el = $(which === 'live' ? 'liveMsg' : 'playMsg');
+    var state = msgState[which];
+    el.textContent = state ? t(state.key, state.params) : '';
+  }
 
   /* ---------------- API ---------------- */
 
   function handleUnauthorized() {
     token = '';
+    loggedIn = false;
     localStorage.removeItem('admin_token');
     clearPolling();
     showLogin();
@@ -31,15 +148,17 @@
     }).then(function (res) {
       if (res.status === 401) {
         handleUnauthorized();
-        throw new Error('登录已过期，请重新登录');
+        var expired = new Error(t('login.expired'));
+        expired.authExpired = true;
+        throw expired;
       }
       if (res.status === 404) {
-        throw new Error('接口不存在');
+        throw new Error(t('error.endpointNotFound'));
       }
       return res.json();
     }).then(function (data) {
       if (data && typeof data === 'object' && data.code !== undefined && data.code !== 200) {
-        throw new Error(data.msg || '请求失败');
+        throw new Error(data.msg || t('error.requestFailed'));
       }
       return data;
     });
@@ -51,13 +170,16 @@
     $('appView').classList.add('hidden');
     $('loginView').classList.remove('hidden');
     $('loginError').classList.add('hidden');
+    loginErrorKey = '';
   }
 
   function showApp() {
+    loggedIn = true;
     $('loginView').classList.add('hidden');
     $('appView').classList.remove('hidden');
     api('getSettings').then(function (s) {
-      $('sideUser').textContent = '管理员：' + (s && s.admin ? s.admin.username : 'admin');
+      currentUser = (s && s.admin ? s.admin.username : 'admin');
+      $('sideUser').textContent = t('sidebar.user', { name: currentUser });
     }).catch(function () {});
     switchPanel('dashboard');
     startPolling();
@@ -69,21 +191,31 @@
     var password = $('loginPass').value;
     var err = $('loginError');
     err.classList.add('hidden');
+    loginErrorKey = '';
     fetch('/api', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'login', args: [username, password] })
     }).then(function (res) {
       if (res.status === 401) {
-        return res.json().then(function (d) { throw new Error((d && d.msg) || '用户名或密码错误'); });
+        return res.json().then(function () {
+          var e = new Error(t('login.invalidCredentials'));
+          e.i18nKey = 'login.invalidCredentials';
+          throw e;
+        });
       }
       return res.json();
     }).then(function (data) {
-      if (!data || !data.token) { throw new Error('登录失败'); }
+      if (!data || !data.token) {
+        var e = new Error(t('login.failed'));
+        e.i18nKey = 'login.failed';
+        throw e;
+      }
       token = data.token;
       localStorage.setItem('admin_token', token);
       showApp();
     }).catch(function (e) {
+      loginErrorKey = e.i18nKey || '';
       err.textContent = e.message;
       err.classList.remove('hidden');
     });
@@ -102,13 +234,12 @@
     });
   });
 
-  var PANEL_TITLES = {
-    dashboard: '仪表盘',
-    live: '直播管理',
-    record: '录像管理',
-    settings: '系统设置'
-  };
-
+  /**
+   * 切换左侧导航面板，并刷新对应的数据。
+   *
+   * @param {string} name 面板名，对应 `nav.<name>` 词典键与 `#panel-<name>` 容器
+   * @returns {void}
+   */
   function switchPanel(name) {
     currentPanel = name;
     Array.prototype.forEach.call(document.querySelectorAll('.nav-item'), function (item) {
@@ -118,7 +249,7 @@
       p.classList.add('hidden');
     });
     $('panel-' + name).classList.remove('hidden');
-    $('panelTitle').textContent = PANEL_TITLES[name] || name;
+    $('panelTitle').textContent = t('nav.' + name);
 
     if (name === 'dashboard') { refreshDashboard(); }
     if (name === 'live') { refreshLive(); }
@@ -141,8 +272,9 @@
   }
 
   function setConn(ok) {
+    connOk = ok;
     var el = $('connStatus');
-    el.textContent = ok ? '已连接' : '连接失败';
+    el.textContent = ok ? t('conn.connected') : t('conn.failed');
     el.classList.toggle('off', !ok);
   }
 
@@ -168,10 +300,10 @@
       ]);
     }).then(function (r) {
       var list = r[0] || [], map = r[1] || {};
-      $('dashLiveCount').textContent = '共 ' + list.length + ' 路';
+      $('dashLiveCount').textContent = t('count.streams', { count: list.length });
       var tbody = $('dashLiveBody');
       if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="3" class="empty">暂无直播</td></tr>';
+        tbody.innerHTML = emptyRow(3, t('dashboard.empty'));
         return;
       }
       tbody.innerHTML = list.map(function (st) {
@@ -198,10 +330,10 @@
       var map = {};
       pc.forEach(function (item) { map[item.path] = item.count; });
       setConn(true);
-      $('liveCount').textContent = '共 ' + list.length + ' 路';
+      $('liveCount').textContent = t('count.streams', { count: list.length });
       var tbody = $('liveBody');
       if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无直播流</td></tr>';
+        tbody.innerHTML = emptyRow(6, t('live.empty'));
         return;
       }
       tbody.innerHTML = list.map(function (st) {
@@ -213,13 +345,13 @@
           '<td>' + (st.videoFps || '-') + '</td>' +
           '<td>' + esc(codec) + '</td>' +
           '<td>' + (map[p] || 0) + '</td>' +
-          '<td><button class="btn sm" data-live="' + esc(p) + '">预览</button></td>' +
+          '<td><button class="btn sm" data-live="' + esc(p) + '">' + esc(t('action.preview')) + '</button></td>' +
           '</tr>';
       }).join('');
     }).catch(function (e) {
       setConn(false);
-      if (e && e.message === '登录已过期，请重新登录') { return; }
-      $('liveBody').innerHTML = '<tr><td colspan="6" class="empty">加载失败</td></tr>';
+      if (e && e.authExpired) { return; }
+      $('liveBody').innerHTML = emptyRow(6, t('error.loadFailed'));
     });
   }
 
@@ -229,12 +361,13 @@
   });
 
   function openLive(path) {
-    $('liveModalTitle').textContent = '直播预览 - ' + path;
-    $('liveMsg').textContent = '';
+    currentLivePath = path;
+    $('liveModalTitle').textContent = t('live.previewTitle', { path: path });
+    setMsg('live', null);
     showModal('liveModal');
     var video = $('liveVideo');
     if (typeof mpegts === 'undefined') {
-      $('liveMsg').textContent = 'mpegts.js 加载失败（需要网络），无法进行直播预览';
+      setMsg('live', 'live.mpegtsMissing');
       return;
     }
     if (livePlayer) { livePlayer.destroy(); livePlayer = null; }
@@ -248,9 +381,9 @@
       livePlayer.attachMediaElement(video);
       livePlayer.load();
       livePlayer.play();
-      $('liveMsg').textContent = '正在连接直播流 ' + path + '.flv';
+      setMsg('live', 'live.connecting', { path: path });
     } catch (err) {
-      $('liveMsg').textContent = '预览启动失败：' + err.message;
+      setMsg('live', 'live.startFailed', { msg: err.message });
     }
   }
 
@@ -262,10 +395,10 @@
     api('listRecordFiles').then(function (list) {
       setConn(true);
       list = list || [];
-      $('recordCount').textContent = '共 ' + list.length + ' 条';
+      $('recordCount').textContent = t('count.segments', { count: list.length });
       var tbody = $('recordBody');
       if (!list.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty">暂无录像</td></tr>';
+        tbody.innerHTML = emptyRow(6, t('record.empty'));
         return;
       }
       tbody.innerHTML = list.map(function (r) {
@@ -275,13 +408,13 @@
           '<td>' + fmt(r.end) + '</td>' +
           '<td>' + fmtDuration((r.duration || 0) / 1000) + '</td>' +
           '<td>' + esc(r.file || '-') + '</td>' +
-          '<td><button class="btn sm" data-record-path="' + esc(r.path || '') + '" data-start="' + (r.start || 0) + '" data-end="' + (r.end || 0) + '">回放</button></td>' +
+          '<td><button class="btn sm" data-record-path="' + esc(r.path || '') + '" data-start="' + (r.start || 0) + '" data-end="' + (r.end || 0) + '">' + esc(t('action.playback')) + '</button></td>' +
           '</tr>';
       }).join('');
     }).catch(function (e) {
       setConn(false);
-      if (e && e.message === '登录已过期，请重新登录') { return; }
-      $('recordBody').innerHTML = '<tr><td colspan="6" class="empty">加载失败</td></tr>';
+      if (e && e.authExpired) { return; }
+      $('recordBody').innerHTML = emptyRow(6, t('error.loadFailed'));
     });
   }
 
@@ -298,8 +431,8 @@
 
   function openPlayback(path, start, end) {
     currentRecordPath = path;
-    $('playModalTitle').textContent = '录像回放 - ' + path;
-    $('playMsg').textContent = '';
+    $('playModalTitle').textContent = t('record.playbackTitle', { path: path });
+    setMsg('play', null);
     $('playStart').value = toLocalInput(start);
     $('playEnd').value = toLocalInput(end);
     $('playVideo').removeAttribute('src');
@@ -310,17 +443,17 @@
     var start = new Date($('playStart').value).getTime();
     var end = new Date($('playEnd').value).getTime();
     if (isNaN(start) || isNaN(end) || end <= start) {
-      $('playMsg').textContent = '请选择有效的时间范围（结束需晚于开始）';
+      setMsg('play', 'record.invalidRange');
       return;
     }
-    $('playMsg').textContent = '正在加载录像…';
+    setMsg('play', 'record.loading');
     var url = '/playback/' + currentRecordPath.replace(/^\//, '') + '?start=' + start + '&end=' + end;
     var video = $('playVideo');
     video.src = url;
     video.play().then(function () {
-      $('playMsg').textContent = '';
+      setMsg('play', null);
     }).catch(function () {
-      $('playMsg').textContent = '播放器暂不可用，请手动点击播放';
+      setMsg('play', 'record.playerUnavailable');
     });
   });
 
@@ -332,12 +465,12 @@
       s = s || {};
       var rec = s.recorder || {};
       $('settingsRecorder').innerHTML =
-        '<dt>录像开关</dt><dd>' + (rec.enabled ? '开启' : '关闭') + '</dd>' +
-        '<dt>录像目录</dt><dd>' + esc(rec.recordPath || '-') + '</dd>' +
-        '<dt>分片时长</dt><dd>' + (rec.fragmentDurationMs || '-') + ' ms</dd>' +
-        '<dt>分段时长</dt><dd>' + (rec.segmentDurationMs || '-') + ' ms</dd>';
+        '<dt>' + esc(t('settings.recorderEnabled')) + '</dt><dd>' + esc(rec.enabled ? t('settings.on') : t('settings.off')) + '</dd>' +
+        '<dt>' + esc(t('settings.recordPath')) + '</dt><dd>' + esc(rec.recordPath || '-') + '</dd>' +
+        '<dt>' + esc(t('settings.fragment')) + '</dt><dd>' + (rec.fragmentDurationMs || '-') + ' ms</dd>' +
+        '<dt>' + esc(t('settings.segment')) + '</dt><dd>' + (rec.segmentDurationMs || '-') + ' ms</dd>';
       $('settingsAdmin').innerHTML =
-        '<dt>账号</dt><dd>' + esc((s.admin && s.admin.username) || '-') + '</dd>';
+        '<dt>' + esc(t('settings.username')) + '</dt><dd>' + esc((s.admin && s.admin.username) || '-') + '</dd>';
     }).catch(function () { setConn(false); });
   }
 
@@ -355,7 +488,10 @@
   });
 
   function closeModal(id) {
-    if (id === 'liveModal' && livePlayer) { livePlayer.destroy(); livePlayer = null; }
+    if (id === 'liveModal') {
+      currentLivePath = '';
+      if (livePlayer) { livePlayer.destroy(); livePlayer = null; }
+    }
     if (id === 'playModal') { $('playVideo').pause(); $('playVideo').removeAttribute('src'); }
     document.getElementById(id).classList.add('hidden');
   }
@@ -366,6 +502,17 @@
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  /**
+   * 生成一行占位的空状态。
+   *
+   * @param {number} colspan 跨列数，需与所在表格的列数一致
+   * @param {string} text 提示文案
+   * @returns {string} 表格行 HTML
+   */
+  function emptyRow(colspan, text) {
+    return '<tr><td colspan="' + colspan + '" class="empty">' + esc(text) + '</td></tr>';
   }
 
   function pad(n) { return String(n).padStart(2, '0'); }
@@ -399,12 +546,16 @@
 
   /* ---------------- 初始化 ---------------- */
 
+  i18n.apply(document);
+  initLangSelectors();
+  renderChrome();
+
   if (token) {
     // 校验 token 是否仍有效
     api('getServerStats').then(function () {
       showApp();
     }).catch(function (err) {
-      if (err && err.message === '登录已过期，请重新登录') { return; }
+      if (err && err.authExpired) { return; }
       showLogin();
     });
   } else {

@@ -14,6 +14,7 @@
 - [Features](#features)
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
+- [Screenshots](#screenshots)
 - [Configuration](#configuration)
 - [Recording and Playback](#recording-and-playback)
 - [Admin API](#admin-api)
@@ -59,6 +60,7 @@
 - Served at `http://<host>:18080/admin/`
 - Token-based login (in-process token, default TTL 24 hours, invalidated on restart)
 - Panels: dashboard, live streams, recordings (with time-range playback), settings
+- Chinese / English UI, switchable from the top-right selector and remembered in browser localStorage
 
 ### E2E tests
 
@@ -106,6 +108,32 @@ For web playback use [mpegts.js](https://github.com/xqq/mpegts.js) or [Aliplayer
 ### Admin console
 
 Open `http://127.0.0.1:18080/admin/` in a browser. The default account is configured in `start.php`.
+
+## Screenshots
+
+The console ships with Simplified Chinese and English. Use the language selector in the top-right corner to switch; the choice is stored in browser localStorage.
+
+| Login | Dashboard |
+|---|---|
+| ![Login](docs/screenshots/login-en.png) | ![Dashboard](docs/screenshots/dashboard-en.png) |
+
+| Live streams | Recordings |
+|---|---|
+| ![Live preview](docs/screenshots/live-en.png) | ![Recordings](docs/screenshots/record-en.png) |
+
+| Playback | Settings |
+|---|---|
+| ![Playback](docs/screenshots/playback.png) | ![Settings](docs/screenshots/settings-en.png) |
+
+Simplified Chinese UI:
+
+| 登录 | 仪表盘 |
+|---|---|
+| ![登录](docs/screenshots/login.png) | ![仪表盘](docs/screenshots/dashboard.png) |
+
+| 直播预览 | 录像列表 |
+|---|---|
+| ![直播预览](docs/screenshots/live-preview.png) | ![录像管理](docs/screenshots/record.png) |
 
 ## Configuration
 
@@ -209,9 +237,10 @@ src/
 ├── Recorder/     fMP4 muxer/recorder, playback slicer, MP4 parser, SQLite index
 ├── Rtmp/         RTMP protocol handling
 └── Utils/        Binary/HTTP/WS stream helpers
-public/admin/     Admin console SPA (vanilla JS)
+public/admin/     Admin console SPA (vanilla JS, i18n.js holds the zh/en dictionaries)
 packages/         Vendored SabreAMF
 tests/            Playback E2E tests
+docs/screenshots/ Admin console screenshots used by the READMEs
 record/           Recording output (git-ignored)
 ```
 
