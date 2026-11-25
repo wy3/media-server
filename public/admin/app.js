@@ -24,6 +24,7 @@
   var currentPanel = 'dashboard';
   var livePlayer = null;      // mpegts.js 直播播放器
   var currentLivePath = '';   // 当前预览的推流路径
+  var currentLiveCodec = '';  // 当前预览流的视频编码名（用于 H.265 能力预检）
   var currentRecordPath = ''; // 当前回放的推流路径
   var pollTimer = null;
   var loggedIn = false;
@@ -345,7 +346,7 @@
           '<td>' + (st.videoFps || '-') + '</td>' +
           '<td>' + esc(codec) + '</td>' +
           '<td>' + (map[p] || 0) + '</td>' +
-          '<td><button class="btn sm" data-live="' + esc(p) + '">' + esc(t('action.preview')) + '</button></td>' +
+          '<td><button class="btn sm" data-live="' + esc(p) + '" data-codec="' + esc(st.videoCodecName || '') + '">' + esc(t('action.preview')) + '</button></td>' +
           '</tr>';
       }).join('');
     }).catch(function (e) {
@@ -357,11 +358,45 @@
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-live]');
-    if (btn) { openLive(btn.getAttribute('data-live')); }
+    if (btn) {
+      openLive(btn.getAttribute('data-live'), btn.getAttribute('data-codec') || '');
+    }
   });
 
-  function openLive(path) {
+  /**
+   * 检测当前浏览器是否具备 H.265 解码能力。
+   *
+   * 必须带完整 codec 串（`hvc1.1.6.L93.B0`）：实测 Edge/Chrome 对裸 `hvc1`
+   * 返回空字符串，但带级别信息的串会正确反映系统 HEVC 解码器是否存在。
+   *
+   * @returns {boolean} 支持返回 true
+   */
+  function canPlayHEVC() {
+    var video = document.createElement('video');
+    return !!(video.canPlayType && video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"'));
+  }
+
+  /**
+   * 判断某路推流是否为 H.265。
+   *
+   * @param {string} codecName 接口返回的 videoCodecName
+   * @returns {boolean} H.265 返回 true
+   */
+  function isHEVCCodec(codecName) {
+    var name = String(codecName || '').toUpperCase();
+    return name === 'H265' || name === 'HEVC';
+  }
+
+  /**
+   * 打开直播预览。H.265 流会先做浏览器解码能力预检，避免静默黑屏。
+   *
+   * @param {string} path 推流路径
+   * @param {string} codecName 该流的视频编码名（如 H264 / H265）
+   * @returns {void}
+   */
+  function openLive(path, codecName) {
     currentLivePath = path;
+    currentLiveCodec = codecName;
     $('liveModalTitle').textContent = t('live.previewTitle', { path: path });
     setMsg('live', null);
     showModal('liveModal');
@@ -381,6 +416,11 @@
       livePlayer.attachMediaElement(video);
       livePlayer.load();
       livePlayer.play();
+      // H.265 在缺少系统解码器时会静默黑屏（无 error 事件），必须主动预检并提示
+      if (isHEVCCodec(currentLiveCodec) && !canPlayHEVC()) {
+        setMsg('live', 'live.hevcUnsupported');
+        return;
+      }
       setMsg('live', 'live.connecting', { path: path });
     } catch (err) {
       setMsg('live', 'live.startFailed', { msg: err.message });

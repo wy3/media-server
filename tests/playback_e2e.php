@@ -65,6 +65,15 @@ $CASES = [
             ['boundary' => true, 'half' => 2.0, 'expect_video' => true, 'expect_audio' => true, 'max_gain' => 2.5, 'decode' => true],
         ],
     ],
+    [
+        'name' => 'hevc_av',
+        'desc' => 'HEVC 音视频流：Enhanced RTMP（codecId=0 + hvc1）录制与回放',
+        'stream' => ['video' => true, 'audio' => true, 'duration' => 12, 'vcodec' => 'h265'],
+        'ranges' => [
+            ['t0' => 0.0, 't1' => 12.0, 'expect_video' => true, 'expect_audio' => true, 'max_gain' => 2.5, 'decode' => true],
+            ['t0' => 5.0, 't1' => 8.0, 'expect_video' => true, 'expect_audio' => true, 'max_gain' => 2.5, 'decode' => true],
+        ],
+    ],
 ];
 
 //--------------------------------
@@ -230,7 +239,11 @@ function pushStream(string $path, array $stream)
     }
     $cmd .= '-t ' . $dur . ' ';
     if ($stream['video']) {
-        $cmd .= '-c:v libx264 -preset veryfast -tune zerolatency -g 50 -pix_fmt yuv420p ';
+        // codec 缺省为 h264；hex 用例走 libx265（Enhanced RTMP，需 ffmpeg 7.x）
+        $vcodec = $stream['vcodec'] ?? 'h264';
+        $cmd .= $vcodec === 'h265'
+            ? '-c:v libx265 -x265-params "log-level=none:keyint=50" -preset veryfast -pix_fmt yuv420p '
+            : '-c:v libx264 -preset veryfast -tune zerolatency -g 50 -pix_fmt yuv420p ';
     }
     if ($stream['audio']) {
         $cmd .= '-c:a aac -b:a 64k -ar 44100 ';

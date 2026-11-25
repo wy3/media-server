@@ -35,11 +35,12 @@
   - HTTP-FLV：`http://<host>:18080/<app>/<stream>.flv`
   - WS-FLV：`ws://<host>:18080/<app>/<stream>.flv`
   - 支持查询参数过滤：`disableAudio`、`disableVideo`、`disableGop`
-- 编解码支持：H.264 视频、AAC 音频
+- 编解码支持：H.264 / H.265（HEVC）视频、AAC 音频
+- H.265 支持 Enhanced RTMP（`codecId=0` + `hvc1` FourCC）与旧版 `codecId=12` 两种封装
 
 ### 录像
 
-- H.264/AAC 实时封装为 fMP4（`ftyp + moov + moof/mdat`）
+- H.264/AAC、H.265/AAC 实时封装为 fMP4（`ftyp + moov + moof/mdat`）
 - 按关键帧边界切分片（`fragmentDurationMs`，默认 2000 ms）
 - 按关键帧边界轮转分段（`segmentDurationMs`，默认 60000 ms），每段一个独立 `.mp4`
 - 纯视频流、纯音频流、音视频流均可录制
@@ -246,7 +247,9 @@ record/           录像输出目录（已 git 忽略）
 
 ## 已知限制
 
-- 仅支持 H.264 + AAC 编码流，其它编码可能无法正常工作
+- 仅支持 H.264 / H.265（HEVC）+ AAC 编码流，其它编码可能无法正常工作
+- 浏览器播放 H.265 依赖操作系统的 HEVC 解码能力：Windows 需安装「HEVC 视频扩展」，macOS / iOS Safari 原生支持，Chrome / Edge 走系统硬解；未安装时画面会静默黑屏（无报错），建议后台用 `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')` 预检
+- H.265 推流推荐使用 ffmpeg 7.x 及以上（旧版无法输出 Enhanced RTMP）
 - 单进程模型，不支持多进程部署
 - 推流过程中增删轨道未做处理（中途切换轨道会损坏当前分段）
 - 回放请求的样本表在内存中构建，超长时间范围建议限制 `end`，避免内存与耗时膨胀

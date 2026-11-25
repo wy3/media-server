@@ -35,11 +35,12 @@
   - HTTP-FLV: `http://<host>:18080/<app>/<stream>.flv`
   - WS-FLV: `ws://<host>:18080/<app>/<stream>.flv`
   - Playback filters via query string: `disableAudio`, `disableVideo`, `disableGop`
-- Supported codecs: H.264 video, AAC audio
+- Supported codecs: H.264 / H.265 (HEVC) video, AAC audio
+- H.265 accepts both Enhanced RTMP (`codecId=0` + `hvc1` FourCC) and legacy `codecId=12`
 
 ### Recording
 
-- Real-time muxing of H.264/AAC into fragmented MP4 (`ftyp + moov + moof/mdat`)
+- Real-time muxing of H.264/AAC and H.265/AAC into fragmented MP4 (`ftyp + moov + moof/mdat`)
 - Fragments are cut on keyframe boundaries (`fragmentDurationMs`, default 2000 ms)
 - Segment rotation on keyframe boundaries (`segmentDurationMs`, default 60000 ms), one `.mp4` per segment
 - Video-only, audio-only and audio+video streams are all supported
@@ -246,7 +247,9 @@ record/           Recording output (git-ignored)
 
 ## Known Limitations
 
-- Only H.264 + AAC streams are supported; other codecs may not work
+- Only H.264 / H.265 (HEVC) + AAC streams are supported; other codecs may not work
+- Browser playback of H.265 depends on OS-level HEVC decoding: on Windows the "HEVC Video Extensions" package must be installed, macOS / iOS Safari support it natively, and Chrome / Edge use the system decoder. Without it the video silently renders black (no error), so pre-flight with `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')`
+- Pushing H.265 requires ffmpeg 7.x or newer (older builds cannot emit Enhanced RTMP)
 - Single-process model — multi-process deployment is not supported
 - Streams that add or drop a track mid-flight are not handled (a mid-stream track switch can corrupt the active segment)
 - The sample table for a playback request is built in memory, so very long ranges are best avoided; always bound `end` for long recordings

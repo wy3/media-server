@@ -140,6 +140,13 @@ class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, Ver
      */
     public ?VideoFrame $avcSequenceHeaderFrame = null;
 
+    /** 是否已收到 HEVC 序列头 */
+    public bool $isHEVCSequence = false;
+    /**
+     * @var VideoFrame|null
+     */
+    public ?VideoFrame $hevcSequenceHeaderFrame = null;
+
     public int $audioCodec = 0;
     public string $audioCodecName = '';
     public int $audioSamplerate = 0;

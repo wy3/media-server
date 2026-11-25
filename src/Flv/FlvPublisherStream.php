@@ -10,6 +10,7 @@ use Exception;
 use MediaServer\MediaReader\AACPacket;
 use MediaServer\MediaReader\AudioFrame;
 use MediaServer\MediaReader\AVCPacket;
+use MediaServer\MediaReader\HEVCPacket;
 use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
@@ -70,6 +71,13 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
      * @var VideoFrame|null
      */
     public ?VideoFrame $avcSequenceHeaderFrame = null;
+
+    /** 是否已收到 HEVC 序列头 */
+    public bool $isHEVCSequence = false;
+    /**
+     * @var VideoFrame|null
+     */
+    public ?VideoFrame $hevcSequenceHeaderFrame = null;
     public int $videoWidth = 0;
     public int $videoHeight = 0;
     public int|float $videoFps = 0;
@@ -235,7 +243,8 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
             case Flv::VIDEO_TAG:
                 //视频数据
                 $videoFrame = new VideoFrame($tag->data, $tag->timestamp);
-                if ($this->videoCodec == 0) {
+                if ($this->videoCodecName === '') {
+                    // Enhanced RTMP 的 codecId 恒为 0，不能再用 videoCodec == 0 作为判定条件
                     $this->videoCodec = $videoFrame->codecId;
                     $this->videoCodecName = $videoFrame->getVideoCodecName();
                 }
@@ -250,10 +259,37 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
                     }
                 }
 
+                if ($videoFrame->isHEVC()) {
+                    //h265：Enhanced RTMP 与 legacy codecId=12 均由 HEVCPacket 统一解析
+                    $hevcPack = $videoFrame->getHEVCPacket();
+                    if ($hevcPack->hevcPacketType === HEVCPacket::HEVC_PACKET_TYPE_SEQUENCE_START) {
+                        $this->isHEVCSequence = true;
+                        $this->hevcSequenceHeaderFrame = $videoFrame;
+                        $set = $hevcPack->getHEVCSequenceParameterSet();
+                        $this->videoWidth = $set->width;
+                        $this->videoHeight = $set->height;
+                        $this->videoProfileName = $set->getHEVCProfileName();
+                        $this->videoLevel = $set->level;
+                        logger()->info("publisher {path} recv hevc sequence.", ['path' => $this->publishPath]);
+                    }
+
+                    if ($this->isHEVCSequence) {
+                        if ($videoFrame->frameType === VideoFrame::VIDEO_FRAME_TYPE_KEY_FRAME
+                            && $hevcPack->isCodedFrame()) {
+                            $this->gopCacheQueue = [];
+                        }
+
+                        if ($hevcPack->hevcPacketType === HEVCPacket::HEVC_PACKET_TYPE_SEQUENCE_START) {
+                            //skip hevc sequence
+                        } else {
+                            $this->gopCacheQueue[] = $videoFrame;
+                        }
+                    }
+                }
+
                 if ($videoFrame->codecId === VideoFrame::VIDEO_CODEC_ID_AVC) {
                     //h264
                     $avcPack = $videoFrame->getAVCPacket();
-
                     //read avc
                     if ($avcPack->avcPacketType === AVCPacket::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
                         $this->isAVCSequence = true;
@@ -400,6 +436,26 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         return $this->avcSequenceHeaderFrame;
     }
 
+    /**
+     * 是否已收到 HEVC 序列头。
+     *
+     * @return bool
+     */
+    public function isHEVCSequence(): bool
+    {
+        return $this->isHEVCSequence;
+    }
+
+    /**
+     * HEVC 序列头帧（含 hvcC 配置记录）。
+     *
+     * @return VideoFrame|null
+     */
+    public function getHEVCSequenceFrame(): ?VideoFrame
+    {
+        return $this->hevcSequenceHeaderFrame;
+    }
+
     public function hasAudio(): bool
     {
         return $this->hasAudio;
@@ -409,7 +465,6 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
     {
         return $this->hasVideo;
     }
-
     public function getGopCacheQueue(): array
     {
         return $this->gopCacheQueue;

@@ -7,6 +7,8 @@ namespace MediaServer\Recorder;
 use MediaServer\MediaReader\AACPacket;
 use MediaServer\MediaReader\AudioFrame;
 use MediaServer\MediaReader\AVCPacket;
+use MediaServer\MediaReader\HEVCPacket;
+use MediaServer\MediaReader\HEVCSequenceParameterSet;
 use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\PublishStreamInterface;
@@ -39,6 +41,10 @@ class Mp4Recorder
 
     protected bool $videoConfigReady = false;
     protected string $avcC = '';
+    /** HEVC 的 hvcC 配置记录 */
+    protected string $hvcC = '';
+    /** 视频编码：h264 / h265 */
+    protected string $videoCodec = 'h264';
     protected int $videoWidth = 0;
     protected int $videoHeight = 0;
 
@@ -86,13 +92,20 @@ class Mp4Recorder
     //		视频
     //--------------------------------
 
-    protected function handleVideoFrame(VideoFrame $frame): void
+    /**
+     * HEVC 视频帧处理。与 H.264 共用分段/分片逻辑，仅序列头与样本提取方式不同。
+     *
+     * @param VideoFrame $frame
+     * @return void
+     */
+    protected function handleHEVCVideoFrame(VideoFrame $frame): void
     {
-        $avc = $frame->getAVCPacket();
+        $hevc = $frame->getHEVCPacket();
 
-        if ($avc->avcPacketType === AVCPacket::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
-            $this->avcC = $avc->stream->readRaw();
-            $set = $avc->getAVCSequenceParameterSet();
+        if ($hevc->hevcPacketType === HEVCPacket::HEVC_PACKET_TYPE_SEQUENCE_START) {
+            $this->hvcC = $hevc->readPayload();
+            $set = new HEVCSequenceParameterSet($this->hvcC);
+            $this->videoCodec = 'h265';
             $this->videoWidth = $set->width;
             $this->videoHeight = $set->height;
             $this->videoConfigReady = true;
@@ -103,16 +116,48 @@ class Mp4Recorder
             return;
         }
 
+        // 序列结束、colorInfo 等元数据包不含画面，直接跳过
+        if (!$hevc->isCodedFrame()) {
+            return;
+        }
+
         $isKey = $frame->frameType === VideoFrame::VIDEO_FRAME_TYPE_KEY_FRAME
             || $frame->frameType === VideoFrame::VIDEO_FRAME_TYPE_GENERATED_KEY_FRAME;
 
+        $dts = $this->beginVideoSample($frame, $isKey);
+        if ($dts === null) {
+            return;
+        }
+
+        $data = $hevc->readPayload();
+        if ($data === '') {
+            return;
+        }
+
+        $this->videoSamples[] = [
+            'dts' => $dts,
+            'cts' => $hevc->compositionTime & 0xFFFFFFFF,
+            'data' => $data,
+            'key' => $isKey,
+        ];
+    }
+
+    /**
+     * 视频关键帧驱动的分段/分片切分，返回该样本在当前分段内的 dts。
+     *
+     * @param VideoFrame $frame
+     * @param bool $isKey
+     * @return int|null 返回 null 表示当前帧应丢弃（分段尚未就绪）
+     */
+    protected function beginVideoSample(VideoFrame $frame, bool $isKey): ?int
+    {
         if ($isKey) {
             $now = timestamp();
             if (!$this->segmentActive()) {
                 $this->startSegment($now);
             }
             if (!$this->segmentActive()) {
-                return; // 目录创建失败等
+                return null; // 目录创建失败等
             }
 
             $dts = $this->normalizeDts($frame->timestamp);
@@ -139,8 +184,43 @@ class Mp4Recorder
             if ($needNewFragment) {
                 $this->fragmentStartDts = $dts;
             }
-        } elseif ($this->fragmentStartDts === null) {
-            return; // 等待关键帧开启新片段，丢弃片头帧间帧
+            return $dts;
+        }
+
+        if ($this->fragmentStartDts === null) {
+            return null; // 等待关键帧开启新片段，丢弃片头帧间帧
+        }
+        return $this->normalizeDts($frame->timestamp);
+    }
+
+    protected function handleVideoFrame(VideoFrame $frame): void
+    {
+        if ($frame->isHEVC()) {
+            $this->handleHEVCVideoFrame($frame);
+            return;
+        }
+
+        $avc = $frame->getAVCPacket();
+
+        if ($avc->avcPacketType === AVCPacket::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
+            $this->avcC = $avc->stream->readRaw();
+            $set = $avc->getAVCSequenceParameterSet();
+            $this->videoWidth = $set->width;
+            $this->videoHeight = $set->height;
+            $this->videoConfigReady = true;
+            return;
+        }
+
+        if (!$this->videoConfigReady) {
+            return;
+        }
+
+        $isKey = $frame->frameType === VideoFrame::VIDEO_FRAME_TYPE_KEY_FRAME
+            || $frame->frameType === VideoFrame::VIDEO_FRAME_TYPE_GENERATED_KEY_FRAME;
+
+        $dts = $this->beginVideoSample($frame, $isKey);
+        if ($dts === null) {
+            return;
         }
 
         $data = $avc->stream->readRaw();
@@ -149,7 +229,7 @@ class Mp4Recorder
         }
 
         $this->videoSamples[] = [
-            'dts' => $this->normalizeDts($frame->timestamp),
+            'dts' => $dts,
             'cts' => $avc->compositionTime & 0xFFFFFFFF,
             'data' => $data,
             'key' => $isKey,
@@ -259,7 +339,7 @@ class Mp4Recorder
         $hasVideo = $this->videoConfigReady;
         $this->streamMeta = [
             'video' => $hasVideo
-                ? ['codec' => 'h264', 'width' => $this->videoWidth, 'height' => $this->videoHeight]
+                ? ['codec' => $this->videoCodec, 'width' => $this->videoWidth, 'height' => $this->videoHeight]
                 : null,
             'audio' => $this->segmentHasAudio
                 ? ['codec' => 'aac', 'samplerate' => $this->audioSamplerate, 'channels' => $this->audioChannels]
@@ -276,13 +356,15 @@ class Mp4Recorder
 
         $moov = Mp4Muxer::moov(
             $hasVideo
-                ? ['avcC' => $this->avcC, 'width' => $this->videoWidth, 'height' => $this->videoHeight]
+                ? ($this->videoCodec === 'h265'
+                    ? ['codec' => 'h265', 'hvcC' => $this->hvcC, 'width' => $this->videoWidth, 'height' => $this->videoHeight]
+                    : ['codec' => 'h264', 'avcC' => $this->avcC, 'width' => $this->videoWidth, 'height' => $this->videoHeight])
                 : [],
             $this->segmentHasAudio
                 ? ['esds' => $this->audioSpecificConfig, 'channels' => $this->audioChannels, 'samplerate' => $this->audioSamplerate]
                 : []
         );
-        fwrite($this->fileHandle, Mp4Muxer::ftyp() . $moov);
+        fwrite($this->fileHandle, ($this->videoCodec === 'h265' ? Mp4Muxer::ftypHEVC() : Mp4Muxer::ftyp()) . $moov);
 
         $this->index = [
             'path' => $this->publisher->getPublishPath(),

@@ -73,6 +73,7 @@
       'live.connecting': '正在连接直播流 {path}.flv',
       'live.mpegtsMissing': 'mpegts.js 加载失败（需要网络），无法进行直播预览',
       'live.startFailed': '预览启动失败：{msg}',
+      'live.hevcUnsupported': '当前浏览器/系统不支持 H.265 解码，画面将无法显示。Windows 请安装「HEVC 视频扩展」，或改用支持 HEVC 的浏览器。',
 
       'record.playbackTitle': '录像回放 - {path}',
       'record.startTime': '开始时间',
@@ -152,6 +153,7 @@
       'live.connecting': 'Connecting to {path}.flv',
       'live.mpegtsMissing': 'mpegts.js failed to load (network required), live preview is unavailable',
       'live.startFailed': 'Failed to start preview: {msg}',
+      'live.hevcUnsupported': 'This browser/OS cannot decode H.265, so the video will stay blank. On Windows install "HEVC Video Extensions", or use a browser with HEVC support.',
 
       'record.playbackTitle': 'Playback - {path}',
       'record.startTime': 'Start time',

@@ -147,6 +147,14 @@ class FlvPlayStream extends EventEmitter implements PlayStreamInterface
             $this->sendVideoFrame($avcFrame);
         }
 
+        /**
+         * hevc sequence send（H.265 必须先把 hvcC 发给播放端，否则解码器拿不到配置）
+         */
+        if ($publishStream->isHEVCSequence()) {
+            $hevcFrame = $publishStream->getHEVCSequenceFrame();
+            $this->sendVideoFrame($hevcFrame);
+        }
+
 
         /**
          * aac sequence send

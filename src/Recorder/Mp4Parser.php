@@ -48,6 +48,8 @@ class Mp4Parser
                     $moov = self::readAt($fh, $pos + 8, $size - 8);
                     $cfg = $moov !== false ? self::parseMoov($moov) : [];
                     $video['avcC'] = (string)($cfg['avcC'] ?? '');
+                    $video['hvcC'] = (string)($cfg['hvcC'] ?? '');
+                    $video['codec'] = (string)($cfg['codec'] ?? 'h264');
                     $video['width'] = (int)($cfg['width'] ?? 0);
                     $video['height'] = (int)($cfg['height'] ?? 0);
                     $audio['esds'] = (string)($cfg['esds'] ?? '');
@@ -96,7 +98,7 @@ class Mp4Parser
 
     protected static function parseMoov(string $moov): array
     {
-        $cfg = ['avcC' => '', 'width' => 0, 'height' => 0, 'esds' => '', 'channels' => 0, 'samplerate' => 0];
+        $cfg = ['avcC' => '', 'hvcC' => '', 'codec' => 'h264', 'width' => 0, 'height' => 0, 'esds' => '', 'channels' => 0, 'samplerate' => 0];
 
         self::walk($moov, 0, strlen($moov), function ($type, $start, $end) use (&$cfg, $moov) {
             if ($type !== 'trak') {
@@ -145,6 +147,16 @@ class Mp4Parser
                 self::walk($entry, 78, strlen($entry), function ($t, $s, $e) use (&$cfg, $entry) {
                     if ($t === 'avcC') {
                         $cfg['avcC'] = substr($entry, $s, $e - $s);
+                    }
+                });
+            } elseif ($type === 'hvc1' || $type === 'hev1') {
+                // HEVC 样本条目：VisualSampleEntry 头同样是 78 字节，随后才是 hvcC
+                $cfg['codec'] = 'h265';
+                $cfg['width'] = unpack('n', substr($entry, 24, 2))[1];
+                $cfg['height'] = unpack('n', substr($entry, 26, 2))[1];
+                self::walk($entry, 78, strlen($entry), function ($t, $s, $e) use (&$cfg, $entry) {
+                    if ($t === 'hvcC') {
+                        $cfg['hvcC'] = substr($entry, $s, $e - $s);
                     }
                 });
             } elseif ($type === 'mp4a') {

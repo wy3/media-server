@@ -40,6 +40,26 @@ trait RtmpPublisherTrait
         return $this->avcSequenceHeaderFrame;
     }
 
+    /**
+     * 是否已收到 HEVC 序列头。
+     *
+     * @return bool
+     */
+    public function isHEVCSequence(): bool
+    {
+        return $this->isHEVCSequence;
+    }
+
+    /**
+     * HEVC 序列头帧（含 hvcC 配置记录）。
+     *
+     * @return VideoFrame|null
+     */
+    public function getHEVCSequenceFrame(): ?VideoFrame
+    {
+        return $this->hevcSequenceHeaderFrame;
+    }
+
 
     public function isMetaData(): bool
     {
@@ -58,7 +78,7 @@ trait RtmpPublisherTrait
 
     public function hasVideo(): bool
     {
-        return $this->isAVCSequence();
+        return $this->isAVCSequence() || $this->isHEVCSequence();
     }
 
     public function getGopCacheQueue(): array

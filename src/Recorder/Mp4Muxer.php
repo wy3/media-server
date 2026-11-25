@@ -38,7 +38,17 @@ class Mp4Muxer
     }
 
     /**
-     * @param array{avcC?:string,width?:int,height?:int} $video
+     * HEVC 版本的 ftyp：compatible brands 追加 hvc1/hev1，便于播放器识别编码。
+     *
+     * @return string
+     */
+    public static function ftypHEVC(): string
+    {
+        return self::box('ftyp', 'iso5' . pack('N', 0x00000200) . 'iso5iso6hvc1hev1mp41');
+    }
+
+    /**
+     * @param array{avcC?:string,hvcC?:string,codec?:string,width?:int,height?:int} $video
      * @param array{esds?:string,channels?:int,samplerate?:int} $audio
      */
     public static function moov(array $video = [], array $audio = []): string
@@ -125,7 +135,9 @@ class Mp4Muxer
         $hdlr = self::hdlr('vide', 'VideoHandler');
         $vmhd = self::vmhd();
         $dinf = self::dinf();
-        $stsd = self::box('stsd', pack('N', 0) . pack('N', 1) . self::avc1($v));
+        $isHEVC = (($v['codec'] ?? 'h264') === 'h265');
+        $sampleEntry = $isHEVC ? self::hvc1($v) : self::avc1($v);
+        $stsd = self::box('stsd', pack('N', 0) . pack('N', 1) . $sampleEntry);
         $stbl = self::box('stbl', $stsd . self::emptyStts() . self::emptyStsc() . self::emptyStsz() . self::emptyStco());
         $minf = self::box('minf', $vmhd . $dinf . $stbl);
         $mdia = self::box('mdia', $mdhd . $hdlr . $minf);
@@ -281,6 +293,31 @@ class Mp4Muxer
         return self::box('avc1', $entry);
     }
 
+    /**
+     * HEVC 样本条目 hvc1：结构与 avc1 相同，仅编解码配置 box 换成 hvcC。
+     *
+     * compressorname 是「1 字节长度 + 最多 31 字节字符串 + 补零」的定长 32 字节字段，
+     * 长度字节写错会让解析器错位（表现为 Invalid NAL unit 0），因此这里显式对齐。
+     *
+     * @param array{hvcC:string,width?:int,height?:int} $v
+     * @return string
+     */
+    protected static function hvc1(array $v): string
+    {
+        $name = 'HEVC Coding';
+        $compressorName = chr(strlen($name)) . $name . str_repeat("\x00", 31 - strlen($name));
+        $entry = "\x00\x00\x00\x00\x00\x00" . pack('n', 1)
+            . "\x00\x00\x00\x00"
+            . "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+            . pack('n', (int)$v['width']) . pack('n', (int)$v['height'])
+            . pack('N', 0x00480000) . pack('N', 0x00480000)
+            . pack('N', 0) . pack('n', 1)
+            . $compressorName
+            . pack('n', 0x0018) . pack('n', 0xFFFF)
+            . self::box('hvcC', $v['hvcC']);
+        return self::box('hvc1', $entry);
+    }
+
     protected static function mp4a(array $a): string
     {
         $entry = "\x00\x00\x00\x00\x00\x00" . pack('n', 1)
@@ -325,6 +362,28 @@ class Mp4Muxer
     {
         $avc = $frame->getAVCPacket();
         return $avc->stream->readRaw();
+    }
+
+    /**
+     * 提取 HEVC NALU 样本（4 字节长度前缀格式），跳过 FLV 视频 tag 头与 HEVC 分包头。
+     *
+     * @param VideoFrame $frame
+     * @return string
+     */
+    public static function hevcSampleData(VideoFrame $frame): string
+    {
+        return $frame->getHEVCPacket()->readPayload();
+    }
+
+    /**
+     * 提取 FLV HEVC 序列头中的原始 hvcC（HEVCDecoderConfigurationRecord）。
+     *
+     * @param VideoFrame $frame
+     * @return string
+     */
+    public static function hvcCFromSequence(VideoFrame $frame): string
+    {
+        return $frame->getHEVCPacket()->readPayload();
     }
 
     /**

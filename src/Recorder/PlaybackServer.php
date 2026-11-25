@@ -105,7 +105,9 @@ class PlaybackServer
             $parsed = Mp4Parser::parseSegment($file);
             if ($parsed['video'] && $videoCfg === null) {
                 $videoCfg = [
+                    'codec' => (string)$parsed['video']['codec'],
                     'avcC' => (string)$parsed['video']['avcC'],
+                    'hvcC' => (string)$parsed['video']['hvcC'],
                     'width' => (int)$parsed['video']['width'],
                     'height' => (int)$parsed['video']['height'],
                 ];
@@ -247,7 +249,9 @@ class PlaybackServer
         // 输出布局按 box 顺序交错：moof 头与对应 mdat 数据必须相邻，
         // mdat 仅写 8 字节头，数据走流式发送
         $parts = [];
-        $parts[] = ['bytes' => Mp4Muxer::ftyp() . Mp4Muxer::moov($videoCfg ?? [], $audioCfg ?? [])];
+        $isHEVC = ($videoCfg['codec'] ?? 'h264') === 'h265';
+        $parts[] = ['bytes' => ($isHEVC ? Mp4Muxer::ftypHEVC() : Mp4Muxer::ftyp())
+            . Mp4Muxer::moov($videoCfg ?? [], $audioCfg ?? [])];
         $seq = 1;
 
         if ($videoSelected) {

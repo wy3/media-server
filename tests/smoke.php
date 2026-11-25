@@ -19,6 +19,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/functions.php';
 
 use MediaServer\MediaReader\AVCSequenceParameterSet;
+use MediaServer\MediaReader\VideoFrame;
 use MediaServer\Recorder\Mp4Muxer;
 use MediaServer\Recorder\RecordIndex;
 use MediaServer\Recorder\RecorderManager;
@@ -115,6 +116,44 @@ try {
 } catch (Throwable $e) {
     check('SPS 解析无异常', false, $e->getMessage());
 }
+
+echo "== HEVC 解析 ==\n";
+// Enhanced RTMP 首字节：0x90 = 1(扩展标志) + 001(关键帧) + 0000(packetType=0)
+// 随后 4 字节 FourCC + hvcC。此处构造最小 hvcC（含 VPS/SPS/PPS 数组）。
+$hvcC = "\x01" . chr(0x01 | (95 << 3 & 0xF8))  // 占位，仅验证不崩
+    . str_repeat("\x00", 10)
+    . chr(120) . "\x00\x00" . "\x0F\x00" . "\x00"
+    . "\x03\x00\x00";
+$enhancedFrame = chr(0x90) . 'hvc1' . $hvcC;
+$vf = new VideoFrame($enhancedFrame, 0);
+check('Enhanced RTMP 被识别', $vf->isEnhanced === true);
+check('Enhanced RTMP frameType = 1（关键帧）', $vf->frameType === 1, 'got ' . $vf->frameType);
+check('Enhanced RTMP packetType = 0（序列头）', $vf->exPacketType === 0, 'got ' . $vf->exPacketType);
+check('Enhanced RTMP FourCC = hvc1', $vf->exVideoFourCC === 'hvc1', 'got ' . $vf->exVideoFourCC);
+check('codecId=0 仍能认出 H265', $vf->getVideoCodecName() === 'H265', 'got ' . $vf->getVideoCodecName());
+check('isHEVC() 为真', $vf->isHEVC() === true);
+
+// CodedFramesX（packetType=3）：0xA3 = 1 + 010 + 0011，不带 CTS
+$codedX = new VideoFrame(chr(0xA3) . 'hvc1' . "\x00\x00\x03\xe8" . "\x00\x00\x00", 0);
+$hp = $codedX->getHEVCPacket();
+check('CodedFramesX packetType = 3', $hp->hevcPacketType === 3, 'got ' . $hp->hevcPacketType);
+check('CodedFramesX 被认作编码帧', $hp->isCodedFrame() === true);
+check('CodedFramesX CTS 为 0', $hp->compositionTime === 0, 'got ' . $hp->compositionTime);
+
+// legacy codecId=12：首字节 0x1C = 0001(关键帧) + 1100(12)
+$legacy = new VideoFrame(chr(0x1C) . "\x00" . "\x00\x00\x28" . "\x00\x00\x00\x01", 0);
+$lhp = $legacy->getHEVCPacket();
+check('legacy codecId=12 被识别为 HEVC', $legacy->isHEVC() === true);
+check('legacy packetType = 0', $lhp->hevcPacketType === 0, 'got ' . $lhp->hevcPacketType);
+check('legacy 不被当作 Enhanced', $legacy->isEnhanced === false);
+
+echo "== mp4 hvc1 box ==\n";
+$hvcMoov = Mp4Muxer::moov(['codec' => 'h265', 'hvcC' => str_repeat("\x01", 64), 'width' => 1920, 'height' => 1080]);
+check('HEVC moov 含 hvc1 样本条目', str_contains($hvcMoov, 'hvc1'));
+check('HEVC moov 含 hvcC 配置', str_contains($hvcMoov, 'hvcC'));
+check('HEVC moov 不含 avc1', !str_contains($hvcMoov, 'avc1'));
+check('HEVC moov 长度前缀正确', unpack('N', substr($hvcMoov, 0, 4))[1] === strlen($hvcMoov));
+check('HEVC ftyp 含 hvc1 brand', str_contains(Mp4Muxer::ftypHEVC(), 'hvc1'));
 
 echo "== 录像路径与索引 ==\n";
 check('sanitizePath 归一斜杠', RecorderManager::sanitizePath('/live/cam1') === 'live_cam1');
