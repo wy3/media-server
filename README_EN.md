@@ -18,6 +18,7 @@
 - [Configuration](#configuration)
 - [Recording and Playback](#recording-and-playback)
 - [Admin API](#admin-api)
+- [Performance Benchmarks](#performance-benchmarks)
 - [Tests](#tests)
 - [Project Layout](#project-layout)
 - [Known Limitations](#known-limitations)
@@ -71,8 +72,11 @@
 
 - PHP >= 8.2 (tested on PHP 8.4), extension: `json`
 - Composer
-- Optional: `event` / `ev` extension for a faster event loop on Linux
-- `ffmpeg` / `ffprobe` to run the E2E tests
+- Optional: `event` extension
+  - **Strongly recommended on Windows**: the default `select` event loop hangs the entire process past ~253 connections (even the HTTP API stops responding). With `event` it handles 1000+ connections
+  - Linux uses epoll and has no such limit; `event` still helps
+  - Note: `ev` does **not** work on Windows (watching sockets raises `WSAENOTSOCK`); you must use `event`
+- Running the E2E tests requires `ffmpeg` / `ffprobe`
 
 ## Quick Start
 
@@ -203,6 +207,77 @@ Every call except `login` requires a valid token, supplied via `X-Auth-Token`, `
 
 `GET /api?name=...&args=[...]` is also supported for read-only calls.
 
+## Performance Benchmarks
+
+End-to-end measurements across five scenarios: latency, single-step concurrency,
+stepwise ramping, and mixed push+pull.
+
+**Test conditions**: AMD Ryzen 9 9900X (12C/24T), Windows, PHP 8.4.25,
+1080p30 4096 kb/s, ffmpeg `-c copy` push, rtmpstress pull, recording disabled.
+
+### Event loop comparison
+
+| Scenario | `select` (default) | `event` (libevent 3.2.0) |
+|---|---|---|
+| Pull limit | **200 streams** (dead at 300) | **1000 streams** (100% kept) |
+| Push limit | **200 streams** (dead at 300) | **1200 streams** (100% kept) |
+
+**Past 253 connections `select` does not refuse — the entire event loop stops scheduling.**
+The process stays alive but is completely unresponsive.
+That is why the `event` extension is required on Windows.
+
+### Pull capacity (`event`, single process)
+
+| Load | Connections | Memory | CPU per conn |
+|---|---|---|---|
+| 50% | **500** | 30 MB | |
+| 80% | 800 | 35 MB | 0.10% |
+| 100% | 1000 | 36 MB | |
+
+### Push capacity (`event`, single process)
+
+| Load | Streams | Memory |
+|---|---|---|
+| 50% | **600** | 700 MB |
+| 80% | 960 | 1.1 GB |
+| 100% | 1200 | 1.4 GB |
+
+Each push needs **1.17 MB** of memory (GOP cache) — the dominant sizing factor.
+Pull needs only 36 KB per connection.
+
+### Mixed push + pull (`event`)
+
+| Push | Pull | CPU | Memory | Retained | Dropped frames |
+|---|---|---|---|---|---|
+| 50 | 500 | 57.4% | 95 MB | 100% | 0 |
+| 100 | 500 | 60.5% | 158 MB | 100% | 0 |
+| 200 | 500 | 68.9% | 288 MB | 100% | 0 |
+| **500** | **500** | **98.5%** | 661 MB | 100% | 0 |
+| 500 | 200 | 73.9% | 648 MB | 100% | 0 |
+| 500 | 100 | 61.9% | 642 MB | 100% | 0 |
+| 500 | 50 | 61.9% | 642 MB | 100% | 0 |
+
+**Takeaway**: push dominates CPU cost; memory is almost entirely driven by push.
+`500/500` is the "full load but not degraded" boundary — design for 50% in production.
+
+### Further reading
+
+| Document | Contents |
+|---|---|
+| [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | Full test procedure, setup, metric definitions, FAQ |
+| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | All raw data and analysis (Chinese) |
+| [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |
+| [tests/bench/README.md](tests/bench/README.md) | Benchmark suite usage |
+
+Reproduce with:
+
+```powershell
+.\tests\bench\gen_samples.ps1
+.\tests\bench\s4_ramp.ps1 -Scenario pull -EventLoop event -Steps 100,200,400,600,800,1000
+.\tests\bench\s4_ramp.ps1 -Scenario push -EventLoop event -Steps 100,200,400,600,800,1000,1200
+.\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','200/500','500/500','500/200','500/100','500/50'
+```
+
 ## Tests
 
 Two suites are provided.
@@ -241,7 +316,9 @@ src/
 public/admin/     Admin console SPA (vanilla JS, i18n.js holds the zh/en dictionaries)
 packages/         Vendored SabreAMF
 tests/            Playback E2E tests
+tests/bench/      Performance benchmark suite (procedure + scripts + results)
 docs/screenshots/ Admin console screenshots used by the READMEs
+docs/multiprocess/ Multiprocess architecture design (split by topic)
 record/           Recording output (git-ignored)
 ```
 
@@ -251,6 +328,9 @@ record/           Recording output (git-ignored)
 - Browser playback of H.265 depends on OS-level HEVC decoding: on Windows the "HEVC Video Extensions" package must be installed, macOS / iOS Safari support it natively, and Chrome / Edge use the system decoder. Without it the video silently renders black (no error), so pre-flight with `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')`
 - Pushing H.265 requires ffmpeg 7.x or newer (older builds cannot emit Enhanced RTMP)
 - Single-process model — multi-process deployment is not supported
+- **The default `select` event loop on Windows hangs the entire process past ~253 connections**; install the `event` extension (see [Requirements](#requirements)). Linux uses epoll and is unaffected
+- Single-core ceiling per process (1080p30 4 Mbps): ~1000 pull streams / ~1200 push streams; plan for 50% (500 pull / 600 push) in production
+- The latency measurement method is only accurate to ±30 ms — it can detect order-of-magnitude degradation but not fine differences
 - Streams that add or drop a track mid-flight are not handled (a mid-stream track switch can corrupt the active segment)
 - The sample table for a playback request is built in memory, so very long ranges are best avoided; always bound `end` for long recordings
 - Fast start / slow loading may be noticeable for some players

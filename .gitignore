@@ -17,3 +17,8 @@ composer.lock
 .workbuddy/ssh_run.py
 .workbuddy/memory/2026-09-01.md
 .workbuddy/memory/MEMORY.md
+
+# 压测产物（样本 + 结果 JSON）
+/tests/bench/results/
+/tests/bench/samples/
+/tests/bench/tools/

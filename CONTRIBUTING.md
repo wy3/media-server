@@ -47,6 +47,24 @@ Get-ChildItem src,packages,tests,public -Recurse -Filter *.php |
 - Public methods carry JSDoc-style `/** ... */` docblocks; keep them in Chinese as the rest of the codebase does
 - Two-space-free tabs are not used — follow the surrounding file's indentation exactly
 
+### ⚠️ Avoid handle-passing APIs (antivirus compatibility)
+
+Do **not** use these in production code, and be careful even in test scripts:
+
+| API | Why |
+|---|---|
+| `socket_wsaprotocol_info_export()` / `_import()` | `WSADuplicateSocket` — flagged as `VirTool:PHP/Remeshelsz.A` (Severity 5) by Windows Defender; **the file gets erased** |
+| `socket_sendmsg()` with `SCM_RIGHTS` | Same detection class on the POSIX side |
+| `proc_open(PHP_BINARY . ' ... script')` patterns combined with the above | Classic PHP backdoor signature |
+
+Defender erases the offending file's contents (size stays the same, content becomes whitespace),
+so the symptom looks like "my file was mysteriously corrupted". If a file you just wrote appears
+blank, check Windows Security → Protection history.
+
+**Use plain stream I/O instead.** For cross-process work, prefer `stream_socket_client` /
+`stream_socket_server` and ordinary `fread` / `fwrite`. See
+[docs/multiprocess/](docs/multiprocess/README.md) for the rationale and measured numbers.
+
 ## Commit Messages
 
 Write the subject in Chinese, imperative mood, one line. Body optional. Examples:

@@ -18,6 +18,7 @@
 - [配置](#配置)
 - [录像与回放](#录像与回放)
 - [管理 API](#管理-api)
+- [性能基准](#性能基准)
 - [测试](#测试)
 - [目录结构](#目录结构)
 - [已知限制](#已知限制)
@@ -71,7 +72,10 @@
 
 - PHP >= 8.2（已在 PHP 8.4 验证），扩展：`json`
 - Composer
-- 可选：`event` / `ev` 扩展（Linux 下提升事件循环性能）
+- 可选：`event` 扩展
+  - **Windows 强烈建议**：默认 `select` 事件循环在约 253 连接后整个进程卡死（连 HTTP API 都不响应），装 `event` 后可支撑 1000+ 连接
+  - Linux 用 epoll，无此限制；装 `event` 仍有收益
+  - 注意：`ev` 在 Windows 上**不可用**（监视 socket 报 `WSAENOTSOCK`），必须用 `event`
 - 运行 E2E 测试需要 `ffmpeg` / `ffprobe`
 
 ## 快速开始
@@ -203,6 +207,75 @@ X-Auth-Token: <token>
 
 只读调用也支持 `GET /api?name=...&args=[...]`。
 
+## 性能基准
+
+对五个场景做端到端实测，覆盖时延、单档并发、逐级加压与混合推拉。
+
+**测试条件**：AMD Ryzen 9 9900X（12C/24T）、Windows、PHP 8.4.25、
+1080p30 4096 kb/s、ffmpeg `-c copy` 推流、rtmpstress 拉流、录像关闭。
+
+### 事件循环对比
+
+| 场景 | `select`（默认） | `event`（libevent 3.2.0） |
+|---|---|---|
+| 拉流上限 | **200 路**（300 卡死） | **1000 路**（100% 保持） |
+| 推流上限 | **200 路**（300 卡死） | **1200 路**（100% 保持） |
+
+**`select` 在 253 连接后不是拒绝连接，而是整个事件循环停摆** —— 进程还活着但完全不响应。
+这是 Windows 上必须装 `event` 扩展的原因。
+
+### 拉流容量（`event`，单进程）
+
+| 负载 | 连接数 | 内存 | 每连接 CPU |
+|---|---|---|---|
+| 50% | **500** | 30 MB | |
+| 80% | 800 | 35 MB | 0.10% |
+| 100% | 1000 | 36 MB | |
+
+### 推流容量（`event`，单进程）
+
+| 负载 | 路数 | 内存 |
+|---|---|---|
+| 50% | **600** | 700 MB |
+| 80% | 960 | 1.1 GB |
+| 100% | 1200 | 1.4 GB |
+
+推流每路需 **1.17 MB** 内存（GOP 缓存），是部署规划的重点；
+拉流只需 36 KB/连接。
+
+### 混合推拉（`event`）
+
+| 推流 | 拉流 | CPU | 内存 | 保持率 | 掉帧 |
+|---|---|---|---|---|---|
+| 50 | 500 | 57.4% | 95 MB | 100% | 0 |
+| 100 | 500 | 60.5% | 158 MB | 100% | 0 |
+| 200 | 500 | 68.9% | 288 MB | 100% | 0 |
+| **500** | **500** | **98.5%** | 661 MB | 100% | 0 |
+| 500 | 200 | 73.9% | 648 MB | 100% | 0 |
+| 500 | 100 | 61.9% | 642 MB | 100% | 0 |
+| 500 | 50 | 61.9% | 642 MB | 100% | 0 |
+
+**结论**：推流是主要 CPU 开销；内存几乎完全由推流决定。
+`500/500` 是「满负荷但未劣化」的临界点，生产建议按 50% 设计。
+
+### 详细资料
+
+| 文档 | 内容 |
+|---|---|
+| [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | 完整测试流程、环境准备、指标口径、常见问题 |
+| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | 全部原始数据与逐项分析（中文） |
+| [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |
+| [tests/bench/README.md](tests/bench/README.md) | 测试套件使用说明 |
+
+复现命令：
+
+```powershell
+.\tests\bench\gen_samples.ps1
+.\tests\bench\s4_ramp.ps1 -Scenario pull -EventLoop event -Steps 100,200,400,600,800,1000
+.\tests\bench\s4_ramp.ps1 -Scenario push -EventLoop event -Steps 100,200,400,600,800,1000,1200
+.\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','200/500','500/500','500/200','500/100','500/50'
+```
+
 ## 测试
 
 仓库提供两套测试：
@@ -241,7 +314,9 @@ src/
 public/admin/     管理后台 SPA（原生 JS，i18n.js 提供中英文词典）
 packages/         vendored SabreAMF
 tests/            回放链路 E2E 测试
+tests/bench/      性能基准测试套件（流程 + 脚本 + 结果）
 docs/screenshots/ README 使用的管理后台截图
+docs/multiprocess/ 多进程架构设计文档（按主题分册）
 record/           录像输出目录（已 git 忽略）
 ```
 
@@ -251,6 +326,9 @@ record/           录像输出目录（已 git 忽略）
 - 浏览器播放 H.265 依赖操作系统的 HEVC 解码能力：Windows 需安装「HEVC 视频扩展」，macOS / iOS Safari 原生支持，Chrome / Edge 走系统硬解；未安装时画面会静默黑屏（无报错），建议后台用 `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')` 预检
 - H.265 推流推荐使用 ffmpeg 7.x 及以上（旧版无法输出 Enhanced RTMP）
 - 单进程模型，不支持多进程部署
+- **Windows 默认 `select` 事件循环在约 253 连接后整个进程卡死**，必须安装 `event` 扩展（见[环境要求](#环境要求)）；Linux 用 epoll 无此问题
+- 单进程单核上限（1080p30 4Mbps）：拉流约 1000 路 / 推流约 1200 路；生产建议按 50% 规划（拉流 500 / 推流 600）
+- 时延测试方法精度有限（±30ms），仅能检测数量级劣化，不能用于精细对比
 - 推流过程中增删轨道未做处理（中途切换轨道会损坏当前分段）
 - 回放请求的样本表在内存中构建，超长时间范围建议限制 `end`，避免内存与耗时膨胀
 - 部分播放器可能存在加载缓慢或播放异常
