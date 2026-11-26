@@ -10,6 +10,7 @@ use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\MediaServer;
+use MediaServer\Utils\PlayPackCache;
 
 trait RtmpPlayerTrait
 {
@@ -107,29 +108,33 @@ trait RtmpPlayerTrait
     }
 
     /**
-     * @param $frame MediaFrame
-     * @return mixed
+     * 发送一帧数据。
+     *
+     * @param MediaFrame $frame 待发送的帧
+     * @param PlayPackCache|null $playPackCache 上一个播放端组好的数据。
+     *        命中时直接发送其中的 chunks，只改写本端 streamId，
+     *        既不组包也不创建 RtmpPacket。
+     * @return PlayPackCache 本端组好的数据，供下一个播放端复用
      */
-    public function frameSend(MediaFrame $frame): void
+    public function frameSend(MediaFrame $frame, ?PlayPackCache $playPackCache = null): PlayPackCache
     {
-        switch ($frame->FRAME_TYPE) {
-            case MediaFrame::VIDEO_FRAME:
-                $this->sendVideoFrame($frame);
-                break;
-            case MediaFrame::AUDIO_FRAME:
-                $this->sendAudioFrame($frame);
-                break;
-            case MediaFrame::META_FRAME:
-                $this->sendMetaDataFrame($frame);
-                break;
+        if ($playPackCache instanceof RtmpPlayPackCache) {
+            $this->write($playPackCache->patchStreamId($this->playStreamId)->chunks);
+            return $playPackCache;
         }
+
+        return match ($frame->FRAME_TYPE) {
+            MediaFrame::VIDEO_FRAME => $this->sendVideoFrame($frame),
+            MediaFrame::AUDIO_FRAME => $this->sendAudioFrame($frame),
+            MediaFrame::META_FRAME => $this->sendMetaDataFrame($frame),
+        };
     }
 
     /**
      * @param $metaDataFrame MetaDataFrame|MediaFrame
-     * @return mixed
+     * @return RtmpPlayPackCache
      */
-    public function sendMetaDataFrame(MediaFrame $metaDataFrame): void
+    public function sendMetaDataFrame(MediaFrame $metaDataFrame): RtmpPlayPackCache
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -138,15 +143,15 @@ trait RtmpPlayerTrait
         $packet->payload = (string)$metaDataFrame;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
-        $chunks = $this->rtmpChunksCreate($packet);
-        $this->write($chunks);
+        $packet->timestamp = 0;
+        return $this->sendPacket($packet);
     }
 
     /**
      * @param $audioFrame AudioFrame|MediaFrame
-     * @return mixed
+     * @return RtmpPlayPackCache
      */
-    public function sendAudioFrame(MediaFrame $audioFrame): void
+    public function sendAudioFrame(MediaFrame $audioFrame): RtmpPlayPackCache
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -156,15 +161,14 @@ trait RtmpPlayerTrait
         $packet->timestamp = $audioFrame->timestamp;
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
-        $chunks = $this->rtmpChunksCreate($packet);
-        $this->write($chunks);
+        return $this->sendPacket($packet);
     }
 
     /**
      * @param $videoFrame VideoFrame|MediaFrame
-     * @return mixed
+     * @return RtmpPlayPackCache
      */
-    public function sendVideoFrame(MediaFrame $videoFrame): void
+    public function sendVideoFrame(MediaFrame $videoFrame): RtmpPlayPackCache
     {
         $packet = new RtmpPacket();
         $packet->chunkType = RtmpChunk::CHUNK_TYPE_0;
@@ -174,8 +178,20 @@ trait RtmpPlayerTrait
         $packet->length = strlen($packet->payload);
         $packet->streamId = $this->playStreamId;
         $packet->timestamp = $videoFrame->timestamp;
-        $chunks = $this->rtmpChunksCreate($packet);
-        $this->write($chunks);
+        return $this->sendPacket($packet);
+    }
+
+    /**
+     * 组包并发送，返回组好的数据供下一个播放端复用。
+     *
+     * @param RtmpPacket $packet 本端的包描述
+     * @return RtmpPlayPackCache 本端使用的组包结果
+     */
+    protected function sendPacket(RtmpPacket $packet): RtmpPlayPackCache
+    {
+        $playPackCache = new RtmpPlayPackCache($this->rtmpChunksCreate($packet), $packet);
+        $this->write($playPackCache->chunks);
+        return $playPackCache;
     }
 
     /**

@@ -283,9 +283,56 @@ function streamDir(string $path): string
     return __DIR__ . '/../record' . DIRECTORY_SEPARATOR . ($s === '' ? 'default' : $s);
 }
 
+/**
+ * 打开录像索引库，并确保 schema 存在。
+ *
+ * 服务端的 RecordIndex 是「惰性建表」：只有真正写过分段后表才会存在。
+ * 本脚本在推流前就要 `DELETE FROM segments`，若此时服务还没写过任何分段，
+ * 库文件可能是空文件，直接执行 SQL 会报 `no such table: segments`。
+ * 因此这里用与服务端一致的 DDL 兜底建表（IF NOT EXISTS，幂等）。
+ *
+ * @return PDO
+ */
 function db(): PDO
 {
-    return new PDO('sqlite:' . DB_FILE);
+    $pdo = new PDO('sqlite:' . DB_FILE);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    // 与服务端一致：多进程并发读不阻塞写，写冲突自动等待
+    $pdo->exec('PRAGMA busy_timeout = 5000');
+    ensureSchema($pdo);
+    return $pdo;
+}
+
+/**
+ * 建表（与服务端 RecordIndex::initSchema 保持一致）。
+ *
+ * @param PDO $pdo
+ * @return void
+ */
+function ensureSchema(PDO $pdo): void
+{
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS streams (
+            path       TEXT PRIMARY KEY,
+            dir        TEXT NOT NULL,
+            meta       TEXT NOT NULL DEFAULT '{}',
+            updated_at INTEGER NOT NULL DEFAULT 0
+        )"
+    );
+    $pdo->exec(
+        "CREATE TABLE IF NOT EXISTS segments (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            stream_path TEXT NOT NULL,
+            file        TEXT NOT NULL,
+            start       INTEGER NOT NULL,
+            end         INTEGER NOT NULL,
+            duration    INTEGER NOT NULL DEFAULT 0,
+            size        INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(stream_path, file)
+        )"
+    );
+    $pdo->exec('CREATE INDEX IF NOT EXISTS idx_segments_stream_start ON segments(stream_path, start)');
 }
 
 /** 轮询等待指定流的分段数量达标 */

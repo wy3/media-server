@@ -17,6 +17,39 @@ if (-not (Test-Path $script:ResultsDir)) {
 
 <#
 .SYNOPSIS
+    解析 PHP 扩展目录的绝对路径。
+.DESCRIPTION
+    php.ini 里的 extension_dir 常写成相对路径（如 "ext"），
+    此时从任意工作目录启动 php 会找不到 dll，报
+    "Unable to load dynamic library ..."。
+    这里把相对路径按 php.ini 所在目录解析成绝对路径，
+    供 Start-BenchServer 以 -d extension_dir=... 覆盖。
+    解析失败返回 $null（保持 php 原有行为）。
+.OUTPUTS
+    [string] 绝对路径，或 $null
+#>
+function Resolve-PhpExtensionDir {
+    try {
+        $iniPath = (php --ini 2>$null | Select-String -Pattern 'Loaded Configuration File:\s*(.+)$').Matches.Groups[1].Value
+        $raw = (php -r "echo ini_get('extension_dir');" 2>$null)
+    } catch {
+        return $null
+    }
+    if (-not $raw) { return $null }
+    if ([System.IO.Path]::IsPathRooted($raw)) {
+        return (Resolve-Path $raw -ErrorAction SilentlyContinue).Path
+    }
+    if ($iniPath -and (Test-Path $iniPath)) {
+        $candidate = Join-Path (Split-Path -Parent $iniPath) $raw
+        if (Test-Path $candidate) {
+            return (Resolve-Path $candidate).Path
+        }
+    }
+    return $null
+}
+
+<#
+.SYNOPSIS
     启动压测服务端。
 .DESCRIPTION
     用给定事件循环启动 server_bench.php，返回进程对象。
@@ -42,6 +75,12 @@ function Start-BenchServer {
 
     $phpArgs = @('-d', "memory_limit=$MemoryLimit")
     if ($EventLoop -eq 'event') {
+        # php.ini 里 extension_dir 常写成相对路径 "ext"，从其他工作目录启动时
+        # 会找不到 dll（报 Unable to load dynamic library）。这里解析成绝对路径再传。
+        $extDir = Resolve-PhpExtensionDir
+        if ($extDir) {
+            $phpArgs += @('-d', "extension_dir=$extDir")
+        }
         $phpArgs += @('-d', 'extension=sockets', '-d', 'extension=event')
     }
     $phpArgs += (Join-Path $script:BenchRoot 'lib\server_bench.php')

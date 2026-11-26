@@ -221,9 +221,12 @@ class MediaServer
      */
     static function publisherOnFrame(MediaFrame $frame, PublishStreamInterface $publisher): void
     {
+        // 同一帧扇出给多个播放端时，首个播放端组包，其余直接复用其结果，
+        // 只改写与连接相关的字段（如 RTMP 的 streamId）。
+        $playPackCache = null;
         foreach (self::getPlayStreams($publisher->getPublishPath()) as $playStream) {
             if (!$playStream->isPlayerIdling()) {
-                $playStream->frameSend($frame);
+                $playPackCache = $playStream->frameSend($frame, $playPackCache);
             }
         }
     }

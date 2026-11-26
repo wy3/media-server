@@ -1,0 +1,31 @@
+﻿{
+    "results":  [
+                    {
+                        "Target":  1000,
+                        "Aborted":  false,
+                        "ActiveFinal":  1000,
+                        "ActiveMin":  1000,
+                        "RetentionPct":  100,
+                        "SvcCpuAvg":  79.68,
+                        "SvcCpuMax":  80.69,
+                        "SysCpuAvg":  11.8,
+                        "WsMBEnd":  37.1,
+                        "PerUnitCpu":  0.079
+                    }
+                ],
+    "steps":  [
+                  1000
+              ],
+    "scenario":  "ramp_pull",
+    "warmupSeconds":  15,
+    "eventLoop":  "event",
+    "timestamp":  "2026-11-26 17:04:28",
+    "host":  {
+                 "logicalProcessors":  24,
+                 "cpu":  "AMD Ryzen 9 9900X 12-Core Processor            ",
+                 "php":  "8.4.25",
+                 "cores":  12,
+                 "os":  "Microsoft Windows 11 专业版"
+             },
+    "secondsPerStep":  40
+}

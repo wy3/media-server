@@ -7,6 +7,7 @@ namespace MediaServer\PushServer;
 
 use Evenement\EventEmitterInterface;
 use MediaServer\MediaReader\MediaFrame;
+use MediaServer\Utils\PlayPackCache;
 
 interface PlayStreamInterface extends EventEmitterInterface
 {
@@ -18,7 +19,16 @@ interface PlayStreamInterface extends EventEmitterInterface
      */
     public function startPlay(): void;
 
-    public function frameSend(MediaFrame $frame): void;
+    /**
+     * 发送一帧数据。
+     *
+     * @param MediaFrame $frame 待发送的帧
+     * @param PlayPackCache|null $playPackCache 上一个播放端组好的数据。
+     *        命中时直接发送其中的 chunks，只改写与连接相关的字段，
+     *        既不再组包也不再创建载体对象。
+     * @return PlayPackCache 本端组好的数据，供下一个播放端复用
+     */
+    public function frameSend(MediaFrame $frame, ?PlayPackCache $playPackCache = null): PlayPackCache;
 
     public function playClose(): void;
 

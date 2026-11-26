@@ -39,6 +39,20 @@ class RtmpChunk
     const CHANNEL_VIDEO = 5;
     const CHANNEL_DATA = 6;
 
+    /**
+     * base header 字节数，由 csid 决定用 1 / 2 / 3 字节编码
+     *
+     * @param int $cid chunk stream id
+     * @return int
+     */
+    static function basicHeaderLength(int $cid): int
+    {
+        if ($cid >= 64 + 255) {
+            return 3;
+        }
+        return $cid >= 64 ? 2 : 1;
+    }
+
 
 
 

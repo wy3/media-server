@@ -267,6 +267,7 @@ Pull needs only 36 KB per connection.
 
 | Document | Contents |
 |---|---|
+| [docs/rtmp-parsing-performance.md](docs/rtmp-parsing-performance.md) | RTMP parsing hot-path analysis, measured optimization backlog, and the implemented fanout reuse (−17.5% CPU at 1000 pulls) |
 | [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | Full test procedure, setup, metric definitions, FAQ |
 | [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | All raw data and analysis (Chinese) |
 | [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |

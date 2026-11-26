@@ -79,6 +79,70 @@ The knee sits between 900 and 1000, and latency oscillates violently near satura
 
 ---
 
+## Before / After: reusing packed chunks across players
+
+**Change**: when one frame fans out to N players, the first player packs it and
+the rest reuse the result, patching only the 4-byte `streamId` in the RTMP
+message header (FLV tags carry no connection-specific field, so they are reused as-is).
+
+> Design details and how the approach evolved: see
+> [docs/rtmp-parsing-performance.md](../../docs/rtmp-parsing-performance.md#55-已落地的改动实施记录).
+
+### Measurement setup
+
+**Both groups use identical settings**, so they are directly comparable:
+
+| Item | Value |
+|---|---|
+| Script | `s4_ramp.ps1 -Scenario pull -EventLoop event` |
+| Steps | `1000` (single step) |
+| `-SecondsPerStep` | 40 |
+| `-WarmupSeconds` | 15 |
+| Bitrate | 1920×1080 30fps 4096 kb/s H.264 + AAC 128k |
+| Recording | disabled |
+
+### Results
+
+| Group | Run | SvcCpuAvg | Result file |
+|---|---|---|---|
+| **Baseline (before)** | ramp step 1000 | 96.37% | `results/ramp_pull_event_20261126_154622.json` |
+| **Baseline (before)** | standalone #1 | 103.02% | `results/ramp_pull_event_20261126_154907.json` |
+| **Baseline (before)** | standalone #2 | 100.16% | same file |
+| | **baseline mean** | **99.85%** | |
+| **Optimized** | #1 | 79.68% | `results/ramp_pull_event_20261126_170430.json` |
+| **Optimized** | #2 | 83.94% | `results/ramp_pull_event_20261126_170543.json` |
+| **Optimized** | #3 | 83.59% | `results/ramp_pull_event_20261126_170657.json` |
+| | **optimized mean** | **82.40%** | |
+
+| Metric | Baseline | Optimized | Change |
+|---|---|---|---|
+| Service CPU mean | 99.85% | 82.40% | **−17.5%** |
+| CPU per stream | 0.0999% | 0.0824% | −17.5% |
+| Memory | 36.3~38.0 MB | 37.1~38.0 MB | unchanged |
+| Streams kept | 1000/1000 | 1000/1000 | same |
+
+### Confidence
+
+The two ranges **do not overlap**:
+
+```
+baseline   96.37% ──────────────── 103.02%
+optimized          79.68% ─────────────── 83.94%
+                             ↑ 12.4 pp gap
+```
+
+Measured run-to-run noise on this machine at 1000 streams is **±6.6 pp**
+(`103.0%` vs `100.2%`, the two runs in 154907), so a 12.4 pp gap is
+well outside noise and **the difference is real**.
+
+Capacity projection: same CPU budget now carries roughly
+**1000 → 1210 streams (+21%)**.
+
+> ⚠️ Only the **pull** path was measured. The push path has no fanout packing,
+> so it should see no gain; no comparison was run for it.
+
+---
+
 ## S1: Latency
 
 ### Method

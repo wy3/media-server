@@ -1,0 +1,96 @@
+{
+  "scenario": "ramp_pull",
+  "timestamp": "2026-11-26 15:46:19",
+  "secondsPerStep": 40,
+  "eventLoop": "event",
+  "steps": [
+    100,
+    200,
+    400,
+    600,
+    800,
+    1000
+  ],
+  "host": {
+    "php": "8.4.25",
+    "logicalProcessors": 24,
+    "os": "Microsoft Windows 11 专业版",
+    "cpu": "AMD Ryzen 9 9900X 12-Core Processor            ",
+    "cores": 12
+  },
+  "results": [
+    {
+      "Target": 100,
+      "Aborted": false,
+      "ActiveFinal": 100,
+      "ActiveMin": 100.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 11.04,
+      "SvcCpuMax": 11.37,
+      "SysCpuAvg": 17.8,
+      "WsMBEnd": 23.9,
+      "PerUnitCpu": 0.109
+    },
+    {
+      "Target": 200,
+      "Aborted": false,
+      "ActiveFinal": 200,
+      "ActiveMin": 200.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 17.19,
+      "SvcCpuMax": 17.72,
+      "SysCpuAvg": 3.0,
+      "WsMBEnd": 26.0,
+      "PerUnitCpu": 0.0829
+    },
+    {
+      "Target": 400,
+      "Aborted": false,
+      "ActiveFinal": 400,
+      "ActiveMin": 400.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 37.2,
+      "SvcCpuMax": 39.34,
+      "SysCpuAvg": 5.8,
+      "WsMBEnd": 29.5,
+      "PerUnitCpu": 0.0984
+    },
+    {
+      "Target": 600,
+      "Aborted": false,
+      "ActiveFinal": 600,
+      "ActiveMin": 600.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 62.01,
+      "SvcCpuMax": 64.05,
+      "SysCpuAvg": 17.2,
+      "WsMBEnd": 31.8,
+      "PerUnitCpu": 0.101
+    },
+    {
+      "Target": 800,
+      "Aborted": false,
+      "ActiveFinal": 800,
+      "ActiveMin": 800.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 83.28,
+      "SvcCpuMax": 86.66,
+      "SysCpuAvg": 29.2,
+      "WsMBEnd": 33.8,
+      "PerUnitCpu": 0.1016
+    },
+    {
+      "Target": 1000,
+      "Aborted": false,
+      "ActiveFinal": 1000,
+      "ActiveMin": 1000.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 96.37,
+      "SvcCpuMax": 97.93,
+      "SysCpuAvg": 17.5,
+      "WsMBEnd": 36.3,
+      "PerUnitCpu": 0.0979
+    }
+  ],
+  "warmupSeconds": 15
+}

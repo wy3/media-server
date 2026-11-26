@@ -1,0 +1,44 @@
+{
+  "eventLoop": "event",
+  "secondsPerStep": 40,
+  "host": {
+    "cores": 12,
+    "cpu": "AMD Ryzen 9 9900X 12-Core Processor            ",
+    "os": "Microsoft Windows 11 专业版",
+    "php": "8.4.25",
+    "logicalProcessors": 24
+  },
+  "warmupSeconds": 15,
+  "scenario": "ramp_pull",
+  "steps": [
+    1000,
+    1000
+  ],
+  "results": [
+    {
+      "Target": 1000,
+      "Aborted": false,
+      "ActiveFinal": 1000,
+      "ActiveMin": 1000.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 103.02,
+      "SvcCpuMax": 106.77,
+      "SysCpuAvg": 17.0,
+      "WsMBEnd": 36.2,
+      "PerUnitCpu": 0.1011
+    },
+    {
+      "Target": 1000,
+      "Aborted": false,
+      "ActiveFinal": 1000,
+      "ActiveMin": 1000.0,
+      "RetentionPct": 100.0,
+      "SvcCpuAvg": 100.16,
+      "SvcCpuMax": 100.41,
+      "SysCpuAvg": 16.2,
+      "WsMBEnd": 38.0,
+      "PerUnitCpu": 0.0998
+    }
+  ],
+  "timestamp": "2026-11-26 15:49:05"
+}

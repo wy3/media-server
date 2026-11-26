@@ -265,6 +265,7 @@ X-Auth-Token: <token>
 
 | 文档 | 内容 |
 |---|---|
+| [docs/rtmp-parsing-performance.md](docs/rtmp-parsing-performance.md) | RTMP 解析热路径剖析、实测优化清单，以及已落地的扇出复用（1000 路拉流 CPU −17.5%） |
 | [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | 完整测试流程、环境准备、指标口径、常见问题 |
 | [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | 全部原始数据与逐项分析（中文） |
 | [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |
