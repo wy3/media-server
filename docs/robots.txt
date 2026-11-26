@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://wy3.github.io/media-server/sitemap.xml

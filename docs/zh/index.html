@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-lang="zh" data-base="../">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHP Media Server · 基于 PHP 的流媒体服务器（RTMP / HTTP-FLV / WS-FLV）</title>
+<meta name="description" content="基于 Workerman 的 PHP 流媒体服务器：RTMP / HTTP-FLV 推流，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与按毫秒指定时间回放，内置中英双语管理后台。单进程可支撑 1000 路拉流 / 1200 路推流。">
+<meta name="keywords" content="PHP 流媒体服务器, RTMP 服务器, HTTP-FLV, WS-FLV, H.265, HEVC, fMP4 录像, 直播服务器, Workerman, PHP live streaming server">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="author" content="wy3">
+<link rel="canonical" href="https://wy3.github.io/media-server/zh/">
+<link rel="alternate" hreflang="en" href="https://wy3.github.io/media-server/">
+<link rel="alternate" hreflang="zh-CN" href="https://wy3.github.io/media-server/zh/">
+<link rel="alternate" hreflang="x-default" href="https://wy3.github.io/media-server/">
+
+<meta property="og:site_name" content="PHP Media Server">
+<meta property="og:title" content="PHP Media Server · 基于 PHP 的流媒体服务器">
+<meta property="og:description" content="RTMP / HTTP-FLV 推流接入，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与按时间范围回放，内置管理后台。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wy3.github.io/media-server/zh/">
+<meta property="og:image" content="https://wy3.github.io/media-server/screenshots/dashboard.png">
+<meta property="og:image:alt" content="PHP Media Server 管理后台仪表盘">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PHP Media Server · 基于 PHP 的流媒体服务器">
+<meta name="twitter:description" content="RTMP / HTTP-FLV 推流接入，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与按时间范围回放，内置管理后台。">
+<meta name="twitter:image" content="https://wy3.github.io/media-server/screenshots/dashboard.png">
+<meta name="theme-color" content="#070b14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M13 10.5v11l9-5.5z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PHP Media Server",
+  "alternateName": "PHP 流媒体服务器",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Windows, Linux, macOS",
+  "description": "基于 Workerman 的纯 PHP 流媒体服务器：RTMP / HTTP-FLV 推流接入，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与按毫秒指定时间回放，内置中英双语管理后台。",
+  "url": "https://wy3.github.io/media-server/zh/",
+  "codeRepository": "https://github.com/wy3/media-server",
+  "downloadUrl": "https://github.com/wy3/media-server/releases",
+  "license": "https://github.com/wy3/media-server/blob/main/LICENSE",
+  "programmingLanguage": "PHP",
+  "runtimePlatform": "PHP >= 8.2",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CNY"
+  },
+  "featureList": [
+    "RTMP / HTTP-FLV 推流接入",
+    "RTMP / HTTP-FLV / WS-FLV 播放",
+    "H.264 / H.265 (HEVC) + AAC",
+    "fMP4 实时录像与分段索引",
+    "按毫秒指定时间回放",
+    "内置中英双语管理后台"
+  ]
+}
+</script>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+      </span>
+      <span class="brand-text">PHP Media Server</span>
+    </a>
+
+    <nav class="nav-links" aria-label="主导航">
+      <a href="#flow">协议</a>
+      <a href="#features">特性</a>
+      <a href="#shots">界面</a>
+      <a href="#perf">性能</a>
+      <a href="#start">快速开始</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="lang-btn" href="../" hreflang="en" lang="en" aria-label="Switch to English">EN</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/wy3/media-server" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================= Hero ================= -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span><span>PHP 8.2+ · Workerman · MIT</span></p>
+        <h1>基于 PHP 实现的<br><span class="grad">流媒体服务</span></h1>
+        <p class="lead">RTMP / HTTP-FLV 推流接入，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与按毫秒回放，外加一个中英双语管理后台。不依赖 FFmpeg 转码进程或 Node 运行时。</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#start">快速开始</a>
+          <a class="btn btn-outline" href="https://github.com/wy3/media-server" target="_blank" rel="noopener">在 GitHub 上查看</a>
+        </div>
+        <dl class="hero-stats">
+          <div><dt>1000</dt><dd>并发拉流 / 单进程</dd></div>
+          <div><dt>1200</dt><dd>并发推流 / 单进程</dd></div>
+          <div><dt>36 KB</dt><dd>每条拉流连接内存</dd></div>
+          <div><dt>2 s</dt><dd>fMP4 分片粒度</dd></div>
+        </dl>
+      </div>
+
+      <div class="hero-side">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+            <span class="terminal-title">bash</span>
+          </div>
+          <pre class="terminal-body"><code><span class="c-prompt">$</span> composer install
+<span class="c-prompt">$</span> php start.php start
+<span class="c-out">rtmp server tcp://0.0.0.0:1935  start</span>
+<span class="c-out">http server 127.0.0.1:18080     start</span>
+<span class="c-prompt">$</span> ffmpeg -re -i demo.mp4 -c:v libx264 \
+      -c:a aac -f flv rtmp://127.0.0.1/live/stream
+<span class="c-ok">▸ 推流已接入，打开 /admin/ 看后台</span></code></pre>
+        </div>
+        <div class="hero-badges">
+          <span class="badge">RTMP</span>
+          <span class="badge">HTTP-FLV</span>
+          <span class="badge">WS-FLV</span>
+          <span class="badge">H.264 / H.265</span>
+          <span class="badge">fMP4</span>
+          <span class="badge">SQLite</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Flow ================= -->
+  <section class="section" id="flow">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">协议链路</p>
+        <h2>推流接入与播放分发</h2>
+        <p class="section-sub">同一路流可被多种客户端同时拉取，也可在推流时同步录像，事后按时间段回看。</p>
+      </header>
+
+      <div class="flow reveal">
+        <div class="flow-col">
+          <div class="flow-node">
+            <span class="flow-tag">推流接入</span>
+            <code>rtmp://host:1935/app/stream</code>
+            <code>POST /app/stream</code>
+            <p>RTMP 推流，或直接 POST FLV 数据</p>
+          </div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 48 16" width="48" height="16"><path d="M0 8h40M34 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div>
+
+        <div class="flow-col">
+          <div class="flow-node flow-core">
+            <span class="flow-tag">单进程事件循环</span>
+            <strong>Workerman</strong>
+            <p>FLV 解析 · GOP 缓存 · 分发 · 封装</p>
+          </div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 48 16" width="48" height="16"><path d="M0 8h40M34 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div>
+
+        <div class="flow-col flow-stack">
+          <div class="flow-node">
+            <span class="flow-tag">播放分发</span>
+            <code>RTMP</code>
+            <code>HTTP-FLV</code>
+            <code>WS-FLV</code>
+          </div>
+          <div class="flow-node">
+            <span class="flow-tag">录像</span>
+            <code>fMP4 分段</code>
+            <code>SQLite 索引</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-result reveal">
+        <span class="flow-result-label">事后回放</span>
+        <code>GET /playback/live/stream?start=1788165249473&amp;end=1788165554005</code>
+        <span class="flow-result-note">服务端跨分段切片重封装，直接喂给 &lt;video&gt;</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Features ================= -->
+  <section class="section section-alt" id="features">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">功能范围</p>
+        <h2>功能与实现范围</h2>
+        <p class="section-sub">覆盖推流接入、播放分发、fMP4 录像、按时间回放、管理后台与自动化测试。</p>
+      </header>
+
+      <div class="cards">
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4 4 8l4 4M16 4l4 4-4 4M4 8h16"/><path d="m8 16 4 4 4-4M12 12v8"/></svg>
+          </span>
+          <h3>PHP 实现</h3>
+          <p>基于 Workerman 事件循环，RTMP 握手、FLV 标签解析与 fMP4 封装均在 PHP 中实现，不依赖 FFmpeg 转码进程或 C++ 扩展。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 21h8M12 17.5V21M10 8.5l4 2.5-4 2.5z"/></svg>
+          </span>
+          <h3>三种播放协议</h3>
+          <p>同一路流可同时以 RTMP、HTTP-FLV、WS-FLV 分发，并支持 disableAudio / disableVideo / disableGop 查询参数过滤。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="17" r="3"/></svg>
+          </span>
+          <h3>H.264 / H.265 双编码</h3>
+          <p>同时兼容 Enhanced RTMP（codecId=0 + hvc1）与旧版 codecId=12 两种 HEVC 封装，音频走 AAC。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6M7 17h4"/></svg>
+          </span>
+          <h3>fMP4 实时录像</h3>
+          <p>按关键帧边界切片与分段，每个 .mp4 自带完整 moov，可单独播放、可被 ffprobe 与浏览器直接解析。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          </span>
+          <h3>按时间范围回放</h3>
+          <p>/playback 接口跨分段切片重封装，从 start 前最近的关键帧起播；mdat 分块流式发送，内存占用与回放时长无关。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+          </span>
+          <h3>内置管理后台</h3>
+          <p>包含仪表盘、直播预览、录像列表与时间回放、系统设置；token 鉴权，支持中英文切换。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 12 2 2 4-4"/><path d="M12 3 4 6v6c0 4.5 3.4 7.9 8 9 4.6-1.1 8-4.5 8-9V6l-8-3Z"/></svg>
+          </span>
+          <h3>端到端测试</h3>
+          <p>数据驱动用例覆盖 推流 → 录像 → 回放 → 解码校验；CI 对 PHP 8.2 / 8.3 / 8.4 执行语法检查与冒烟测试。</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 4-6"/></svg>
+          </span>
+          <h3>性能基准与脚本</h3>
+          <p>五个压测场景的脚本、原始数据与分析随仓库发布，可在其他机器上复现。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Screenshots ================= -->
+  <section class="section" id="shots">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">管理后台</p>
+        <h2>管理后台界面</h2>
+        <p class="section-sub">原生 JS 单页应用，无构建步骤，由服务进程直接提供。</p>
+      </header>
+
+      <div class="shots reveal">
+        <div class="tabs" role="tablist" aria-label="Screenshots">
+          <button class="tab is-active" role="tab" aria-selected="true" data-shot="dashboard">仪表盘</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="live">直播管理</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="playback">录像回放</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="settings">系统设置</button>
+        </div>
+
+        <figure class="shot-frame">
+          <div class="shot-chrome" aria-hidden="true">
+            <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+            <span class="shot-url">http://127.0.0.1:18080/admin/</span>
+          </div>
+          <img id="shotImg" src="../screenshots/dashboard.png" alt="管理后台仪表盘" width="1440" height="900" loading="lazy">
+          <figcaption id="shotCap">仪表盘：推流路数、播放连接、运行时长与内存占用</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Performance ================= -->
+  <section class="section section-alt" id="perf">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">性能基准</p>
+        <h2>性能基准数据</h2>
+        <p class="section-sub">测试环境：AMD Ryzen 9 9900X · Windows · PHP 8.4 · 1080p30 @ 4096 kb/s · ffmpeg -c copy 推流</p>
+      </header>
+
+      <div class="perf-grid">
+        <div class="perf-card reveal">
+          <span class="perf-num">1000</span>
+          <span class="perf-unit">路拉流</span>
+          <p>event 事件循环下单进程上限，100% 连接保持</p>
+        </div>
+        <div class="perf-card reveal">
+          <span class="perf-num">1200</span>
+          <span class="perf-unit">路推流</span>
+          <p>内存 1.4 GB，每路约 1.17 MB GOP 缓存</p>
+        </div>
+        <div class="perf-card reveal">
+          <span class="perf-num">500<span class="perf-slash">/</span>500</span>
+          <span class="perf-unit">推 / 拉</span>
+          <p>满负荷但未劣化的临界点，CPU 98.5%、零掉帧</p>
+        </div>
+        <div class="perf-card reveal">
+          <span class="perf-num">36 KB</span>
+          <span class="perf-unit">每连接</span>
+          <p>拉流侧内存占用，1000 路合计约 36 MB</p>
+        </div>
+      </div>
+
+      <div class="table-wrap reveal">
+        <table class="perf-table">
+          <caption>混合推拉（event 事件循环，单进程）</caption>
+          <thead>
+            <tr>
+              <th>推流</th>
+              <th>拉流</th>
+              <th>CPU</th>
+              <th>内存</th>
+              <th>保持率</th>
+              <th>掉帧</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>50</td><td>500</td><td>57.4%</td><td>95 MB</td><td>100%</td><td>0</td></tr>
+            <tr><td>100</td><td>500</td><td>60.5%</td><td>158 MB</td><td>100%</td><td>0</td></tr>
+            <tr><td>200</td><td>500</td><td>68.9%</td><td>288 MB</td><td>100%</td><td>0</td></tr>
+            <tr class="is-peak"><td>500</td><td>500</td><td>98.5%</td><td>661 MB</td><td>100%</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="callout reveal">
+        <strong>Windows 上务必安装 event 扩展。</strong>
+        <span>默认 select 事件循环在约 253 连接后不是拒绝连接，而是整个进程停摆——连 HTTP API 都不响应。</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= Quick start ================= -->
+  <section class="section" id="start">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">快速开始</p>
+        <h2>安装与启动步骤</h2>
+        <p class="section-sub">需要 PHP 8.2+ 与 Composer；ffmpeg 仅在推流和 E2E 测试时需要。</p>
+      </header>
+
+      <div class="steps">
+        <article class="step reveal">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <h3>安装依赖</h3>
+            <div class="code">
+              <button class="copy" type="button">复制</button>
+              <pre><code>composer install</code></pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="step reveal">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <h3>启动服务</h3>
+            <div class="code">
+              <button class="copy" type="button">复制</button>
+              <pre><code>php start.php start</code></pre>
+            </div>
+            <p class="step-note">RTMP 监听 1935，HTTP / WebSocket 监听 18080。</p>
+          </div>
+        </article>
+
+        <article class="step reveal">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <h3>推一路流进去</h3>
+            <div class="code">
+              <button class="copy" type="button">复制</button>
+              <pre><code>ffmpeg -re -i file.mp4 -c:v libx264 -c:a aac -f flv \
+  rtmp://127.0.0.1/live/stream</code></pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="step reveal">
+          <span class="step-num">4</span>
+          <div class="step-body">
+            <h3>开始播放</h3>
+            <ul class="url-list">
+              <li><span>HTTP-FLV</span><code>http://127.0.0.1:18080/live/stream.flv</code></li>
+              <li><span>WS-FLV</span><code>ws://127.0.0.1:18080/live/stream.flv</code></li>
+              <li><span>RTMP</span><code>rtmp://127.0.0.1/live/stream</code></li>
+              <li><span>管理后台</span><code>http://127.0.0.1:18080/admin/</code></li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Limits ================= -->
+  <section class="section section-alt" id="limits">
+    <div class="wrap limits-grid">
+      <div class="reveal">
+        <p class="kicker">已知限制</p>
+        <h2>适用场景与限制</h2>
+        <p class="section-sub">与 README 中的「已知限制」一致，选型前建议先确认。</p>
+        <a class="link-arrow" href="https://github.com/wy3/media-server/blob/main/README_ZH.md#已知限制" target="_blank" rel="noopener">查看完整限制列表</a>
+      </div>
+      <ul class="limit-list reveal">
+        <li>单进程模型，不支持多进程部署</li>
+        <li>仅支持 H.264 / H.265 + AAC 编码流</li>
+        <li>Windows 必须安装 event 扩展，否则 253 连接后停摆</li>
+        <li>浏览器播放 H.265 依赖系统 HEVC 解码能力</li>
+        <li>生产环境请修改默认账号密码并置于反向代理访问控制之后</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+      </span>
+      <div>
+        <strong>PHP Media Server</strong>
+        <p>基于 PHP 的流媒体服务器 · MIT License</p>
+      </div>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="https://github.com/wy3/media-server" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/wy3/media-server/blob/main/README_ZH.md" target="_blank" rel="noopener">文档</a>
+      <a href="https://github.com/wy3/media-server/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/wy3/media-server/issues" target="_blank" rel="noopener">Issues</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../assets/site.js"></script>
+</body>
+</html>

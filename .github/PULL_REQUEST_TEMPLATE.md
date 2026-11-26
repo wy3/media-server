@@ -19,7 +19,7 @@
 - [ ] `composer validate --no-check-publish --strict` 通过
 - [ ] `php tests/smoke.php` 全部通过
 - [ ] 涉及录像 / 回放时，`php tests/playback_e2e.php` 通过
-- [ ] 已同步更新 `README.md` 与 `README_EN.md`（如涉及行为变更）
+- [ ] 已同步更新 `README.md` 与 `README_ZH.md`（如涉及行为变更）
 
 ## 验证方式
 

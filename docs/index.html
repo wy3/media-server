@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en" data-base="">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PHP Media Server · A media server implemented in PHP (RTMP / HTTP-FLV / WS-FLV)</title>
+<meta name="description" content="A media server on Workerman, implemented in PHP: RTMP / HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording with millisecond-precise replay, and a bilingual admin console. 1000 pull / 1200 push streams per process.">
+<meta name="keywords" content="PHP media server, RTMP server, HTTP-FLV, WS-FLV, H.265, HEVC, fMP4 recording, live streaming server, Workerman, PHP live streaming">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="author" content="wy3">
+<link rel="canonical" href="https://wy3.github.io/media-server/">
+<link rel="alternate" hreflang="en" href="https://wy3.github.io/media-server/">
+<link rel="alternate" hreflang="zh-CN" href="https://wy3.github.io/media-server/zh/">
+<link rel="alternate" hreflang="x-default" href="https://wy3.github.io/media-server/">
+
+<meta property="og:site_name" content="PHP Media Server">
+<meta property="og:title" content="PHP Media Server · A media server implemented in PHP">
+<meta property="og:description" content="RTMP / HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording with time-range replay, and a built-in admin console.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wy3.github.io/media-server/">
+<meta property="og:image" content="https://wy3.github.io/media-server/screenshots/dashboard-en.png">
+<meta property="og:image:alt" content="PHP Media Server admin console dashboard">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PHP Media Server · A media server implemented in PHP">
+<meta name="twitter:description" content="RTMP / HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording with time-range replay, and a built-in admin console.">
+<meta name="twitter:image" content="https://wy3.github.io/media-server/screenshots/dashboard-en.png">
+<meta name="theme-color" content="#070b14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232563eb'/%3E%3Cpath d='M13 10.5v11l9-5.5z' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PHP Media Server",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Windows, Linux, macOS",
+  "description": "A media server on Workerman, implemented in PHP: RTMP / HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording with millisecond-precise replay, and a bilingual admin console.",
+  "url": "https://wy3.github.io/media-server/",
+  "codeRepository": "https://github.com/wy3/media-server",
+  "downloadUrl": "https://github.com/wy3/media-server/releases",
+  "license": "https://github.com/wy3/media-server/blob/main/LICENSE",
+  "programmingLanguage": "PHP",
+  "runtimePlatform": "PHP >= 8.2",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "featureList": [
+    "RTMP / HTTP-FLV ingest",
+    "RTMP / HTTP-FLV / WS-FLV playback",
+    "H.264 / H.265 (HEVC) with AAC",
+    "Real-time fMP4 recording with a segment index",
+    "Time-range replay with millisecond precision",
+    "Built-in bilingual admin console"
+  ]
+}
+</script>
+</head>
+<body>
+
+<div class="aurora" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+      </span>
+      <span class="brand-text">PHP Media Server</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="#flow">Protocols</a>
+      <a href="#features">Features</a>
+      <a href="#shots">Console</a>
+      <a href="#perf">Performance</a>
+      <a href="#start">Quick start</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="lang-btn" href="zh/" hreflang="zh-CN" lang="zh-CN" aria-label="切换到中文">中文</a>
+      <a class="btn btn-ghost btn-sm" href="https://github.com/wy3/media-server" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ================= Hero ================= -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="dot"></span><span>PHP 8.2+ · Workerman · MIT</span></p>
+        <h1>A media server<br><span class="grad">implemented in PHP</span></h1>
+        <p class="lead">RTMP / HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording with millisecond-precise replay, plus a bilingual admin console. No FFmpeg transcode process or Node runtime required.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#start">Get started</a>
+          <a class="btn btn-outline" href="https://github.com/wy3/media-server" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+        <dl class="hero-stats">
+          <div><dt>1000</dt><dd>concurrent pulls, single process</dd></div>
+          <div><dt>1200</dt><dd>concurrent pushes, single process</dd></div>
+          <div><dt>36 KB</dt><dd>memory per pull connection</dd></div>
+          <div><dt>2 s</dt><dd>fMP4 fragment duration</dd></div>
+        </dl>
+      </div>
+
+      <div class="hero-side">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+            <span class="terminal-title">bash</span>
+          </div>
+          <pre class="terminal-body"><code><span class="c-prompt">$</span> composer install
+<span class="c-prompt">$</span> php start.php start
+<span class="c-out">rtmp server tcp://0.0.0.0:1935  start</span>
+<span class="c-out">http server 127.0.0.1:18080     start</span>
+<span class="c-prompt">$</span> ffmpeg -re -i demo.mp4 -c:v libx264 \
+      -c:a aac -f flv rtmp://127.0.0.1/live/stream
+<span class="c-ok">▸ stream attached — open /admin/ to watch</span></code></pre>
+        </div>
+        <div class="hero-badges">
+          <span class="badge">RTMP</span>
+          <span class="badge">HTTP-FLV</span>
+          <span class="badge">WS-FLV</span>
+          <span class="badge">H.264 / H.265</span>
+          <span class="badge">fMP4</span>
+          <span class="badge">SQLite</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Flow ================= -->
+  <section class="section" id="flow">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">Media path</p>
+        <h2>Ingest and delivery</h2>
+        <p class="section-sub">One stream can be pulled by several protocols at once, recorded while it is being pushed, and reviewed later for any time range.</p>
+      </header>
+
+      <div class="flow reveal">
+        <div class="flow-col">
+          <div class="flow-node">
+            <span class="flow-tag">Ingest</span>
+            <code>rtmp://host:1935/app/stream</code>
+            <code>POST /app/stream</code>
+            <p>RTMP push, or POST raw FLV data</p>
+          </div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 48 16" width="48" height="16"><path d="M0 8h40M34 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div>
+
+        <div class="flow-col">
+          <div class="flow-node flow-core">
+            <span class="flow-tag">Single-process event loop</span>
+            <strong>Workerman</strong>
+            <p>FLV parsing · GOP cache · fan-out · muxing</p>
+          </div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 48 16" width="48" height="16"><path d="M0 8h40M34 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </div>
+
+        <div class="flow-col flow-stack">
+          <div class="flow-node">
+            <span class="flow-tag">Playback</span>
+            <code>RTMP</code>
+            <code>HTTP-FLV</code>
+            <code>WS-FLV</code>
+          </div>
+          <div class="flow-node">
+            <span class="flow-tag">Recording</span>
+            <code>fMP4 segments</code>
+            <code>SQLite index</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-result reveal">
+        <span class="flow-result-label">Replay</span>
+        <code>GET /playback/live/stream?start=1788165249473&amp;end=1788165554005</code>
+        <span class="flow-result-note">Sliced across segments and re-muxed on the server, ready for &lt;video&gt;</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Features ================= -->
+  <section class="section section-alt" id="features">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">Scope</p>
+        <h2>Features and scope</h2>
+        <p class="section-sub">Covers ingest, delivery, fMP4 recording, time-range replay, the admin console and automated tests.</p>
+      </header>
+
+      <div class="cards">
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4 4 8l4 4M16 4l4 4-4 4M4 8h16"/><path d="m8 16 4 4 4-4M12 12v8"/></svg>
+          </span>
+          <h3>Implemented in PHP</h3>
+          <p>Built on the Workerman event loop. The RTMP handshake, FLV tag parsing and fMP4 muxing are written in PHP, with no FFmpeg transcode process or C++ extension.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 21h8M12 17.5V21M10 8.5l4 2.5-4 2.5z"/></svg>
+          </span>
+          <h3>Three playback protocols</h3>
+          <p>The same stream is served over RTMP, HTTP-FLV and WS-FLV, with disableAudio / disableVideo / disableGop query filters.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="17" r="3"/></svg>
+          </span>
+          <h3>H.264 / H.265 support</h3>
+          <p>Handles both Enhanced RTMP (codecId=0 + hvc1) and legacy codecId=12 HEVC framing, with AAC audio.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6M7 17h4"/></svg>
+          </span>
+          <h3>Real-time fMP4 recording</h3>
+          <p>Fragments and segments are cut on keyframe boundaries. Every .mp4 carries a complete moov, so it plays standalone and parses in ffprobe and browsers.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          </span>
+          <h3>Time-range replay</h3>
+          <p>The /playback endpoint slices across segments and starts at the keyframe at or before start; mdat is streamed in chunks, so memory does not grow with clip length.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg>
+          </span>
+          <h3>Built-in admin console</h3>
+          <p>Dashboard, live preview, recording list with time-range replay and settings, with token auth and a Chinese/English switch.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m9 12 2 2 4-4"/><path d="M12 3 4 6v6c0 4.5 3.4 7.9 8 9 4.6-1.1 8-4.5 8-9V6l-8-3Z"/></svg>
+          </span>
+          <h3>End-to-end tests</h3>
+          <p>Data-driven cases cover push → record → replay → decode verification. CI runs syntax checks and smoke tests on PHP 8.2 / 8.3 / 8.4.</p>
+        </article>
+
+        <article class="card reveal">
+          <span class="card-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 19V5M4 19h16"/><path d="m7 15 4-5 3 3 4-6"/></svg>
+          </span>
+          <h3>Benchmarks and scripts</h3>
+          <p>Scripts, raw data and analysis for five load scenarios ship with the repo and can be reproduced on other machines.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Screenshots ================= -->
+  <section class="section" id="shots">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">Console</p>
+        <h2>Admin console</h2>
+        <p class="section-sub">A plain-JS single page app with no build step, served by the same process.</p>
+      </header>
+
+      <div class="shots reveal">
+        <div class="tabs" role="tablist" aria-label="Screenshots">
+          <button class="tab is-active" role="tab" aria-selected="true" data-shot="dashboard">Dashboard</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="live">Live streams</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="playback">Replay</button>
+          <button class="tab" role="tab" aria-selected="false" data-shot="settings">Settings</button>
+        </div>
+
+        <figure class="shot-frame">
+          <div class="shot-chrome" aria-hidden="true">
+            <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+            <span class="shot-url">http://127.0.0.1:18080/admin/</span>
+          </div>
+          <img id="shotImg" src="screenshots/dashboard-en.png" alt="Admin console dashboard" width="1440" height="900" loading="lazy">
+          <figcaption id="shotCap">Dashboard: stream count, playback connections, uptime and memory</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Performance ================= -->
+  <section class="section section-alt" id="perf">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">Benchmarks</p>
+        <h2>Benchmark data</h2>
+        <p class="section-sub">Test setup: AMD Ryzen 9 9900X · Windows · PHP 8.4 · 1080p30 @ 4096 kb/s · ffmpeg -c copy</p>
+      </header>
+
+      <div class="perf-grid">
+        <div class="perf-card reveal">
+          <span class="perf-num">1000</span>
+          <span class="perf-unit">pull streams</span>
+          <p>Single-process ceiling on the event loop, 100% connections held</p>
+        </div>
+        <div class="perf-card reveal">
+          <span class="perf-num">1200</span>
+          <span class="perf-unit">push streams</span>
+          <p>1.4 GB memory, roughly 1.17 MB of GOP cache per stream</p>
+        </div>
+        <div class="perf-card reveal">
+          <span class="perf-num">500<span class="perf-slash">/</span>500</span>
+          <span class="perf-unit">push / pull</span>
+          <p>The peak that stays healthy: 98.5% CPU, zero dropped frames</p>
+        </div>
+        <div class="perf-card reveal">
+          <span class="perf-num">36 KB</span>
+          <span class="perf-unit">per connection</span>
+          <p>Pull-side memory, about 36 MB in total at 1000 connections</p>
+        </div>
+      </div>
+
+      <div class="table-wrap reveal">
+        <table class="perf-table">
+          <caption>Mixed push/pull (event loop, single process)</caption>
+          <thead>
+            <tr>
+              <th>Push</th>
+              <th>Pull</th>
+              <th>CPU</th>
+              <th>Memory</th>
+              <th>Held</th>
+              <th>Dropped</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>50</td><td>500</td><td>57.4%</td><td>95 MB</td><td>100%</td><td>0</td></tr>
+            <tr><td>100</td><td>500</td><td>60.5%</td><td>158 MB</td><td>100%</td><td>0</td></tr>
+            <tr><td>200</td><td>500</td><td>68.9%</td><td>288 MB</td><td>100%</td><td>0</td></tr>
+            <tr class="is-peak"><td>500</td><td>500</td><td>98.5%</td><td>661 MB</td><td>100%</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="callout reveal">
+        <strong>On Windows, install the event extension.</strong>
+        <span>The default select loop does not reject connections past ~253 — the whole process stalls, and even the HTTP API stops responding.</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= Quick start ================= -->
+  <section class="section" id="start">
+    <div class="wrap">
+      <header class="section-head reveal">
+        <p class="kicker">Quick start</p>
+        <h2>Install and run</h2>
+        <p class="section-sub">Requires PHP 8.2+ and Composer. ffmpeg is only needed for pushing and for the E2E suite.</p>
+      </header>
+
+      <div class="steps">
+        <article class="step reveal">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <h3>Install dependencies</h3>
+            <div class="code">
+              <button class="copy" type="button">Copy</button>
+              <pre><code>composer install</code></pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="step reveal">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <h3>Start the server</h3>
+            <div class="code">
+              <button class="copy" type="button">Copy</button>
+              <pre><code>php start.php start</code></pre>
+            </div>
+            <p class="step-note">RTMP listens on 1935, HTTP / WebSocket on 18080.</p>
+          </div>
+        </article>
+
+        <article class="step reveal">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <h3>Push a stream in</h3>
+            <div class="code">
+              <button class="copy" type="button">Copy</button>
+              <pre><code>ffmpeg -re -i file.mp4 -c:v libx264 -c:a aac -f flv \
+  rtmp://127.0.0.1/live/stream</code></pre>
+            </div>
+          </div>
+        </article>
+
+        <article class="step reveal">
+          <span class="step-num">4</span>
+          <div class="step-body">
+            <h3>Start playing</h3>
+            <ul class="url-list">
+              <li><span>HTTP-FLV</span><code>http://127.0.0.1:18080/live/stream.flv</code></li>
+              <li><span>WS-FLV</span><code>ws://127.0.0.1:18080/live/stream.flv</code></li>
+              <li><span>RTMP</span><code>rtmp://127.0.0.1/live/stream</code></li>
+              <li><span>Admin</span><code>http://127.0.0.1:18080/admin/</code></li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Limits ================= -->
+  <section class="section section-alt" id="limits">
+    <div class="wrap limits-grid">
+      <div class="reveal">
+        <p class="kicker">Limitations</p>
+        <h2>Scope and limitations</h2>
+        <p class="section-sub">Matches the known-limitations section of the README — worth checking before choosing it.</p>
+        <a class="link-arrow" href="https://github.com/wy3/media-server/blob/main/README.md#known-limitations" target="_blank" rel="noopener">See the full list of limitations</a>
+      </div>
+      <ul class="limit-list reveal">
+        <li>Single-process model, no multi-process deployment</li>
+        <li>Only H.264 / H.265 video with AAC audio</li>
+        <li>On Windows the event extension is required, otherwise it stalls past 253 connections</li>
+        <li>In-browser H.265 playback depends on OS-level HEVC decoding</li>
+        <li>Change the default credentials and put the console behind proxy access control in production</li>
+      </ul>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+      </span>
+      <div>
+        <strong>PHP Media Server</strong>
+        <p>Media server implemented in PHP · MIT License</p>
+      </div>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="https://github.com/wy3/media-server" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/wy3/media-server/blob/main/README.md" target="_blank" rel="noopener">Docs</a>
+      <a href="https://github.com/wy3/media-server/releases" target="_blank" rel="noopener">Releases</a>
+      <a href="https://github.com/wy3/media-server/issues" target="_blank" rel="noopener">Issues</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -78,7 +78,7 @@ Write the subject in Chinese, imperative mood, one line. Body optional. Examples
 
 - Keep changes focused; one concern per PR
 - Describe **what** changed and **why**
-- If you change behaviour, update both `README.md` and `README_EN.md`
+- If you change behaviour, update both `README.md` and `README_ZH.md`
 - Link the related issue when applicable
 
 ## Reporting Bugs

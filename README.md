@@ -1,189 +1,192 @@
 # PHP Media Server
 
-简体中文 | [English](README_EN.md)
+[简体中文](README_ZH.md) | English
 
 [![CI](https://github.com/wy3/media-server/actions/workflows/ci.yml/badge.svg)](https://github.com/wy3/media-server/actions/workflows/ci.yml)
 [![PHP](https://img.shields.io/badge/php-%3E%3D8.2-777bb4.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Latest Release](https://img.shields.io/github/v/release/wy3/media-server?color=green)](https://github.com/wy3/media-server/releases)
+[![Website](https://img.shields.io/badge/website-wy3.github.io%2Fmedia--server-2563eb)](https://wy3.github.io/media-server/)
 
-> 基于 [Workerman](https://www.workerman.net) 实现的纯 PHP 流媒体服务器：RTMP / HTTP-FLV 推流接入，RTMP / HTTP-FLV / WS-FLV 播放，fMP4 录像与指定时间回放，内置管理后台。
+> A media server built on [Workerman](https://www.workerman.net), implemented in PHP: RTMP/HTTP-FLV ingest, RTMP / HTTP-FLV / WS-FLV playback, fMP4 recording and time-range playback, plus a built-in admin console.
 
-## 目录
+📺 Project site (screenshots and benchmark data): https://wy3.github.io/media-server/ · [简体中文](https://wy3.github.io/media-server/zh/)
 
-- [功能特性](#功能特性)
-- [环境要求](#环境要求)
-- [快速开始](#快速开始)
-- [界面预览](#界面预览)
-- [配置](#配置)
-- [录像与回放](#录像与回放)
-- [管理 API](#管理-api)
-- [性能基准](#性能基准)
-- [测试](#测试)
-- [目录结构](#目录结构)
-- [已知限制](#已知限制)
-- [致谢](#致谢)
+## Table of Contents
 
-## 功能特性
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Screenshots](#screenshots)
+- [Configuration](#configuration)
+- [Recording and Playback](#recording-and-playback)
+- [Admin API](#admin-api)
+- [Performance Benchmarks](#performance-benchmarks)
+- [Tests](#tests)
+- [Project Layout](#project-layout)
+- [Known Limitations](#known-limitations)
+- [Acknowledgements](#acknowledgements)
 
-### 直播
+## Features
 
-- 推流接入
-  - RTMP：`rtmp://<host>:1935/<app>/<stream>`
-  - HTTP-FLV：`POST http://<host>:18080/<app>/<stream>`，请求体为 FLV 数据
-- 播放分发
-  - RTMP：`rtmp://<host>:1935/<app>/<stream>`
-  - HTTP-FLV：`http://<host>:18080/<app>/<stream>.flv`
-  - WS-FLV：`ws://<host>:18080/<app>/<stream>.flv`
-  - 支持查询参数过滤：`disableAudio`、`disableVideo`、`disableGop`
-- 编解码支持：H.264 / H.265（HEVC）视频、AAC 音频
-- H.265 支持 Enhanced RTMP（`codecId=0` + `hvc1` FourCC）与旧版 `codecId=12` 两种封装
+### Live streaming
 
-### 录像
+- Ingest
+  - RTMP push to `rtmp://<host>:1935/<app>/<stream>`
+  - HTTP-FLV push via `POST http://<host>:18080/<app>/<stream>` with an FLV body
+- Playback
+  - RTMP: `rtmp://<host>:1935/<app>/<stream>`
+  - HTTP-FLV: `http://<host>:18080/<app>/<stream>.flv`
+  - WS-FLV: `ws://<host>:18080/<app>/<stream>.flv`
+  - Playback filters via query string: `disableAudio`, `disableVideo`, `disableGop`
+- Supported codecs: H.264 / H.265 (HEVC) video, AAC audio
+- H.265 accepts both Enhanced RTMP (`codecId=0` + `hvc1` FourCC) and legacy `codecId=12`
 
-- H.264/AAC、H.265/AAC 实时封装为 fMP4（`ftyp + moov + moof/mdat`）
-- 按关键帧边界切分片（`fragmentDurationMs`，默认 2000 ms）
-- 按关键帧边界轮转分段（`segmentDurationMs`，默认 60000 ms），每段一个独立 `.mp4`
-- 纯视频流、纯音频流、音视频流均可录制
-- 每个分段自带完整 `moov`，可单独播放，也可被 `ffprobe` / 浏览器直接解析
-- 分段索引存于 SQLite（`recordings.db`，WAL 模式），支持按推流路径检索
+### Recording
 
-### 指定时间回放
+- Real-time muxing of H.264/AAC and H.265/AAC into fragmented MP4 (`ftyp + moov + moof/mdat`)
+- Fragments are cut on keyframe boundaries (`fragmentDurationMs`, default 2000 ms)
+- Segment rotation on keyframe boundaries (`segmentDurationMs`, default 60000 ms), one `.mp4` per segment
+- Video-only, audio-only and audio+video streams are all supported
+- Each segment carries a complete `moov`, so it plays standalone and is readable by `ffprobe` / browsers
+- Segment index stored in SQLite (`recordings.db`, WAL mode), queryable per publish path
 
-- `GET /playback/{publishPath}?start={毫秒}&end={毫秒}`
-- `start` / `end` 为毫秒墙钟时间戳；省略 `end` 表示播放到末尾
-- 服务端跨分段切片并重新封装为新的 fMP4，以 `video/mp4` 流式返回
-- 视频从 `start` 之前最近的关键帧起播，音频起点跟随视频关键帧，保证音画时长一致
-- 分段边界按解码时间轴连续续接
-- `mdat` 数据按块从源分段文件流式发送，内存占用与回放时长无关
+### Time-range playback
 
-### 管理后台
+- `GET /playback/{publishPath}?start={ms}&end={ms}`
+- `start` / `end` are wall-clock timestamps in milliseconds; omitting `end` plays through to the end
+- The server slices across segments, re-muxes into a new fMP4 and streams it back as `video/mp4`
+- Video starts at the nearest keyframe at or before `start`; audio start follows the video keyframe so both tracks stay aligned in duration
+- Segment boundaries are stitched on a continuous decode timeline
+- `mdat` payloads are streamed in chunks from the source files, so memory usage is independent of playback length
 
-- 入口：`http://<host>:18080/admin/`
-- Token 登录鉴权（进程内 token，默认有效期 24 小时，服务重启后失效）
-- 面板：仪表盘、直播管理、录像管理（含指定时间回放）、系统设置
-- 中英双语界面，右上角切换语言，选择记录在浏览器 localStorage
+### Admin console
 
-### E2E 测试
+- Served at `http://<host>:18080/admin/`
+- Token-based login (in-process token, default TTL 24 hours, invalidated on restart)
+- Panels: dashboard, live streams, recordings (with time-range playback), settings
+- Chinese / English UI, switchable from the top-right selector and remembered in browser localStorage
 
-- 数据驱动用例集，覆盖 推流 → 录像 → 回放 → 解码校验 全链路
+### E2E tests
 
-## 环境要求
+- Data-driven suite covering push → record → playback → decode verification
 
-- PHP >= 8.2（已在 PHP 8.4 验证），扩展：`json`
+## Requirements
+
+- PHP >= 8.2 (tested on PHP 8.4), extension: `json`
 - Composer
-- 可选：`event` 扩展
-  - **Windows 强烈建议**：默认 `select` 事件循环在约 253 连接后整个进程卡死（连 HTTP API 都不响应），装 `event` 后可支撑 1000+ 连接
-  - Linux 用 epoll，无此限制；装 `event` 仍有收益
-  - 注意：`ev` 在 Windows 上**不可用**（监视 socket 报 `WSAENOTSOCK`），必须用 `event`
-- 运行 E2E 测试需要 `ffmpeg` / `ffprobe`
+- Optional: `event` extension
+  - **Strongly recommended on Windows**: the default `select` event loop hangs the entire process past ~253 connections (even the HTTP API stops responding). With `event` it handles 1000+ connections
+  - Linux uses epoll and has no such limit; `event` still helps
+  - Note: `ev` does **not** work on Windows (watching sockets raises `WSAENOTSOCK`); you must use `event`
+- Running the E2E tests requires `ffmpeg` / `ffprobe`
 
-## 快速开始
+## Quick Start
 
 ```bash
 composer install
 php start.php start
 ```
 
-默认监听端口：
+Default listeners:
 
-| 服务 | 地址 |
+| Service | Address |
 |---|---|
 | RTMP | `0.0.0.0:1935` |
 | HTTP / WebSocket | `127.0.0.1:18080` |
 
-> HTTP 服务默认绑定 `127.0.0.1`。若需外部访问，请把 `start.php` 中的监听地址改为 `\\MediaServer\\Http\\ExtHttpProtocol://0.0.0.0:18080`。
+> The HTTP listener binds to `127.0.0.1` by default. Change the socket in `start.php` to `\\MediaServer\\Http\\ExtHttpProtocol://0.0.0.0:18080` if you need external access.
 
-### 推流
+### Publish
 
 ```bash
 ffmpeg -re -stream_loop 1 -i file.mp4 -c:v libx264 -c:a aac -f flv rtmp://127.0.0.1/live/stream
 ```
 
-### 播放
+### Play
 
-| 协议 | 地址 |
+| Protocol | URL |
 |---|---|
 | RTMP | `rtmp://127.0.0.1/live/stream` |
 | HTTP-FLV | `http://127.0.0.1:18080/live/stream.flv` |
 | WS-FLV | `ws://127.0.0.1:18080/live/stream.flv` |
 
-Web 播放可配合 [mpegts.js](https://github.com/xqq/mpegts.js)、[Aliplayer](http://player.alicdn.com/aliplayer/setting/setting.html)；桌面端可用 `vlc` / `ffplay`。
+For web playback use [mpegts.js](https://github.com/xqq/mpegts.js) or [Aliplayer](http://player.alicdn.com/aliplayer/setting/setting.html); on desktop `vlc` / `ffplay` work out of the box.
 
-### 管理后台
+### Admin console
 
-浏览器打开 `http://127.0.0.1:18080/admin/`，默认账号在 `start.php` 中配置。
+Open `http://127.0.0.1:18080/admin/` in a browser. The default account is configured in `start.php`.
 
-## 界面预览
+## Screenshots
 
-管理后台默认简体中文，点击右上角语言下拉框可切换 English，选择会保存在浏览器本地。
+The console ships with Simplified Chinese and English. Use the language selector in the top-right corner to switch; the choice is stored in browser localStorage.
+
+| Login | Dashboard |
+|---|---|
+| ![Login](docs/screenshots/login-en.png) | ![Dashboard](docs/screenshots/dashboard-en.png) |
+
+| Live streams | Recordings |
+|---|---|
+| ![Live preview](docs/screenshots/live-en.png) | ![Recordings](docs/screenshots/record-en.png) |
+
+| Playback | Settings |
+|---|---|
+| ![Playback](docs/screenshots/playback.png) | ![Settings](docs/screenshots/settings-en.png) |
+
+Simplified Chinese UI:
 
 | 登录 | 仪表盘 |
 |---|---|
 | ![登录](docs/screenshots/login.png) | ![仪表盘](docs/screenshots/dashboard.png) |
 
-| 直播管理与预览 | 录像回放 |
+| 直播预览 | 录像列表 |
 |---|---|
-| ![直播预览](docs/screenshots/live-preview.png) | ![录像回放](docs/screenshots/playback.png) |
+| ![直播预览](docs/screenshots/live-preview.png) | ![录像管理](docs/screenshots/record.png) |
 
-| 录像列表 | 系统设置 |
-|---|---|
-| ![录像管理](docs/screenshots/record.png) | ![系统设置](docs/screenshots/settings.png) |
+## Configuration
 
-英文界面：
-
-| Dashboard | Live streams |
-|---|---|
-| ![Dashboard](docs/screenshots/dashboard-en.png) | ![Live streams](docs/screenshots/live-en.png) |
-
-| Login | Settings |
-|---|---|
-| ![Login](docs/screenshots/login-en.png) | ![Settings](docs/screenshots/settings-en.png) |
-
-## 配置
-
-编辑 `start.php`：
+Edit `start.php`:
 
 ```php
-// 录像
-\MediaServer\Recorder\RecorderManager::$enabled = true;                     // 录像开关
-\MediaServer\Recorder\RecorderManager::$recordPath = __DIR__ . '/record';   // 录像根目录
-\MediaServer\Recorder\RecorderManager::$fragmentDurationMs = 2000;          // fMP4 分片时长
-\MediaServer\Recorder\RecorderManager::$segmentDurationMs = 60000;          // 单个分段文件时长
+// Recording
+\MediaServer\Recorder\RecorderManager::$enabled = true;                     // enable recording
+\MediaServer\Recorder\RecorderManager::$recordPath = __DIR__ . '/record';   // recording root
+\MediaServer\Recorder\RecorderManager::$fragmentDurationMs = 2000;          // fMP4 fragment duration
+\MediaServer\Recorder\RecorderManager::$segmentDurationMs = 60000;          // segment file duration
 
-// 管理后台
+// Admin console
 \MediaServer\Admin\AdminAuth::$username = 'admin';
 \MediaServer\Admin\AdminAuth::$password = 'admin123';
-\MediaServer\Admin\AdminAuth::$tokenTtl = 86400;                            // token 有效期（秒）
+\MediaServer\Admin\AdminAuth::$tokenTtl = 86400;                            // token TTL in seconds
 ```
 
-生产环境请务必修改默认账号密码，并将管理后台与回放接口置于反向代理的访问控制之后。
+In production, always change the default credentials and put the admin console plus the playback endpoint behind a reverse proxy with access control.
 
-## 录像与回放
+## Recording and Playback
 
-录像目录结构：
+Recording layout:
 
 ```
 record/
-├── recordings.db           # SQLite 索引（streams + segments）
-└── live_stream/            # 每个推流路径一个目录（"/" 归一为 "_"）
+├── recordings.db           # SQLite index (streams + segments)
+└── live_stream/            # one directory per publish path ("/" becomes "_")
     ├── xxx.mp4
     └── yyy.mp4
 ```
 
-- 推流路径会安全化为目录名，例如 `/live/stream` → `live_stream`
-- `recordings.db` 保存每段的起止墙钟时间、时长与编码元数据
-- 回放请求在服务端完成切片与重封装：
+- Publish paths are sanitized into directory names, e.g. `/live/stream` → `live_stream`
+- `recordings.db` keeps per-segment wall-clock start/end times, duration and codec metadata
+- Playback requests are sliced and re-muxed server-side:
 
 ```http
 GET /playback/live/stream?start=1788165249473&end=1788165554005
 ```
 
-响应为带 `Content-Length` 的 `video/mp4`，可直接赋给 `<video src>`。
+The response is `video/mp4` with a `Content-Length` header, so it can be assigned directly to a `<video src>`.
 
-## 管理 API
+## Admin API
 
-所有管理调用统一走一个入口：
+All management calls go through one endpoint:
 
 ```http
 POST /api
@@ -193,59 +196,61 @@ X-Auth-Token: <token>
 {"name": "listPushStream", "args": []}
 ```
 
-除 `login` 外的调用都必须携带有效 token（`X-Auth-Token` 头、`Authorization: Bearer <token>`，或 `token` 查询参数），否则返回 401。
+Every call except `login` requires a valid token, supplied via `X-Auth-Token`, `Authorization: Bearer <token>`, or a `token` query parameter (401 otherwise).
 
-| name | 说明 | args |
+| name | Description | args |
 |---|---|---|
-| `login` | 登录，返回 `{token, expires}` | `[username, password]` |
-| `logout` | 使当前 token 立即失效 | `[token]` |
-| `getServerStats` | 运行时长、推流/播放数、内存占用 | `[]` |
-| `listPushStream` | 直播流列表，可按路径过滤 | `[path?]` |
-| `listRecordFiles` | 录像分段列表，可按路径过滤 | `[path?]` |
-| `getPlayStreamCount` | 各路径的播放连接数 | `[path?]` |
-| `getSettings` | 当前配置（不含敏感信息） | `[]` |
+| `login` | Log in, returns `{token, expires}` | `[username, password]` |
+| `logout` | Invalidate the current token | `[token]` |
+| `getServerStats` | Uptime, publish/play counts, memory usage | `[]` |
+| `listPushStream` | Live stream list, optionally filtered by path | `[path?]` |
+| `listRecordFiles` | Recording segment list, optionally filtered by path | `[path?]` |
+| `getPlayStreamCount` | Playback connection count per path | `[path?]` |
+| `getSettings` | Current configuration (no secrets) | `[]` |
 
-只读调用也支持 `GET /api?name=...&args=[...]`。
+`GET /api?name=...&args=[...]` is also supported for read-only calls.
 
-## 性能基准
+## Performance Benchmarks
 
-对五个场景做端到端实测，覆盖时延、单档并发、逐级加压与混合推拉。
+End-to-end measurements across five scenarios: latency, single-step concurrency,
+stepwise ramping, and mixed push+pull.
 
-**测试条件**：AMD Ryzen 9 9900X（12C/24T）、Windows、PHP 8.4.25、
-1080p30 4096 kb/s、ffmpeg `-c copy` 推流、rtmpstress 拉流、录像关闭。
+**Test conditions**: AMD Ryzen 9 9900X (12C/24T), Windows, PHP 8.4.25,
+1080p30 4096 kb/s, ffmpeg `-c copy` push, rtmpstress pull, recording disabled.
 
-### 事件循环对比
+### Event loop comparison
 
-| 场景 | `select`（默认） | `event`（libevent 3.2.0） |
+| Scenario | `select` (default) | `event` (libevent 3.2.0) |
 |---|---|---|
-| 拉流上限 | **200 路**（300 卡死） | **1000 路**（100% 保持） |
-| 推流上限 | **200 路**（300 卡死） | **1200 路**（100% 保持） |
+| Pull limit | **200 streams** (dead at 300) | **1000 streams** (100% kept) |
+| Push limit | **200 streams** (dead at 300) | **1200 streams** (100% kept) |
 
-**`select` 在 253 连接后不是拒绝连接，而是整个事件循环停摆** —— 进程还活着但完全不响应。
-这是 Windows 上必须装 `event` 扩展的原因。
+**Past 253 connections `select` does not refuse — the entire event loop stops scheduling.**
+The process stays alive but is completely unresponsive.
+That is why the `event` extension is required on Windows.
 
-### 拉流容量（`event`，单进程）
+### Pull capacity (`event`, single process)
 
-| 负载 | 连接数 | 内存 | 每连接 CPU |
+| Load | Connections | Memory | CPU per conn |
 |---|---|---|---|
 | 50% | **500** | 30 MB | |
 | 80% | 800 | 35 MB | 0.10% |
 | 100% | 1000 | 36 MB | |
 
-### 推流容量（`event`，单进程）
+### Push capacity (`event`, single process)
 
-| 负载 | 路数 | 内存 |
+| Load | Streams | Memory |
 |---|---|---|
 | 50% | **600** | 700 MB |
 | 80% | 960 | 1.1 GB |
 | 100% | 1200 | 1.4 GB |
 
-推流每路需 **1.17 MB** 内存（GOP 缓存），是部署规划的重点；
-拉流只需 36 KB/连接。
+Each push needs **1.17 MB** of memory (GOP cache) — the dominant sizing factor.
+Pull needs only 36 KB per connection.
 
-### 混合推拉（`event`）
+### Mixed push + pull (`event`)
 
-| 推流 | 拉流 | CPU | 内存 | 保持率 | 掉帧 |
+| Push | Pull | CPU | Memory | Retained | Dropped frames |
 |---|---|---|---|---|---|
 | 50 | 500 | 57.4% | 95 MB | 100% | 0 |
 | 100 | 500 | 60.5% | 158 MB | 100% | 0 |
@@ -255,19 +260,19 @@ X-Auth-Token: <token>
 | 500 | 100 | 61.9% | 642 MB | 100% | 0 |
 | 500 | 50 | 61.9% | 642 MB | 100% | 0 |
 
-**结论**：推流是主要 CPU 开销；内存几乎完全由推流决定。
-`500/500` 是「满负荷但未劣化」的临界点，生产建议按 50% 设计。
+**Takeaway**: push dominates CPU cost; memory is almost entirely driven by push.
+`500/500` is the "full load but not degraded" boundary — design for 50% in production.
 
-### 详细资料
+### Further reading
 
-| 文档 | 内容 |
+| Document | Contents |
 |---|---|
-| [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | 完整测试流程、环境准备、指标口径、常见问题 |
-| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | 全部原始数据与逐项分析（中文） |
+| [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | Full test procedure, setup, metric definitions, FAQ |
+| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | All raw data and analysis (Chinese) |
 | [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |
-| [tests/bench/README.md](tests/bench/README.md) | 测试套件使用说明 |
+| [tests/bench/README.md](tests/bench/README.md) | Benchmark suite usage |
 
-复现命令：
+Reproduce with:
 
 ```powershell
 .\tests\bench\gen_samples.ps1
@@ -276,65 +281,65 @@ X-Auth-Token: <token>
 .\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','200/500','500/500','500/200','500/100','500/50'
 ```
 
-## 测试
+## Tests
 
-仓库提供两套测试：
+Two suites are provided.
 
-**冒烟测试**（不启动服务、不需要 ffmpeg，适合 CI）：
+**Smoke tests** — no running server, no ffmpeg required (this is what CI runs):
 
 ```bash
 php tests/smoke.php
 ```
 
-覆盖自动加载、MP4 box 字节结构、RTMP 握手回显、AVC SPS 解析、录像路径归一与 SQLite 索引读写。
+Covers autoloading, MP4 box byte layout, RTMP handshake echo behaviour, AVC SPS parsing, recording path sanitization and SQLite index read/write.
 
-**回放链路 E2E 测试**（需服务器已启动，且 `ffmpeg` / `ffprobe` 可用）：
+**Playback E2E tests** — requires a running server plus `ffmpeg` / `ffprobe`:
 
 ```bash
-php tests/playback_e2e.php            # 运行全部用例
-php tests/playback_e2e.php aonly      # 只运行名称匹配的用例
+php tests/playback_e2e.php            # run all cases
+php tests/playback_e2e.php aonly      # run cases whose name matches
 ```
 
-用例为数据驱动，新增场景只需在 `tests/playback_e2e.php` 的 `$CASES` 中加一项。每个用例会清理旧录像、用 ffmpeg 推流、等待分段落盘、发起回放请求，再用 `ffprobe` 校验轨道与时长、用 `ffmpeg` 做全量解码校验。
+Cases are data-driven — add an entry to `$CASES` in `tests/playback_e2e.php`. Each case cleans old recordings, pushes with ffmpeg, waits for segments to land, issues playback requests, then validates tracks and duration with `ffprobe` and performs a full decode pass with `ffmpeg`.
 
-CI 在 GitHub Actions 上对 PHP 8.2 / 8.3 / 8.4 执行语法检查与冒烟测试。
+CI runs syntax checks and the smoke suite on PHP 8.2 / 8.3 / 8.4 via GitHub Actions.
 
-## 目录结构
+## Project Layout
 
 ```
 src/
-├── Admin/        管理后台鉴权（token）
-├── Flv/          FLV 发布/播放流
-├── Http/         HTTP 服务器（直播/回放/后台/静态文件路由）
-├── MediaReader/  FLV 标签解析（AVC/AAC 包）
-├── PushServer/   推流/播放流接口
-├── Recorder/     fMP4 封装与录像、回放切片、MP4 解析、SQLite 索引
-├── Rtmp/         RTMP 协议处理
-└── Utils/        二进制/HTTP/WS 流工具
-public/admin/     管理后台 SPA（原生 JS，i18n.js 提供中英文词典）
-packages/         vendored SabreAMF
-tests/            回放链路 E2E 测试
-tests/bench/      性能基准测试套件（流程 + 脚本 + 结果）
-docs/screenshots/ README 使用的管理后台截图
-docs/multiprocess/ 多进程架构设计文档（按主题分册）
-record/           录像输出目录（已 git 忽略）
+├── Admin/        Admin console auth (token based)
+├── Flv/          FLV publish/play streams
+├── Http/         HTTP server (live, playback, admin, static routing)
+├── MediaReader/  FLV tag parsing (AVC/AAC packets)
+├── PushServer/   Publish/play stream interfaces
+├── Recorder/     fMP4 muxer/recorder, playback slicer, MP4 parser, SQLite index
+├── Rtmp/         RTMP protocol handling
+└── Utils/        Binary/HTTP/WS stream helpers
+public/admin/     Admin console SPA (vanilla JS, i18n.js holds the zh/en dictionaries)
+packages/         Vendored SabreAMF
+tests/            Playback E2E tests
+tests/bench/      Performance benchmark suite (procedure + scripts + results)
+docs/screenshots/ Admin console screenshots used by the READMEs
+docs/multiprocess/ Multiprocess architecture design (split by topic)
+record/           Recording output (git-ignored)
 ```
 
-## 已知限制
+## Known Limitations
 
-- 仅支持 H.264 / H.265（HEVC）+ AAC 编码流，其它编码可能无法正常工作
-- 浏览器播放 H.265 依赖操作系统的 HEVC 解码能力：Windows 需安装「HEVC 视频扩展」，macOS / iOS Safari 原生支持，Chrome / Edge 走系统硬解；未安装时画面会静默黑屏（无报错），建议后台用 `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')` 预检
-- H.265 推流推荐使用 ffmpeg 7.x 及以上（旧版无法输出 Enhanced RTMP）
-- 单进程模型，不支持多进程部署
-- **Windows 默认 `select` 事件循环在约 253 连接后整个进程卡死**，必须安装 `event` 扩展（见[环境要求](#环境要求)）；Linux 用 epoll 无此问题
-- 单进程单核上限（1080p30 4Mbps）：拉流约 1000 路 / 推流约 1200 路；生产建议按 50% 规划（拉流 500 / 推流 600）
-- 时延测试方法精度有限（±30ms），仅能检测数量级劣化，不能用于精细对比
-- 推流过程中增删轨道未做处理（中途切换轨道会损坏当前分段）
-- 回放请求的样本表在内存中构建，超长时间范围建议限制 `end`，避免内存与耗时膨胀
-- 部分播放器可能存在加载缓慢或播放异常
-- 特定环境下可能出现内存溢出，生产环境请配合进程守护与监控
+- Only H.264 / H.265 (HEVC) + AAC streams are supported; other codecs may not work
+- Browser playback of H.265 depends on OS-level HEVC decoding: on Windows the "HEVC Video Extensions" package must be installed, macOS / iOS Safari support it natively, and Chrome / Edge use the system decoder. Without it the video silently renders black (no error), so pre-flight with `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')`
+- Pushing H.265 requires ffmpeg 7.x or newer (older builds cannot emit Enhanced RTMP)
+- Single-process model — multi-process deployment is not supported
+- **The default `select` event loop on Windows hangs the entire process past ~253 connections**; install the `event` extension (see [Requirements](#requirements)). Linux uses epoll and is unaffected
+- Single-core ceiling per process (1080p30 4 Mbps): ~1000 pull streams / ~1200 push streams; plan for 50% (500 pull / 600 push) in production
+- The latency measurement method is only accurate to ±30 ms — it can detect order-of-magnitude degradation but not fine differences
+- Streams that add or drop a track mid-flight are not handled (a mid-stream track switch can corrupt the active segment)
+- The sample table for a playback request is built in memory, so very long ranges are best avoided; always bound `end` for long recordings
+- Fast start / slow loading may be noticeable for some players
+- Memory exhaustion is possible in specific environments — supervise the process in production
 
-## 致谢
+## Acknowledgements
 
 - [Workerman](https://www.workerman.net)
 - [Node-Media-Server](https://github.com/illuspas/Node-Media-Server)
@@ -343,4 +348,3 @@ record/           录像输出目录（已 git 忽略）
 ## License
 
 [MIT](LICENSE)
-   
