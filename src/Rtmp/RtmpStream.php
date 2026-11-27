@@ -11,7 +11,6 @@ use MediaServer\MediaReader\MediaFrame;
 use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\DuplexMediaStreamInterface;
-use MediaServer\PushServer\VerifyAuthStreamInterface;
 use MediaServer\Utils\WMBufferStream;
 use Workerman\Timer;
 
@@ -20,7 +19,7 @@ use Workerman\Timer;
  * Class RtmpStream
  * @package MediaServer\Rtmp
  */
-class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface, VerifyAuthStreamInterface
+class RtmpStream extends EventEmitter implements DuplexMediaStreamInterface
 {
 
     use RtmpHandshakeTrait,

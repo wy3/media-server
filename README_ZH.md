@@ -32,11 +32,11 @@
 ### 直播
 
 - 推流接入
-  - RTMP：`rtmp://<host>:1935/<app>/<stream>`
-  - HTTP-FLV：`POST http://<host>:18080/<app>/<stream>`，请求体为 FLV 数据
+  - RTMP：推流监听地址（默认 `rtmp://<host>:1935/<app>/<stream>`）
+  - HTTP-FLV：`POST` + chunked FLV 请求体，推流 HTTP 监听地址（默认 `:18081`）
 - 播放分发
-  - RTMP：`rtmp://<host>:1935/<app>/<stream>`
-  - HTTP-FLV：`http://<host>:18080/<app>/<stream>.flv`
+  - RTMP：播放监听地址（默认 `rtmp://<host>:1936/<app>/<stream>`）
+  - HTTP-FLV：播放 HTTP 监听地址（默认 `http://<host>:18080/<app>/<stream>.flv`）
   - WS-FLV：`ws://<host>:18080/<app>/<stream>.flv`
   - 支持查询参数过滤：`disableAudio`、`disableVideo`、`disableGop`
 - 编解码支持：H.264 / H.265（HEVC）视频、AAC 音频
@@ -85,17 +85,21 @@
 
 ```bash
 composer install
-php start.php start
+php start.php
 ```
 
-默认监听端口：
+所有服务均按多进程模式运行。监听地址/端口和进程数在 `start.php` 中通过 `MediaServer\ServerConfig` 配置：
 
-| 服务 | 地址 |
-|---|---|
-| RTMP | `0.0.0.0:1935` |
-| HTTP / WebSocket | `127.0.0.1:18080` |
+| 服务 | 配置字段 | 默认值 |
+|---|---|---|
+| 推流 RTMP | `$ingestRtmpHost` / `$ingestRtmpPort` | `0.0.0.0:1935` |
+| 推流 HTTP-FLV | `$ingestHttpHost` / `$ingestHttpPort` | `0.0.0.0:18081` |
+| 拉流 RTMP | `$playRtmpHost` / `$playRtmpPort` | `0.0.0.0:1936` |
+| 拉流 HTTP-FLV / WS-FLV | `$playHttpHost` / `$playHttpPort` | `0.0.0.0:18080` |
+| 管理后台 | `$adminHttpHost` / `$adminHttpPort` | `0.0.0.0:18099` |
+| 注册中心 | `$registryHost` / `$registryPort` | `0.0.0.0:18090` |
 
-> HTTP 服务默认绑定 `127.0.0.1`。若需外部访问，请把 `start.php` 中的监听地址改为 `\\MediaServer\\Http\\ExtHttpProtocol://0.0.0.0:18080`。
+推流与拉流各自独立监听。`$ingestCount` / `$playCount` / `$recordCount` 控制进程数（多实例时端口按 `+10` 递增）。
 
 ### 推流
 
@@ -212,72 +216,55 @@ X-Auth-Token: <token>
 
 ## 性能基准
 
-对五个场景做端到端实测，覆盖时延、单档并发、逐级加压与混合推拉。
+服务按功能拆分为多个单用途进程（control / ingest / play / admin，录像可选），
+通过增加 play 或 ingest 进程横向扩展。压测采用自动爬坡策略：每 5 秒向每个
+未饱和进程追加 100 路；单进程 CPU 连续 ≥80% 维持 30 秒判定为饱和；随后
+保持负载 40 秒做稳定性考核。
 
 **测试条件**：AMD Ryzen 9 9900X（12C/24T）、Windows、PHP 8.4.25、
 1080p30 4096 kb/s、ffmpeg `-c copy` 推流、rtmpstress 拉流、录像关闭。
 
-### 事件循环对比
+### 拉流容量与 play 进程数
 
-| 场景 | `select`（默认） | `event`（libevent 3.2.0） |
-|---|---|---|
-| 拉流上限 | **200 路**（300 卡死） | **1000 路**（100% 保持） |
-| 推流上限 | **200 路**（300 卡死） | **1200 路**（100% 保持） |
+| play 进程数 | 容量（路） | 每进程平均 CPU | 内存(ws) | 说明 |
+|---|---|---|---|---|
+| 1 | 950 | ~99% | 102 MB | 单 play 上限 |
+| 2 | 1600 | ~95% | 69 MB | 接近线性 |
+| 5 | 3000 | 98% | 160 MB | 每进程效率最佳（~600/进程） |
+| 6 | **3599** | 103% | 196 MB | **总容量最优** |
+| 8 | 3200 | 100% | 231 MB | 系统级开销显现（sys 80–99%） |
+| 10 | 4000 | 86% | 288 MB | 总量最高，但仅 ~400/进程 |
 
-**`select` 在 253 连接后不是拒绝连接，而是整个事件循环停摆** —— 进程还活着但完全不响应。
-这是 Windows 上必须装 `event` 扩展的原因。
+**推荐**：5~6 个 play 进程。再往上每进程效率明显下降，系统级开销
+（调度、压测客户端、网卡）开始主导。JIT 对拉流容量无影响（瓶颈在 socket I/O）。
 
-### 拉流容量（`event`，单进程）
+### 推流容量（1 个 ingest 进程）
 
-| 负载 | 连接数 | 内存 | 每连接 CPU |
+| 配置 | 容量 | 平均 CPU | 内存 |
 |---|---|---|---|
-| 50% | **500** | 30 MB | |
-| 80% | 800 | 35 MB | 0.10% |
-| 100% | 1000 | 36 MB | |
+| 默认 | 800 | 90.5% | 931 MB |
+| 开启 JIT（`opcache.jit=tracing`） | 800 | **82.4%** | 953 MB |
 
-### 推流容量（`event`，单进程）
-
-| 负载 | 路数 | 内存 |
-|---|---|---|
-| 50% | **600** | 700 MB |
-| 80% | 960 | 1.1 GB |
-| 100% | 1200 | 1.4 GB |
-
-推流每路需 **1.17 MB** 内存（GOP 缓存），是部署规划的重点；
-拉流只需 36 KB/连接。
-
-### 混合推拉（`event`）
-
-| 推流 | 拉流 | CPU | 内存 | 保持率 | 掉帧 |
-|---|---|---|---|---|---|
-| 50 | 500 | 57.4% | 95 MB | 100% | 0 |
-| 100 | 500 | 60.5% | 158 MB | 100% | 0 |
-| 200 | 500 | 68.9% | 288 MB | 100% | 0 |
-| **500** | **500** | **98.5%** | 661 MB | 100% | 0 |
-| 500 | 200 | 73.9% | 648 MB | 100% | 0 |
-| 500 | 100 | 61.9% | 642 MB | 100% | 0 |
-| 500 | 50 | 61.9% | 642 MB | 100% | 0 |
-
-**结论**：推流是主要 CPU 开销；内存几乎完全由推流决定。
-`500/500` 是「满负荷但未劣化」的临界点，生产建议按 50% 设计。
+推流每路约 1.15 MB（GOP 缓存）、0.11% CPU。**开启 JIT 可降低推流路径约 9% CPU**
+（FLV 解析被 JIT 编译），代价是少量内存——建议 ingest 进程开启。关闭 GC 无明显收益。
 
 ### 详细资料
 
 | 文档 | 内容 |
 |---|---|
-| [docs/rtmp-parsing-performance.md](docs/rtmp-parsing-performance.md) | RTMP 解析热路径剖析、实测优化清单，以及已落地的扇出复用（1000 路拉流 CPU −17.5%） |
+| [docs/rtmp-parsing-performance.md](docs/rtmp-parsing-performance.md) | RTMP 解析热路径剖析 |
 | [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | 完整测试流程、环境准备、指标口径、常见问题 |
-| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | 全部原始数据与逐项分析（中文） |
+| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | 全部原始数据与逐项分析（中文，含旧单进程基线与新多进程数据） |
 | [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |
 | [tests/bench/README.md](tests/bench/README.md) | 测试套件使用说明 |
 
 复现命令：
 
 ```powershell
-.\tests\bench\gen_samples.ps1
-.\tests\bench\s4_ramp.ps1 -Scenario pull -EventLoop event -Steps 100,200,400,600,800,1000
-.\tests\bench\s4_ramp.ps1 -Scenario push -EventLoop event -Steps 100,200,400,600,800,1000,1200
-.\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','200/500','500/500','500/200','500/100','500/50'
+php tests/smoke.php
+.\tests\bench\s4_ramp.ps1 -Scenario pull -PlayCount 6
+.\tests\bench\s4_ramp.ps1 -Scenario push -EnableJit
+.\tests\bench\gen_samples.ps1   # 仅当 tests/bench/samples/ 不存在时
 ```
 
 ## 测试
@@ -329,9 +316,9 @@ record/           录像输出目录（已 git 忽略）
 - 仅支持 H.264 / H.265（HEVC）+ AAC 编码流，其它编码可能无法正常工作
 - 浏览器播放 H.265 依赖操作系统的 HEVC 解码能力：Windows 需安装「HEVC 视频扩展」，macOS / iOS Safari 原生支持，Chrome / Edge 走系统硬解；未安装时画面会静默黑屏（无报错），建议后台用 `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')` 预检
 - H.265 推流推荐使用 ffmpeg 7.x 及以上（旧版无法输出 Enhanced RTMP）
-- 单进程模型，不支持多进程部署
+- 多进程部署：control / ingest / play / admin 各为单用途进程；增加 play 进程扩展拉流、增加 ingest 进程扩展推流（多实例端口按 `+10` 递增）
 - **Windows 默认 `select` 事件循环在约 253 连接后整个进程卡死**，必须安装 `event` 扩展（见[环境要求](#环境要求)）；Linux 用 epoll 无此问题
-- 单进程单核上限（1080p30 4Mbps）：拉流约 1000 路 / 推流约 1200 路；生产建议按 50% 规划（拉流 500 / 推流 600）
+- 单进程容量上限（1080p30 4Mbps）：拉流约 950 路 / 推流约 800 路；生产建议按 50% 规划（每进程拉流 ~500 / 推流 ~400），详见[性能基准](#性能基准)
 - 时延测试方法精度有限（±30ms），仅能检测数量级劣化，不能用于精细对比
 - 推流过程中增删轨道未做处理（中途切换轨道会损坏当前分段）
 - 回放请求的样本表在内存中构建，超长时间范围建议限制 `end`，避免内存与耗时膨胀

@@ -7,9 +7,11 @@ namespace MediaServer\Rtmp;
 
 use MediaServer\MediaServer;
 use Exception;
-use React\Promise\PromiseInterface;
 use Workerman\Timer;
 
+/**
+ * @mixin RtmpStream
+ */
 trait RtmpInvokeHandlerTrait
 {
 
@@ -36,9 +38,17 @@ trait RtmpInvokeHandlerTrait
                 $this->onCreateStream($invokeMessage);
                 break;
             case 'publish':
+                if (MediaServer::$processRole === 'play') {
+                    $this->sendStatusMessage($p->streamId, 'error', 'NetStream.Publish.PlayOnly', 'This port accepts playback only; use the publish port for publishing.');
+                    break;
+                }
                 $this->onPublish($invokeMessage);
                 break;
             case 'play':
+                if (MediaServer::$processRole === 'ingest') {
+                    $this->sendStatusMessage($p->streamId, 'error', 'NetStream.Play.IngestOnly', 'This port accepts publish only; use the play port for playback.');
+                    break;
+                }
                 $this->onPlay($invokeMessage);
                 break;
             case 'pause':
@@ -78,7 +88,7 @@ trait RtmpInvokeHandlerTrait
         $this->connectCmdObj = $invokeMessage['cmdObj'];
         $this->appName = $invokeMessage['cmdObj']['app'];
         // AMF 数字以 float 反序列化，转 int 后再赋值给强类型属性
-        $this->objectEncoding = (isset($invokeMessage['cmdObj']['objectEncoding']) && !is_null($invokeMessage['cmdObj']['objectEncoding'])) ? (int)$invokeMessage['cmdObj']['objectEncoding'] : 0;
+        $this->objectEncoding = (int)($invokeMessage['cmdObj']['objectEncoding'] ?? 0);
 
 
         $this->startTimestamp = timestamp();
@@ -115,50 +125,19 @@ trait RtmpInvokeHandlerTrait
 
     /**
      * @param array $invokeMessage
-     * @param bool $isPromise
      * @throws Exception
      */
-    public function onPublish(array $invokeMessage, bool $isPromise = false): void
+    public function onPublish(array $invokeMessage): void
     {
-        if (!$isPromise) {
-            //发布一个视频
-            logger()->info("[rtmp publish] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-            if (!is_string($invokeMessage['streamName'])) {
-                return;
-            }
-            $streamInfo = explode('?', $invokeMessage['streamName']);
-            $this->publishStreamPath = '/' . $this->appName . '/' . $streamInfo[0];
-            parse_str($streamInfo[1] ?? '', $this->publishArgs);
-            $this->publishStreamId = $this->currentPacket->streamId;
-        }
-        //auth check
-        if (!$isPromise && $result = MediaServer::verifyAuth($this)) {
-            if ($result === false) {
-                logger()->info("[rtmp publish] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-                //check false
-                $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.publish.Unauthorized', 'Authorization required.');
-                return;
-            }
-
-            if ($result instanceof PromiseInterface) {
-                //异步检查
-                $result->then(function () use ($invokeMessage) {
-                    //resolve
-                    $this->onPublish($invokeMessage, true);
-                }, function ($exception) use ($invokeMessage) {
-                    logger()->info("[rtmp publish] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage) . " " . $exception->getMessage());
-                    //check false
-                    $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.publish.Unauthorized', 'Authorization required.');
-                });
-                return;
-            }
-        }
-
-        // play 进程只做播放，publish 请连推流端口（1935）
-        if (MediaServer::$processRole === 'play') {
-            $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.PlayOnly', 'This port accepts playback only; use the publish port for publishing.');
+        //发布一个视频
+        logger()->info("[rtmp publish] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+        if (!is_string($invokeMessage['streamName'])) {
             return;
         }
+        $streamInfo = explode('?', $invokeMessage['streamName']);
+        $this->publishStreamPath = '/' . $this->appName . '/' . $streamInfo[0];
+        parse_str($streamInfo[1] ?? '', $this->publishArgs);
+        $this->publishStreamId = $this->currentPacket->streamId;
 
         if (MediaServer::hasPublishStream($this->publishStreamPath)) {
             //publishStream already
@@ -169,97 +148,50 @@ trait RtmpInvokeHandlerTrait
             logger()->info("[rtmp publish] NetConnection is publishing. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
             $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
         } else {
-
             // 向 control 注册（异步等回复）：ok 才完成注册；拒绝/超时则中断推流
-            $registry = MediaServer::$registryClient;
-            if ($registry !== null) {
-                $registry->request('publish.req', [
-                    'path' => $this->publishStreamPath,
-                    'pid' => getmypid(),
-                    'shm' => [
-                        'frameSlots' => (int)(getenv('MP_SHM_FRAMESLOTS') ?: 200),
-                        'gopKb' => (int)(getenv('MP_SHM_DATAKB') ?: 2048),
-                    ],
-                ], function (?array $reply) use ($invokeMessage) {
-                    if ($reply === null || ($reply['ok'] ?? false) !== true) {
-                        $reason = $reply['reason'] ?? ($reply === null ? 'registry timeout' : 'path busy');
-                        logger()->warning("[rtmp publish] registry rejected: {reason}", ['reason' => $reason]);
-                        $this->reject();
-                        $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
-                        return;
-                    }
-                    // 注册成功：完成进程内注册
-                    if (MediaServer::addPublish($this)) {
-                        $this->isPublishing = true;
-                        $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
-                        $this->emit('on_publish_ready');
-                    } else {
-                        // control ok 但本进程查重失败（竞态）
-                        $this->reject();
-                        $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
-                    }
-                });
-                return;
-            }
-
-            // 无 registryClient（单进程模式）：直接注册
-            MediaServer::addPublish($this);
-
-            $this->isPublishing = true;
-            $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
-
-            //emit on on_publish_ready
-            $this->emit('on_publish_ready');
-
+            MediaServer::$registryClient->request('publish.req', [
+                'path' => $this->publishStreamPath,
+                'pid' => getmypid(),
+                'shm' => [
+                    'frameSlots' => (int)(getenv('MP_SHM_FRAMESLOTS') ?: 200),
+                    'gopKb' => (int)(getenv('MP_SHM_DATAKB') ?: 2048),
+                ],
+            ], function (?array $reply) {
+                if ($reply === null || $reply['ok'] !== true) {
+                    logger()->warning('[rtmp publish] registry rejected: {reason}', ['reason' => $reply['reason'] ?? 'registry timeout']);
+                    $this->reject();
+                    $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+                    return;
+                }
+                // 注册成功：完成进程内注册
+                if (MediaServer::addPublish($this)) {
+                    $this->isPublishing = true;
+                    $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
+                    $this->emit('on_publish_ready');
+                } else {
+                    // control ok 但本进程查重失败（竞态）
+                    $this->reject();
+                    $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+                }
+            });
         }
     }
 
     /**
      * @param array $invokeMessage
-     * @param bool $isPromise
      * @throws Exception
      */
-    public function onPlay(array $invokeMessage, bool $isPromise = false): void
+    public function onPlay(array $invokeMessage): void
     {
-        if (!$isPromise) {
-            logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-            if (!is_string($invokeMessage['streamName'])) {
-                return;
-            }
-            /** @var RtmpPacket $p */
-            $parse = explode('?', $invokeMessage['streamName']);
-            $this->playStreamPath = '/' . $this->appName . '/' . $parse[0];
-            parse_str($parse[1] ?? '', $this->playArgs);
-            $this->playStreamId = $this->currentPacket->streamId;
-        }
-
-        //auth check
-        if (!$isPromise && $result = MediaServer::verifyAuth($this)) {
-            if ($result === false) {
-                logger()->info("[rtmp play] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
-                $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.play.Unauthorized', 'Authorization required.');
-                return;
-            }
-
-            if ($result instanceof PromiseInterface) {
-                //异步检查
-                $result->then(function () use ($invokeMessage) {
-                    //resolve
-                    $this->onPlay($invokeMessage, true);
-                }, function ($exception) use ($invokeMessage) {
-                    logger()->info("[rtmp play] Unauthorized. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage) . " " . $exception->getMessage());
-                    //check false
-                    $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.play.Unauthorized', 'Authorization required.');
-                });
-                return;
-            }
-        }
-
-        // ingest 进程只收推流，播放请连播放端口（1936）
-        if (MediaServer::$processRole === 'ingest') {
-            $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.Play.IngestOnly', 'This port accepts publish only; use the play port for playback.');
+        logger()->info("[rtmp play] id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
+        if (!is_string($invokeMessage['streamName'])) {
             return;
         }
+        /** @var RtmpPacket $p */
+        $parse = explode('?', $invokeMessage['streamName']);
+        $this->playStreamPath = '/' . $this->appName . '/' . $parse[0];
+        parse_str($parse[1] ?? '', $this->playArgs);
+        $this->playStreamId = $this->currentPacket->streamId;
 
         if ($this->isPlaying) {
             $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.Play.BadConnection', 'Connection already playing');

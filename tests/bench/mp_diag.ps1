@@ -1,128 +1,118 @@
-﻿# 按进程拆分 CPU：诊断多进程压测时 ingest/play 各占多少
+﻿# 多进程诊断：N 路推 + M 路拉，逐进程输出 CPU / 内存 / 线程。
+#
+# 与 mp_mixed 的差异：mp_mixed 看总和找容量，mp_diag 看分布找瓶颈
+# （比如 play 进程 CPU 远高于 ingest = 扇出开销；control CPU 高 = 注册风暴）。
+#
+# 用法：
+#   .\mp_diag.ps1 -Streams 100 -Pulls 200
+
 param(
-    [int]$Streams = 500,
-    [int]$Pulls = 500,
-    [int]$Seconds = 40,
+    [int]$Streams = 100,
+    [int]$Pulls = 200,
+    [int]$MeasureSeconds = 30,
     [int]$WarmupSeconds = 20,
-    [int]$IngestCount = 1,
-    [int]$PlayCount = 1
+    [int]$PushChunk = 250,
+    [int]$IngestRtmpPort = 11935,
+    [int]$PlayRtmpPort = 11936
 )
 
 $ErrorActionPreference = 'Stop'
-$repoRoot = 'F:\work-data\media-server'
-$extDir = 'D:\php-8.4.25-nts-Win32-vs17-x64\ext'
-$sample = Join-Path $repoRoot 'tests\bench\samples\1080p30_4m.flv'
-$rtmpstress = $env:TEMP + '\rtmpstress\rtmpstress.exe'
-$tmp = Join-Path $env:TEMP "mp_diag_$Streams"
-New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-Remove-Item "$tmp\*" -Recurse -Force -ErrorAction SilentlyContinue
+. (Join-Path $PSScriptRoot 'lib\common.ps1')
 
-$env:MP_LOG_DIR = $tmp
-$env:MP_MEMORY_LIMIT = '2G'
+$rtmpstress = Resolve-RtmpStress
+$sample = Join-Path $script:SamplesDir '1080p30_4m.flv'
+if (-not (Test-Path $sample)) { throw "缺少样本 $sample，先跑 gen_samples.ps1" }
 
-function Get-MpProcs {
-    Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
-        Where-Object { $_.CommandLine -match 'worker\.php' } |
-        ForEach-Object {
-            $role = if ($_.CommandLine -match 'worker\.php.{0,10}(ingest|play|record|control)') { $matches[1] }
-                    elseif ($_.CommandLine -match 'worker') { 'worker?' } else { '?' }
-            $proc = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
-            if ($proc) {
-                [pscustomobject]@{ Role = $role; Pid = $_.ProcessId; Proc = $proc }
-            }
-        }
-}
-
-Write-Host "=== 按进程 CPU 拆分：推 $Streams / 拉 $Pulls ===" -ForegroundColor Cyan
-
-$launcher = Start-Process -FilePath php -ArgumentList @(
-    '-d',"extension_dir=$extDir",'-d','extension=shmop','-d','extension=sockets','-d','extension=event',
-    '-d','memory_limit=2G',
-    (Join-Path $repoRoot 'start_multiprocess.php'),"$IngestCount","$PlayCount",'0',
-    '11935','11936','11980','11981'
-) -PassThru -WindowStyle Hidden -RedirectStandardOutput "$tmp\l.out" -RedirectStandardError "$tmp\l.err"
-
+$server = $null
 $pushProcs = @()
-$pulls = @()
-
+$stressProc = $null
 try {
-    # 等所有实例端口就绪
-    $deadline = (Get-Date).AddSeconds(20)
+    $server = Start-MpServers -IngestRtmpPort $IngestRtmpPort -PlayRtmpPort $PlayRtmpPort
+    $ports = $server.BenchPorts
+    $adminPort = $ports.adminHttp
+    $token = Get-AdminToken -HttpPort $adminPort
+
+    # 推流
+    $idx = 0
+    while ($idx -lt $Streams) {
+        $count = [math]::Min($PushChunk, $Streams - $idx)
+        $slaves = (1..$count | ForEach-Object {
+            "[f=flv]rtmp://127.0.0.1:$($ports.ingestRtmp)/live/d$($idx + $_)"
+        }) -join '|'
+        $pushProcs += Start-Process -FilePath 'ffmpeg' -ArgumentList @(
+            '-hide_banner', '-loglevel', 'error'
+            '-re', '-stream_loop', '-1', '-i', $sample
+            '-c', 'copy', '-f', 'tee', '-map', '0', $slaves
+        ) -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $ports.logDir "push_$idx.err")
+        $idx += $count
+    }
+
+    $deadline = (Get-Date).AddSeconds(90)
+    $pushOk = $false
     while ((Get-Date) -lt $deadline) {
-        $ok = $true
-        for ($i = 0; $i -lt $IngestCount; $i++) {
-            if (-not (Test-NetConnection 127.0.0.1 -Port (11935 + $i * 10) -InformationLevel Quiet -WarningAction SilentlyContinue)) { $ok = $false }
-        }
-        for ($i = 0; $i -lt $PlayCount; $i++) {
-            if (-not (Test-NetConnection 127.0.0.1 -Port (11936 + $i * 10) -InformationLevel Quiet -WarningAction SilentlyContinue)) { $ok = $false }
-        }
-        if ($ok) { break }
-        Start-Sleep -Milliseconds 400
+        Start-Sleep -Milliseconds 800
+        $st = Invoke-AdminApiSafe -Token $token -Name 'listPushStream' -HttpPort $adminPort -TimeoutSec 8
+        if ($st -and @($st).Count -ge $Streams) { $pushOk = $true; break }
     }
+    if (-not $pushOk) { throw "推流未达目标（$Streams）" }
 
-    # 推流：按 ingest 实例均分（每 250 路一个 ffmpeg tee）
-    $perIngest = [math]::Ceiling($Streams / [math]::Max(1, $IngestCount))
-    for ($g = 0; $g -lt $IngestCount; $g++) {
-        $n = [math]::Min($perIngest, $Streams - $g * $perIngest)
-        if ($n -le 0) { break }
-        $port = 11935 + $g * 10
-        for ($i = 0; $i -lt $n; $i += 250) {
-            $count = [math]::Min(250, $n - $i)
-            $slaves = (1..$count | ForEach-Object { "[f=flv]rtmp://127.0.0.1:$port/live/m$($g * $perIngest + $i + $_)" }) -join '|'
-            $pushProcs += Start-Process ffmpeg -ArgumentList @(
-                '-hide_banner','-loglevel','error','-re','-stream_loop','-1','-i',$sample,
-                '-c','copy','-f','tee','-map','0',$slaves
-            ) -PassThru -WindowStyle Hidden -RedirectStandardError "$tmp\push_$g`_$i.err"
-        }
-    }
-    Start-Sleep -Seconds 10
-
-    # 拉流：按 play 实例均分
     if ($Pulls -gt 0) {
-        $perPlay = [math]::Ceiling($Pulls / [math]::Max(1, $PlayCount))
-        for ($g = 0; $g -lt $PlayCount; $g++) {
-            $n = [math]::Min($perPlay, $Pulls - $g * $perPlay)
-            if ($n -le 0) { break }
-            $port = 11936 + $g * 10
-            $pulls += Start-Process $rtmpstress -ArgumentList @(
-                '-c',$n,'-i',"rtmp://127.0.0.1:$port/live/m1"
-            ) -PassThru -WindowStyle Hidden -RedirectStandardOutput "$tmp\pull_$g.out" -RedirectStandardError "$tmp\pull_$g.err"
-        }
+        $stressProc = Start-Process -FilePath $rtmpstress -ArgumentList @(
+            '-c', $Pulls, '-i', "rtmp://127.0.0.1:$($ports.playRtmp)/live/d1"
+        ) -PassThru -WindowStyle Hidden `
+          -RedirectStandardOutput (Join-Path $ports.logDir 'pull.out') `
+          -RedirectStandardError (Join-Path $ports.logDir 'pull.err')
     }
 
     Write-Host "预热 ${WarmupSeconds}s..."
     Start-Sleep -Seconds $WarmupSeconds
 
-    # 采样：每进程 CPU 增量
-    $procs0 = Get-MpProcs
+    function Get-RoleProcs {
+        Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+            Where-Object { $_.CommandLine -match 'worker\.php' } |
+            ForEach-Object {
+                $role = if ($_.CommandLine -match 'worker\.php.{0,10}ingest') { 'ingest' }
+                    elseif ($_.CommandLine -match 'worker\.php.{0,10}play') { 'play' }
+                    elseif ($_.CommandLine -match 'worker\.php.{0,10}control') { 'control' }
+                    elseif ($_.CommandLine -match 'worker\.php.{0,10}admin') { 'admin' }
+                    elseif ($_.CommandLine -match 'worker\.php.{0,10}record') { 'record' }
+                    else { 'launcher' }
+                $p = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
+                if ($p) { [pscustomobject]@{ Role = $role; Pid = $_.ProcessId; Proc = $p } }
+            }
+    }
+
+    $procs0 = Get-RoleProcs
     $cpu0 = @{}
     foreach ($p in $procs0) { $cpu0[$p.Pid] = $p.Proc.TotalProcessorTime.TotalSeconds }
     $t0 = Get-Date
 
-    Start-Sleep -Seconds $Seconds
+    Start-Sleep -Seconds $MeasureSeconds
 
     $wall = ((Get-Date) - $t0).TotalSeconds
-    $procs1 = Get-MpProcs
     Write-Host ""
-    foreach ($p in $procs1) {
+    Write-Host ("{0,-10} {1,10} {2,10} {3,8}" -f '进程', 'CPU%', '内存MB', '线程数')
+    Write-Host ('-' * 44)
+    $totalCpu = 0.0
+    foreach ($p in (Get-RoleProcs)) {
         $c0 = if ($cpu0.ContainsKey($p.Pid)) { $cpu0[$p.Pid] } else { 0 }
         $pct = ($p.Proc.TotalProcessorTime.TotalSeconds - $c0) / $wall * 100
-        $ws = [math]::Round($p.Proc.WorkingSet64 / 1MB, 0)
-        Write-Host ("  [{0}] pid={1}  CPU={2,7:N1}%  ws={3}MB" -f $p.Role, $p.Pid, $pct, $ws) -ForegroundColor Green
-    }
-
-    # 内存详情：PrivateMemorySize
-    foreach ($p in $procs1) {
+        $totalCpu += $pct
         $p.Proc.Refresh()
-        Write-Host ("  [{0}] commit={1}MB" -f $p.Role, [math]::Round($p.Proc.PagedMemorySize64 / 1MB, 0))
+        Write-Host ("{0,-10} {1,10:N1} {2,10:N0} {3,8}" -f `
+            $p.Role, $pct, [math]::Round($p.Proc.WorkingSet64 / 1MB, 0), $p.Proc.Threads.Count) -ForegroundColor Green
     }
+    Write-Host ("{0,-10} {1,10:N1}" -f '合计', $totalCpu) -ForegroundColor Cyan
+
+    Save-BenchResult -Scenario 'mp_diag' -EventLoop 'multiprocess' -Data @{
+        streams = $Streams
+        pulls = $Pulls
+        measureSeconds = $MeasureSeconds
+    } | Out-Null
 }
 finally {
-    foreach ($pp in $pushProcs) { if ($pp -and -not $pp.HasExited) { Stop-Process -Id $pp.Id -Force -ErrorAction SilentlyContinue } }
-    foreach ($pl in $pulls) { if ($pl -and -not $pl.HasExited) { Stop-Process -Id $pl.Id -Force -ErrorAction SilentlyContinue } }
-    if ($launcher -and -not $launcher.HasExited) { Stop-Process -Id $launcher.Id -Force -ErrorAction SilentlyContinue }
-    Start-Sleep 2
-    Get-CimInstance Win32_Process -Filter "Name='php.exe' or Name='ffmpeg.exe'" |
-        Where-Object { $_.CommandLine -match 'worker\.php|start_multiprocess|live/m' } |
-        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    foreach ($p in (@($stressProc) + @($pushProcs))) {
+        if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
+    }
+    if ($server) { Stop-MpServers -Launcher $server }
 }

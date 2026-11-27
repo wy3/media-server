@@ -7,7 +7,6 @@ namespace MediaServer\Http;
 use MediaServer\Admin\AdminAuth;
 use MediaServer\MediaServer;
 use MediaServer\Recorder\PlaybackServer;
-use React\Promise\PromiseInterface;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
 

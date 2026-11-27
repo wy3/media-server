@@ -5,7 +5,10 @@ declare(strict_types=1);
 /**
  * 多进程模式启动器（Windows / Linux 通用）。
  *
- * 用法：php start_multiprocess.php [ingestCount] [playCount] [recordCount] [rtmpPort] [playRtmpPort] [httpPort] [ingestHttpPort]
+ * 各服务的 host/port 与进程数统一从 MediaServer\ServerConfig 读取
+ * （由 start.php 配置），推流（ingest）与拉流（play）彼此独立。
+ *
+ * 用法：php start_multiprocess.php
  *
  * 职责：
  *   1. 启动 control 进程（流注册表 + 事件通知中心，监听 18090）
@@ -16,17 +19,28 @@ declare(strict_types=1);
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/src/functions.php';
 
+use MediaServer\ServerConfig;
 
-$ingestCount = max(0, (int)($argv[1] ?? 1));
-$playCount = max(0, (int)($argv[2] ?? 1));
-$recordCount = max(0, (int)($argv[3] ?? 1));
-$rtmpPort = (int)($argv[4] ?? 1935);       // ingest: RTMP publish
-$playRtmpPort = (int)($argv[5] ?? 1936);  // play: RTMP playback
-$httpPort = (int)($argv[6] ?? 18080);     // play: HTTP-FLV playback
-$ingestHttpPort = (int)($argv[7] ?? 18081); // ingest: HTTP-FLV publish
-$controlHttpPort = (int)($argv[8] ?? 18099); // admin: HTTP 管理后台
-$registryPort = (int)($argv[9] ?? 18090);    // control: 流注册表 TCP 服务
-$adminHttpPort = $controlHttpPort;
+// 压测 / 容器场景：允许用环境变量覆盖监听地址与端口
+ServerConfig::loadFromEnv();
+
+$ingestCount = max(0, ServerConfig::$ingestCount);
+$playCount = max(0, ServerConfig::$playCount);
+$recordCount = max(0, ServerConfig::$recordCount);
+
+$ingestRtmpHost = ServerConfig::$ingestRtmpHost;
+$ingestRtmpPort = ServerConfig::$ingestRtmpPort;
+$ingestHttpHost = ServerConfig::$ingestHttpHost;
+$ingestHttpPort = ServerConfig::$ingestHttpPort;
+$playRtmpHost = ServerConfig::$playRtmpHost;
+$playRtmpPort = ServerConfig::$playRtmpPort;
+$playHttpHost = ServerConfig::$playHttpHost;
+$playHttpPort = ServerConfig::$playHttpPort;
+$adminHttpHost = ServerConfig::$adminHttpHost;
+$adminHttpPort = ServerConfig::$adminHttpPort;
+$registryHost = ServerConfig::$registryHost;
+$registryPort = ServerConfig::$registryPort;
+$registryClientAddr = ServerConfig::$registryClientAddr;
 
 if (!extension_loaded('shmop')) {
     fwrite(STDERR, "ERROR: ext-shmop required\n");
@@ -34,8 +48,14 @@ if (!extension_loaded('shmop')) {
 }
 
 printf(
-    "Starting multi-process mode: ingest=%d play=%d record=%d\n  rtmp(publish)=%d  rtmp(play)=%d  http(play)=%d  http(publish)=%d\n",
-    $ingestCount, $playCount, $recordCount, $rtmpPort, $playRtmpPort, $httpPort, $ingestHttpPort
+    "Starting multi-process mode: ingest=%d play=%d record=%d\n"
+    . "  ingest rtmp=%s:%d  ingest http=%s:%d\n"
+    . "  play rtmp=%s:%d  play http=%s:%d\n"
+    . "  admin http=%s:%d  registry=%s:%d\n",
+    $ingestCount, $playCount, $recordCount,
+    $ingestRtmpHost, $ingestRtmpPort, $ingestHttpHost, $ingestHttpPort,
+    $playRtmpHost, $playRtmpPort, $playHttpHost, $playHttpPort,
+    $adminHttpHost, $adminHttpPort, $registryHost, $registryPort
 );
 
 $extDir = '';
@@ -56,12 +76,18 @@ $workers = [];
  */
 function spawnWorker(string $process, array $args, string $extDir, string $logDir): void
 {
-    global $workers;
+    global $workers, $dbFile;
 
     $cmd = escapeshellarg(PHP_BINARY);
     if ($extDir !== '') {
         $cmd .= ' -d extension_dir=' . escapeshellarg($extDir);
         $cmd .= ' -d extension=sockets -d extension=event -d extension=shmop';
+        // JIT（压测开关）：opcache 扩展必须在 CLI 下显式启用
+        if (getenv('MP_JIT') === '1') {
+            $buffer = getenv('MP_JIT_BUFFER') ?: '100M';
+            $cmd .= ' -d zend_extension=' . escapeshellarg($extDir . DIRECTORY_SEPARATOR . 'php_opcache.dll');
+            $cmd .= ' -d opcache.enable_cli=1 -d opcache.jit=tracing -d opcache.jit_buffer_size=' . escapeshellarg($buffer);
+        }
     }
     // php CLI 默认 memory_limit=128M，多路推流的 publisher/GOP 状态会超
     $memLimit = getenv('MP_MEMORY_LIMIT') ?: '1G';
@@ -100,27 +126,33 @@ $logDir = getenv('MP_LOG_DIR') ?: sys_get_temp_dir();
 $recordPath = __DIR__ . '/record';
 $dbFile = $recordPath . '/registry.db';
 
-// control 进程：注册表 + 事件通知中心（一直启动，注册表是全局依赖）
-//   worker.php control [registryPort]；dbFile 用环境变量传
+// control 进程：注册表 + 事件通知中心
+//   worker.php control [registryPort] [registryHost]；dbFile 用环境变量传
 //   （Workerman Windows 会把存在的 argv 文件当 worker 脚本 fork，不能传文件路径）
-spawnWorker('control', [$registryPort], $extDir, $logDir);
+spawnWorker('control', [$registryPort, $registryHost], $extDir, $logDir);
 
 // admin 进程：管理后台 HTTP（从 control 拉数据）+ 录像回放
-//   worker.php admin [httpPort] [recordPath] [registryAddr]
-spawnWorker('admin', [$adminHttpPort, $recordPath, "127.0.0.1:$registryPort"], $extDir, $logDir);
+//   worker.php admin [httpPort] [recordPath] [registryAddr] [httpHost]
+spawnWorker('admin', [$adminHttpPort, $recordPath, $registryClientAddr, $adminHttpHost], $extDir, $logDir);
 
 // 多实例时端口偏移：第 i 个实例 = 基准端口 + i×10（避免监听冲突）
 for ($i = 0; $i < $ingestCount; $i++) {
-    //   worker.php ingest [rtmpPort] [httpPort] [registryAddr]
-    spawnWorker('ingest', [$rtmpPort + $i * 10, $ingestHttpPort + $i * 10, "127.0.0.1:$registryPort"], $extDir, $logDir);
+    //   worker.php ingest [rtmpPort] [httpPort] [registryAddr] [rtmpHost] [httpHost]
+    spawnWorker('ingest', [
+        $ingestRtmpPort + $i * 10, $ingestHttpPort + $i * 10, $registryClientAddr,
+        $ingestRtmpHost, $ingestHttpHost,
+    ], $extDir, $logDir);
 }
 for ($i = 0; $i < $playCount; $i++) {
-    //   worker.php play [rtmpPort] [httpPort] [registryAddr]
-    spawnWorker('play', [$playRtmpPort + $i * 10, $httpPort + $i * 10, "127.0.0.1:$registryPort"], $extDir, $logDir);
+    //   worker.php play [rtmpPort] [httpPort] [registryAddr] [rtmpHost] [httpHost]
+    spawnWorker('play', [
+        $playRtmpPort + $i * 10, $playHttpPort + $i * 10, $registryClientAddr,
+        $playRtmpHost, $playHttpHost,
+    ], $extDir, $logDir);
 }
 for ($i = 0; $i < $recordCount; $i++) {
     //   worker.php record [recordPath] [registryAddr]
-    spawnWorker('record', [$recordPath, "127.0.0.1:$registryPort"], $extDir, $logDir);
+    spawnWorker('record', [$recordPath, $registryClientAddr], $extDir, $logDir);
 }
 
 if (empty($workers)) {

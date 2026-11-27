@@ -20,12 +20,14 @@ use MediaServer\Utils\StreamRegistryClient;
 
 final class PlayProcess
 {
-    public static function run(int $rtmpPort, int $httpPort, string $registryAddr): void
+    public static function run(int $rtmpPort, string $rtmpHost, int $httpPort, string $httpHost, string $registryAddr): void
     {
         RecorderManager::$enabled = false;
         MediaServer::enableShmStreamDiscovery();   // shmStreamDiscovery + processRole='play'
         $consumer = new SharedMemoryFrameBusConsumer(new StreamRegistryClient($registryAddr, 'subscribe'));
         MediaServer::$frameBusConsumer = $consumer;
+        // play 进程的 registryClient 与帧消费者共用同一条订阅连接
+        MediaServer::setRegistryClient($consumer->getRegistry());
 
         $consumer->onAnyFrame(function (
             string $path, string $payload, int $seq, bool $isKey, int $frameType, int $timestamp, int $special
@@ -43,27 +45,24 @@ final class PlayProcess
             }
         });
 
-        $worker = new \Workerman\Worker("tcp://0.0.0.0:$rtmpPort");   // RTMP 播放入口
+        $worker = new \Workerman\Worker("tcp://$rtmpHost:$rtmpPort");   // RTMP 播放入口
         $worker->onConnect = function ($connection) {
             new \MediaServer\Rtmp\RtmpStream(
                 new \MediaServer\Utils\WMBufferStream($connection)
             );
         };
-        $worker->onWorkerStart = function ($w) use ($consumer, $httpPort) {
+        $worker->onWorkerStart = function ($w) use ($consumer, $httpPort, $httpHost) {
             $consumer->start();
 
             // HTTP-FLV / WS-FLV 播放入口
             \MediaServer\Admin\AdminAuth::$startTime = timestamp();
             \MediaServer\Http\HttpWMServer::$publicPath = __DIR__ . '/../public';
-            $httpServer = new \MediaServer\Http\PlayHttpServer(
-                "\\MediaServer\\Http\\ExtHttpProtocol://127.0.0.1:$httpPort"
-            );
+            $httpServer = new \MediaServer\Http\PlayHttpServer($httpPort, $httpHost);
             $httpServer->listen();
 
             // 统计上报：每 5s
             \Workerman\Timer::add(5, function () {
                 $client = MediaServer::$registryClient;
-                if ($client === null) return;
                 $stats = MediaServer::getServerStats();
                 $client->send('stats.report', [
                     'role' => 'play',

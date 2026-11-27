@@ -15,6 +15,204 @@ if (-not (Test-Path $script:ResultsDir)) {
     New-Item -ItemType Directory -Force -Path $script:ResultsDir | Out-Null
 }
 
+# ══════════════════════════════════════════════════════════════
+# 多进程压测启动器：每个功能一个进程（control/ingest/play/admin）。
+# 通过环境变量覆盖 ServerConfig，start_multiprocess.php 的每个子进程
+# 都会 loadFromEnv() 继承同一组端口。录像默认不起（避免磁盘 IO 干扰）。
+# ══════════════════════════════════════════════════════════════
+
+<#
+.SYNOPSIS
+    启动完整的多进程服务端（每个功能一个进程）。
+.DESCRIPTION
+    启动 start_multiprocess.php launcher（内部 spawn control / ingest /
+    play / admin 子进程；record 按 -WithRecord 决定），等待全部端口就绪。
+    返回 launcher 进程对象（附 BenchPorts 属性记录实际端口）。
+#>
+function Start-MpServers {
+    param(
+        [int]$IngestRtmpPort = 11935,
+        [int]$IngestHttpPort = 11981,
+        [int]$PlayRtmpPort = 11936,
+        [int]$PlayHttpPort = 11980,
+        [int]$AdminHttpPort = 18099,
+        [int]$RegistryPort = 12090,
+        [int]$IngestCount = 1,
+        [int]$PlayCount = 1,
+        [int]$InstancePortStep = 10,
+        [switch]$WithRecord,
+        [switch]$EnableJit,
+        [string]$JitBuffer = '100M',
+        [string]$MemoryLimit = '1G',
+        [string]$LogDir = $null
+    )
+
+    $logDir = if ($LogDir) { $LogDir } else { (Join-Path $env:TEMP "mp_bench_$RegistryPort") }
+    New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
+    # ServerConfig::loadFromEnv() 让每个子进程继承同一组端口
+    if ($EnableJit) {
+        $env:MP_JIT = '1'
+        $env:MP_JIT_BUFFER = $JitBuffer
+    } else {
+        Remove-Item Env:MP_JIT -ErrorAction SilentlyContinue
+        Remove-Item Env:MP_JIT_BUFFER -ErrorAction SilentlyContinue
+    }
+    $env:MP_INGEST_RTMP_PORT = $IngestRtmpPort
+    $env:MP_INGEST_HTTP_PORT = $IngestHttpPort
+    $env:MP_PLAY_RTMP_PORT = $PlayRtmpPort
+    $env:MP_PLAY_HTTP_PORT = $PlayHttpPort
+    $env:MP_ADMIN_HTTP_PORT = $AdminHttpPort
+    $env:MP_REGISTRY_PORT = $RegistryPort
+    $env:MP_REGISTRY_CLIENT_ADDR = "127.0.0.1:$RegistryPort"
+    $env:MP_REGISTRY_DB = Join-Path $logDir 'registry.db'
+    $env:MP_LOG_DIR = $logDir
+    $env:MP_INGEST_COUNT = $IngestCount
+    $env:MP_PLAY_COUNT = $PlayCount
+    if ($WithRecord) {
+        $env:MP_RECORD_COUNT = '1'
+    } else {
+        $env:MP_RECORD_COUNT = '0'
+    }
+
+    $extDir = Resolve-PhpExtensionDir
+    $phpArgs = @('-d', "memory_limit=$MemoryLimit")
+    if ($extDir) {
+        $phpArgs += @('-d', "extension_dir=$extDir", '-d', 'extension=shmop', '-d', 'extension=sockets', '-d', 'extension=event')
+    }
+    $phpArgs += (Join-Path $script:RepoRoot 'start_multiprocess.php')
+
+    $proc = Start-Process -FilePath 'php' -ArgumentList $phpArgs -PassThru -WindowStyle Hidden `
+        -RedirectStandardOutput (Join-Path $logDir 'launcher.out') `
+        -RedirectStandardError (Join-Path $logDir 'launcher.err')
+
+    # 等全部端口就绪（launcher 存活 + 各监听可达）
+    # start_multiprocess.php 多实例端口 = 基准 + i*InstancePortStep
+    $playRtmpPorts = @(for ($i = 0; $i -lt $PlayCount; $i++) { $PlayRtmpPort + $i * $InstancePortStep })
+    $ingestRtmpPorts = @(for ($i = 0; $i -lt $IngestCount; $i++) { $IngestRtmpPort + $i * $InstancePortStep })
+    $ports = @($RegistryPort, $AdminHttpPort) + $ingestRtmpPorts + $playRtmpPorts
+    $deadline = (Get-Date).AddSeconds(30)
+    while ((Get-Date) -lt $deadline) {
+        if ($proc.HasExited) {
+            $errText = Get-Content (Join-Path $logDir 'launcher.err') -Raw -ErrorAction SilentlyContinue
+            throw "launcher 退出（exit $($proc.ExitCode)）：$errText"
+        }
+        $allUp = $true
+        foreach ($port in $ports) {
+            if (-not (Test-NetConnection -ComputerName 127.0.0.1 -Port $port -InformationLevel Quiet -WarningAction SilentlyContinue)) {
+                $allUp = $false
+                break
+            }
+        }
+        if ($allUp) {
+            $proc | Add-Member -Force -NotePropertyName 'BenchPorts' -NotePropertyValue ([pscustomobject]@{
+                ingestRtmp = $IngestRtmpPort; ingestRtmpPorts = $ingestRtmpPorts
+                ingestHttp = $IngestHttpPort; ingestCount = $IngestCount
+                playRtmp = $PlayRtmpPort; playRtmpPorts = $playRtmpPorts
+                playHttp = $PlayHttpPort; playCount = $PlayCount
+                adminHttp = $AdminHttpPort; registry = $RegistryPort
+                logDir = $logDir
+            })
+            return $proc
+        }
+        Start-Sleep -Milliseconds 400
+    }
+    Stop-MpServers -Launcher $proc
+    throw "服务端口 30s 内未全部就绪（$($ports -join ','))"
+}
+
+<#
+.SYNOPSIS
+    停止多进程服务端（launcher + 全部 worker 子进程）。
+#>
+function Stop-MpServers {
+    param([System.Diagnostics.Process]$Launcher)
+    Get-MpServerProcs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    if ($Launcher -and -not $Launcher.HasExited) {
+        Stop-Process -Id $Launcher.Id -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Seconds 2
+}
+
+<#
+.SYNOPSIS
+    找全部服务端 php 进程（launcher + worker 子进程）。
+#>
+function Get-MpServerProcs {
+    # 只统计 worker 子进程（control/ingest/play/admin/record）；
+    # launcher（start_multiprocess.php）只是监控循环，排除在外。
+    Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+        Where-Object { $_.CommandLine -match 'worker\.php' }
+}
+
+<#
+.SYNOPSIS
+    采集服务端进程树的 CPU / 内存。
+.DESCRIPTION
+    CPU 是全部 php 服务进程的 TotalProcessorTime 之和，100% = 合计用满 1 核，
+    多进程时可 > 100%。内存同时记 WorkingSet（含 shm 共享页重复计入）
+    与 Commit（更接近真实占用）。
+#>
+function Get-MpTreeUsage {
+    param(
+        # 只统计指定角色的进程（如 play/ingest）；为空则统计全部 worker
+        [string[]]$Roles = @()
+    )
+    $cpu = 0.0; $ws = 0; $commit = 0; $count = 0
+    $procs = Get-MpServerProcs
+    if ($Roles.Count -gt 0) {
+        $procs = $procs | Where-Object {
+            $matched = $false
+            foreach ($r in $Roles) {
+                if ($_.CommandLine -match "worker\.php.{0,10}$r") { $matched = $true; break }
+            }
+            $matched
+        }
+    }
+    foreach ($p in $procs) {
+        try {
+            $proc = Get-Process -Id $p.ProcessId -ErrorAction Stop
+            $cpu += $proc.TotalProcessorTime.TotalSeconds
+            $ws += $proc.WorkingSet64
+            $commit += $proc.PagedMemorySize64
+            $count++
+        } catch { }
+    }
+    [pscustomobject]@{
+        CpuSeconds = $cpu
+        WsMB = [math]::Round($ws / 1MB, 1)
+        CommitMB = [math]::Round($commit / 1MB, 1)
+        Count = $count
+    }
+}
+
+<#
+.SYNOPSIS
+    采集指定角色各进程的单进程 CPU 百分比（相对某基线）。
+.DESCRIPTION
+    返回 @{ Pid; Role; Pct } 列表；Pct = (当前累计CPU - 基线累计CPU) / 墙钟 × 100。
+    用于"每个 play 进程独立判定饱和"：某进程超过阈值就不再给它加压。
+#>
+function Get-RoleProcCpu {
+    param(
+        [Parameter(Mandatory)][string]$Role,
+        [Parameter(Mandatory)][hashtable]$Baseline,   # pid => CPU秒
+        [double]$WindowSec = 3.0
+    )
+    $result = @()
+    $procs = Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
+        Where-Object { $_.CommandLine -match "worker\.php.{0,10}$Role" }
+    foreach ($p in $procs) {
+        try {
+            $proc = Get-Process -Id $p.ProcessId -ErrorAction Stop
+            $c0 = if ($Baseline.ContainsKey($p.ProcessId)) { $Baseline[$p.ProcessId] } else { $proc.TotalProcessorTime.TotalSeconds }
+            $pct = [math]::Round(($proc.TotalProcessorTime.TotalSeconds - $c0) / $WindowSec * 100, 1)
+            $result += [pscustomobject]@{ Pid = $p.ProcessId; Role = $Role; Pct = $pct; CpuSeconds = $proc.TotalProcessorTime.TotalSeconds }
+        } catch { }
+    }
+    return $result
+}
+
 <#
 .SYNOPSIS
     解析 PHP 扩展目录的绝对路径。
@@ -69,22 +267,60 @@ function Start-BenchServer {
         [string]$EventLoop = 'event',
         [int]$RtmpPort = 11935,
         [int]$HttpPort = 11980,
+        [int]$RegistryPort = 12090,
         [string]$MemoryLimit = '4G',
         [string]$LogPath = $null
     )
 
     $phpArgs = @('-d', "memory_limit=$MemoryLimit")
+    # shmop 用于帧总线（改版后推流写入 shm），两种事件循环都需要。
+    # php.ini 里 extension_dir 常写成相对路径 "ext"，从其他工作目录启动时
+    # 会找不到 dll（报 Unable to load dynamic library）。这里解析成绝对路径再传。
+    $extDir = Resolve-PhpExtensionDir
+    if ($extDir) {
+        $phpArgs += @('-d', "extension_dir=$extDir")
+    }
+    $phpArgs += @('-d', 'extension=shmop')
     if ($EventLoop -eq 'event') {
-        # php.ini 里 extension_dir 常写成相对路径 "ext"，从其他工作目录启动时
-        # 会找不到 dll（报 Unable to load dynamic library）。这里解析成绝对路径再传。
-        $extDir = Resolve-PhpExtensionDir
-        if ($extDir) {
-            $phpArgs += @('-d', "extension_dir=$extDir")
-        }
+        # 注意：php_event.dll 直接链接 php_sockets.dll，必须先加载 sockets 再加载 event，
+        # 否则 event 会加载失败（Class "EventBase" not found）。
+        # 这里的 sockets 是 event 扩展的依赖，与业务是否使用 UDP 组播无关。
         $phpArgs += @('-d', 'extension=sockets', '-d', 'extension=event')
     }
+    # 改版后推流强制依赖 registry（onPublish → publish.req），必须另起 control。
+    # Windows 下 Workerman 不支持一个脚本多个 Worker，control 只能独立进程。
+    $dbFile = Join-Path $env:TEMP "bench_registry_$RtmpPort.db"
+    $ctrlArgs = @('-d', "memory_limit=$MemoryLimit")
+    if ($extDir) { $ctrlArgs += @('-d', "extension_dir=$extDir") }
+    $ctrlArgs += @(
+        (Join-Path $script:RepoRoot 'worker.php'), 'control',
+        $RegistryPort
+    )
+    # dbFile 通过环境变量传（worker.php control 从 MP_REGISTRY_DB 读取），
+    # 不能作为 argv 传——Workerman Windows 会把存在的 argv 文件当 worker 脚本 fork。
+    $oldDbEnv = $env:MP_REGISTRY_DB
+    $env:MP_REGISTRY_DB = $dbFile
+    $ctrlProc = Start-Process -FilePath 'php' -ArgumentList $ctrlArgs -PassThru -WindowStyle Hidden `
+        -RedirectStandardOutput (Join-Path $env:TEMP "bench_ctrl_$RtmpPort.out") `
+        -RedirectStandardError (Join-Path $env:TEMP "bench_ctrl_$RtmpPort.err")
+    $env:MP_REGISTRY_DB = $oldDbEnv
+
+    # 等 control 端口就绪
+    $deadline = (Get-Date).AddSeconds(15)
+    while ((Get-Date) -lt $deadline) {
+        if ($ctrlProc.HasExited) {
+            $errFile = Join-Path $env:TEMP "bench_ctrl_$RtmpPort.err"
+            $errText = if (Test-Path $errFile) { Get-Content $errFile -Raw } else { '' }
+            throw "control 启动失败（退出码 $($ctrlProc.ExitCode)）：$errText"
+        }
+        if (Test-NetConnection -ComputerName 127.0.0.1 -Port $RegistryPort -InformationLevel Quiet -WarningAction SilentlyContinue) {
+            break
+        }
+        Start-Sleep -Milliseconds 300
+    }
+
     $phpArgs += (Join-Path $script:BenchRoot 'lib\server_bench.php')
-    $phpArgs += @($EventLoop, $RtmpPort, $HttpPort)
+    $phpArgs += @($EventLoop, $RtmpPort, $HttpPort, "127.0.0.1:$RegistryPort")
 
     $stdout = if ($LogPath) { $LogPath } else { 'NUL' }
     $proc = Start-Process -FilePath 'php' -ArgumentList $phpArgs -PassThru -WindowStyle Hidden `
@@ -97,14 +333,17 @@ function Start-BenchServer {
         if ($proc.HasExited) {
             $errFile = Join-Path $env:TEMP "bench_srv_$RtmpPort.err"
             $errText = if (Test-Path $errFile) { Get-Content $errFile -Raw } else { '' }
+            Stop-Process -Id $ctrlProc.Id -Force -ErrorAction SilentlyContinue
             throw "服务端启动失败（退出码 $($proc.ExitCode)）：$errText"
         }
         if (Test-NetConnection -ComputerName 127.0.0.1 -Port $RtmpPort -InformationLevel Quiet -WarningAction SilentlyContinue) {
+            $proc | Add-Member -Force -NotePropertyName 'BenchControlProcess' -NotePropertyValue $ctrlProc
             return $proc
         }
         Start-Sleep -Milliseconds 300
     }
     Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $ctrlProc.Id -Force -ErrorAction SilentlyContinue
     throw "服务端端口 $RtmpPort 在 15s 内未就绪"
 }
 
@@ -114,8 +353,14 @@ function Start-BenchServer {
 #>
 function Stop-BenchServer {
     param([System.Diagnostics.Process]$Process)
-    if ($Process -and -not $Process.HasExited) {
-        Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+    if ($Process) {
+        if (-not $Process.HasExited) {
+            Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+        }
+        $ctrl = $Process.BenchControlProcess
+        if ($ctrl -and -not $ctrl.HasExited) {
+            Stop-Process -Id $ctrl.Id -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 

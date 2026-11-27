@@ -32,11 +32,11 @@
 ### Live streaming
 
 - Ingest
-  - RTMP push to `rtmp://<host>:1935/<app>/<stream>`
-  - HTTP-FLV push via `POST http://<host>:18080/<app>/<stream>` with an FLV body
+  - RTMP push to the ingest listener (`rtmp://<host>:1935/<app>/<stream>` by default)
+  - HTTP-FLV push via `POST` with chunked FLV body to the ingest HTTP listener (`:18081` by default)
 - Playback
-  - RTMP: `rtmp://<host>:1935/<app>/<stream>`
-  - HTTP-FLV: `http://<host>:18080/<app>/<stream>.flv`
+  - RTMP: the play listener (`rtmp://<host>:1936/<app>/<stream>` by default)
+  - HTTP-FLV: the play HTTP listener (`http://<host>:18080/<app>/<stream>.flv` by default)
   - WS-FLV: `ws://<host>:18080/<app>/<stream>.flv`
   - Playback filters via query string: `disableAudio`, `disableVideo`, `disableGop`
 - Supported codecs: H.264 / H.265 (HEVC) video, AAC audio
@@ -85,17 +85,21 @@
 
 ```bash
 composer install
-php start.php start
+php start.php
 ```
 
-Default listeners:
+All services run in multi-process mode. Listen addresses/ports and process counts are configured in `start.php` via `MediaServer\ServerConfig`:
 
-| Service | Address |
-|---|---|
-| RTMP | `0.0.0.0:1935` |
-| HTTP / WebSocket | `127.0.0.1:18080` |
+| Service | Config fields | Default |
+|---|---|---|
+| Ingest RTMP | `$ingestRtmpHost` / `$ingestRtmpPort` | `0.0.0.0:1935` |
+| Ingest HTTP-FLV | `$ingestHttpHost` / `$ingestHttpPort` | `0.0.0.0:18081` |
+| Play RTMP | `$playRtmpHost` / `$playRtmpPort` | `0.0.0.0:1936` |
+| Play HTTP-FLV / WS-FLV | `$playHttpHost` / `$playHttpPort` | `0.0.0.0:18080` |
+| Admin | `$adminHttpHost` / `$adminHttpPort` | `0.0.0.0:18099` |
+| Registry | `$registryHost` / `$registryPort` | `0.0.0.0:18090` |
 
-> The HTTP listener binds to `127.0.0.1` by default. Change the socket in `start.php` to `\\MediaServer\\Http\\ExtHttpProtocol://0.0.0.0:18080` if you need external access.
+Publish and playback have independent listeners. `$ingestCount` / `$playCount` / `$recordCount` control worker counts (extra instances offset ports by `+10`).
 
 ### Publish
 
@@ -212,74 +216,58 @@ Every call except `login` requires a valid token, supplied via `X-Auth-Token`, `
 
 ## Performance Benchmarks
 
-End-to-end measurements across five scenarios: latency, single-step concurrency,
-stepwise ramping, and mixed push+pull.
+The server runs as a set of single-purpose processes (control / ingest / play /
+admin, recording optional) and scales horizontally by adding play or ingest
+workers. Benchmarks use the automatic ramping strategy: +100 streams every 5 s
+to each unsaturated worker, a worker is "saturated" when its own CPU stays
+≥80% for 30 s, then the load is held for a 40 s stability check.
 
 **Test conditions**: AMD Ryzen 9 9900X (12C/24T), Windows, PHP 8.4.25,
 1080p30 4096 kb/s, ffmpeg `-c copy` push, rtmpstress pull, recording disabled.
 
-### Event loop comparison
+### Pull capacity by play-worker count
 
-| Scenario | `select` (default) | `event` (libevent 3.2.0) |
-|---|---|---|
-| Pull limit | **200 streams** (dead at 300) | **1000 streams** (100% kept) |
-| Push limit | **200 streams** (dead at 300) | **1200 streams** (100% kept) |
+| Play workers | Capacity (streams) | Avg CPU / worker | Memory (ws) | Note |
+|---|---|---|---|---|
+| 1 | 950 | ~99% | 102 MB | single play ceiling |
+| 2 | 1600 | ~95% | 69 MB | near-linear |
+| 5 | 3000 | 98% | 160 MB | best per-worker efficiency (~600/worker) |
+| 6 | **3599** | 103% | 196 MB | **best overall capacity** |
+| 8 | 3200 | 100% | 231 MB | system-level overhead appears (sys 80–99%) |
+| 10 | 4000 | 86% | 288 MB | highest total, but only ~400/worker |
 
-**Past 253 connections `select` does not refuse — the entire event loop stops scheduling.**
-The process stays alive but is completely unresponsive.
-That is why the `event` extension is required on Windows.
+**Recommended**: 5–6 play workers. Beyond that, per-worker efficiency drops
+sharply as system-level costs (scheduling, client-side stress tool, NIC)
+dominate. JIT makes no difference to pull capacity (bottleneck is socket I/O).
 
-### Pull capacity (`event`, single process)
+### Push capacity (1 ingest worker)
 
-| Load | Connections | Memory | CPU per conn |
+| Config | Capacity | Avg CPU | Memory |
 |---|---|---|---|
-| 50% | **500** | 30 MB | |
-| 80% | 800 | 35 MB | 0.10% |
-| 100% | 1000 | 36 MB | |
+| Default | 800 | 90.5% | 931 MB |
+| JIT enabled (`opcache.jit=tracing`) | 800 | **82.4%** | 953 MB |
 
-### Push capacity (`event`, single process)
-
-| Load | Streams | Memory |
-|---|---|---|
-| 50% | **600** | 700 MB |
-| 80% | 960 | 1.1 GB |
-| 100% | 1200 | 1.4 GB |
-
-Each push needs **1.17 MB** of memory (GOP cache) — the dominant sizing factor.
-Pull needs only 36 KB per connection.
-
-### Mixed push + pull (`event`)
-
-| Push | Pull | CPU | Memory | Retained | Dropped frames |
-|---|---|---|---|---|---|
-| 50 | 500 | 57.4% | 95 MB | 100% | 0 |
-| 100 | 500 | 60.5% | 158 MB | 100% | 0 |
-| 200 | 500 | 68.9% | 288 MB | 100% | 0 |
-| **500** | **500** | **98.5%** | 661 MB | 100% | 0 |
-| 500 | 200 | 73.9% | 648 MB | 100% | 0 |
-| 500 | 100 | 61.9% | 642 MB | 100% | 0 |
-| 500 | 50 | 61.9% | 642 MB | 100% | 0 |
-
-**Takeaway**: push dominates CPU cost; memory is almost entirely driven by push.
-`500/500` is the "full load but not degraded" boundary — design for 50% in production.
+Each push costs ~1.15 MB (GOP cache) and ~0.11% CPU. **Enabling JIT cuts
+push-path CPU by ~9%** (FLV parsing is JIT-compiled) at a small memory cost —
+recommended for ingest workers. Disabling GC showed no meaningful benefit.
 
 ### Further reading
 
 | Document | Contents |
 |---|---|
-| [docs/rtmp-parsing-performance.md](docs/rtmp-parsing-performance.md) | RTMP parsing hot-path analysis, measured optimization backlog, and the implemented fanout reuse (−17.5% CPU at 1000 pulls) |
+| [docs/rtmp-parsing-performance.md](docs/rtmp-parsing-performance.md) | RTMP parsing hot-path analysis |
 | [tests/bench/PROCEDURE.md](tests/bench/PROCEDURE.md) | Full test procedure, setup, metric definitions, FAQ |
-| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | All raw data and analysis (Chinese) |
+| [tests/bench/RESULTS.md](tests/bench/RESULTS.md) | Raw data and analysis (Chinese, historic single-process baselines + new multi-process) |
 | [tests/bench/RESULTS_EN.md](tests/bench/RESULTS_EN.md) | Full data and analysis (English) |
 | [tests/bench/README.md](tests/bench/README.md) | Benchmark suite usage |
 
 Reproduce with:
 
 ```powershell
-.\tests\bench\gen_samples.ps1
-.\tests\bench\s4_ramp.ps1 -Scenario pull -EventLoop event -Steps 100,200,400,600,800,1000
-.\tests\bench\s4_ramp.ps1 -Scenario push -EventLoop event -Steps 100,200,400,600,800,1000,1200
-.\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','200/500','500/500','500/200','500/100','500/50'
+php tests/smoke.php
+.\tests\bench\s4_ramp.ps1 -Scenario pull -PlayCount 6
+.\tests\bench\s4_ramp.ps1 -Scenario push -EnableJit
+.\tests\bench\gen_samples.ps1   # only if tests/bench/samples/ is missing
 ```
 
 ## Tests
@@ -331,9 +319,9 @@ record/           Recording output (git-ignored)
 - Only H.264 / H.265 (HEVC) + AAC streams are supported; other codecs may not work
 - Browser playback of H.265 depends on OS-level HEVC decoding: on Windows the "HEVC Video Extensions" package must be installed, macOS / iOS Safari support it natively, and Chrome / Edge use the system decoder. Without it the video silently renders black (no error), so pre-flight with `video.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"')`
 - Pushing H.265 requires ffmpeg 7.x or newer (older builds cannot emit Enhanced RTMP)
-- Single-process model — multi-process deployment is not supported
+- Multi-process deployment: control / ingest / play / admin run as separate single-purpose workers; add play workers to scale playback and ingest workers to scale publishing (extra instances offset ports by `+10`)
 - **The default `select` event loop on Windows hangs the entire process past ~253 connections**; install the `event` extension (see [Requirements](#requirements)). Linux uses epoll and is unaffected
-- Single-core ceiling per process (1080p30 4 Mbps): ~1000 pull streams / ~1200 push streams; plan for 50% (500 pull / 600 push) in production
+- Capacity ceiling per worker (1080p30 4 Mbps): ~950 pull streams or ~800 push streams; plan for 50% (~500 pull / ~400 push per worker) in production. See [Performance Benchmarks](#performance-benchmarks)
 - The latency measurement method is only accurate to ±30 ms — it can detect order-of-magnitude degradation but not fine differences
 - Streams that add or drop a track mid-flight are not handled (a mid-stream track switch can corrupt the active segment)
 - The sample table for a playback request is built in memory, so very long ranges are best avoided; always bound `end` for long recordings

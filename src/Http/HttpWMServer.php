@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace MediaServer\Http;
 
-use React\Promise\PromiseInterface;
 use Workerman\Connection\TcpConnection;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
@@ -21,9 +20,9 @@ abstract class HttpWMServer extends Worker
 {
     static string $publicPath = '';
 
-    public function __construct(int $httpPort, array $context_option = [])
+    public function __construct(int $httpPort, string $host, array $context_option = [])
     {
-        $new_socket_name = "\\MediaServer\\Http\\ExtHttpProtocol://0.0.0.0:$httpPort";
+        $new_socket_name = "\\MediaServer\\Http\\ExtHttpProtocol://$host:$httpPort";
         parent::__construct($new_socket_name, $context_option);
         $this->onMessage = [$this, 'onHttpRequest'];
         // 用来预留http 升级到websocket 进行函数处理

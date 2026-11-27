@@ -80,6 +80,14 @@ class SharedMemoryFrameBusConsumer
     }
 
     /**
+     * 内部 registry client（play 进程的统计上报等也走它）。
+     */
+    public function getRegistry(): StreamRegistryClient
+    {
+        return $this->registry;
+    }
+
+    /**
      * awaiting 超时/被拒时关闭该路所有播放端的回调。
      *
      * @param callable(string $path) $fn
@@ -137,13 +145,13 @@ class SharedMemoryFrameBusConsumer
                 $this->closePlayer($path);
                 return;
             }
-            if (($reply['ok'] ?? false) !== true) {
+            if (!$reply['ok']) {
                 // 被拒绝（被踢/非法）
                 $this->closePlayer($path);
                 return;
             }
-            if (($reply['state'] ?? '') === 'publishing') {
-                $this->streamShm[$path] = is_array($reply['shm'] ?? null) ? $reply['shm'] : [];
+            if ($reply['state'] === 'publishing') {
+                $this->streamShm[$path] = $reply['shm'];
                 $this->activateStream($path, $this->streamShm[$path]);
                 return;
             }
@@ -161,7 +169,7 @@ class SharedMemoryFrameBusConsumer
             try {
                 ($this->playerCloseHandler)($path);
             } catch (\Throwable $e) {
-                fwrite(STDERR, '[consumer] player close error: ' . $e->getMessage() . "\n");
+                logger()->warning('[consumer] player close error: {msg}', ['msg' => $e->getMessage()]);
             }
         }
         // 同步状态给 control
@@ -178,7 +186,7 @@ class SharedMemoryFrameBusConsumer
         foreach ($this->awaiting as $path => $since) {
             if (($now - $since) >= self::AWAIT_TIMEOUT) {
                 unset($this->awaiting[$path]);
-                fwrite(STDERR, "[consumer] $path await timeout (no publish in " . self::AWAIT_TIMEOUT . "s), closing players\n");
+                logger()->warning('[consumer] {path} await timeout (no publish in {t}s), closing players', ['path' => $path, 't' => self::AWAIT_TIMEOUT]);
                 $this->closePlayer($path);
             }
         }
@@ -261,7 +269,7 @@ class SharedMemoryFrameBusConsumer
                         try {
                             $cb($path);
                         } catch (\Throwable $e) {
-                            fwrite(STDERR, '[consumer] stream end error: ' . $e->getMessage() . "\n");
+                            logger()->warning('[consumer] stream end error: {msg}', ['msg' => $e->getMessage()]);
                         }
                     }
                     unset($this->lastReadSeq[$key], $this->seqFed[$key], $this->gapWarned[$key], $this->segments[$key]);
@@ -279,11 +287,23 @@ class SharedMemoryFrameBusConsumer
     }
 
     /**
-     * 刷帧主循环：所有已知流连续读到各自 writeSeq。
+     * 刷帧主循环：只处理仍有订阅者的流。
+     *
+     * 无播放端且无 per-path 回调的流跳过刷帧（并释放 shm 段），
+     * 避免 play 进程在无人观看时空转烧 CPU。
      */
     private function pollFrames(): void
     {
         foreach ($this->paths as $key => $path) {
+            // 播放端还在，或有 per-path 回调（record 等）→ 保持刷帧
+            $hasPlayers = \MediaServer\MediaServer::getPlayStreams($path) !== [];
+            if (!$hasPlayers && !isset($this->callbacks[$key])) {
+                // 释放段缓存，等订阅回来再重建
+                if (isset($this->segments[$key])) {
+                    unset($this->segments[$key], $this->lastReadSeq[$key]);
+                }
+                continue;
+            }
             $seg = $this->segments[$key] ?? null;
             if ($seg === null) {
                 try {
@@ -349,7 +369,7 @@ class SharedMemoryFrameBusConsumer
             $this->lastReadSeq[$key] = $seq;
             if ($frame === null) {
                 if (($this->gapWarned[$key] ?? 0) < $seq - 1) {
-                    fwrite(STDERR, sprintf("[consumer] %s seq=%d unreadable (overwritten?), resync to next keyframe\n", $path, $seq));
+                    logger()->warning('[consumer] {path} seq={seq} unreadable (overwritten?), resync to next keyframe', ['path' => $path, 'seq' => $seq]);
                     $this->gapWarned[$key] = $seq;
                 }
                 $this->lastReadSeq[$key] = max($this->lastReadSeq[$key], $seg->lastKeySeq());
@@ -366,7 +386,9 @@ class SharedMemoryFrameBusConsumer
                     }
                 }
             } catch (\Throwable $e) {
-                fwrite(STDERR, '[consumer] frame dispatch error seq=' . $seq . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine() . "\n");
+                logger()->warning('[consumer] frame dispatch error seq={seq}: {msg} @ {file}:{line}', [
+                    'seq' => $seq, 'msg' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine(),
+                ]);
             }
         }
     }

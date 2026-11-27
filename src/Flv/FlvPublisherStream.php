@@ -16,7 +16,6 @@ use MediaServer\MediaReader\MetaDataFrame;
 use MediaServer\MediaReader\VideoFrame;
 use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\Utils\BinaryStream;
-use React\Stream\ReadableStreamInterface;
 use Workerman\Timer;
 use Workerman\Connection\TcpConnection;
 
@@ -124,9 +123,11 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
         $this->input = $input;
         $this->publishPath = $path;
         $this->startTimestamp = timestamp();
-        $input->on('data', [$this, 'onStreamData']);
-        $input->on('error', [$this, 'onStreamError']);
-        $input->on('close', [$this, 'onStreamClose']);
+        if ($input instanceof EventEmitter) {
+            $input->on('data', [$this, 'onStreamData']);
+            $input->on('error', [$this, 'onStreamError']);
+            $input->on('close', [$this, 'onStreamClose']);
+        }
         $this->buffer = new BinaryStream();
     }
 
@@ -386,7 +387,9 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
         $this->buffer = null;
         $this->gopCacheQueue = [];
-        $this->input->close();
+        if ($this->input instanceof TcpConnection) {
+            $this->input->close();
+        }
 
         if ($this->videoFpsCountTimer) {
             Timer::del($this->videoFpsCountTimer);

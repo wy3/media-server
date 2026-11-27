@@ -19,19 +19,17 @@ use MediaServer\Recorder\RecorderManager;
 
 final class AdminProcess
 {
-    public static function run(int $httpPort, string $recordPath, string $registryAddr): void
+    public static function run(int $httpPort, string $httpHost, string $recordPath, string $registryAddr): void
     {
         RecorderManager::$enabled = false;
         RecorderManager::$recordPath = $recordPath;
         MediaServer::enableAdminProxy($registryAddr);
 
-        $worker = new \Workerman\Worker('tcp://0.0.0.0:0');   // 无监听占位
-        $worker->onWorkerStart = function ($w) use ($httpPort) {
+        $worker = new \Workerman\Worker('tcp://127.0.0.1:0');   // 无监听占位
+        $worker->onWorkerStart = function ($w) use ($httpPort, $httpHost) {
             \MediaServer\Admin\AdminAuth::$startTime = timestamp();
             \MediaServer\Http\HttpWMServer::$publicPath = __DIR__ . '/../public';
-            $httpServer = new \MediaServer\Http\AdminHttpServer(
-                "\\MediaServer\\Http\\ExtHttpProtocol://0.0.0.0:$httpPort"
-            );
+            $httpServer = new \MediaServer\Http\AdminHttpServer($httpPort, $httpHost);
             $httpServer->listen();
         };
 

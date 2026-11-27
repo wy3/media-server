@@ -1,151 +1,149 @@
-﻿# 场景 3：推流并发测试
+﻿# 场景 3：推流并发测试（多进程架构）
 #
-# 文章做法：OBS 多路推流（未明确路数），10 分钟，观察 CPU/内存/断连
-# 本脚本：ffmpeg tee muxer 单进程推 N 路（避免 N 个进程的调度开销）
+# 流程：N 路 ffmpeg tee 并发推 ingest 进程 → 持续采样
 #
-# 为什么用 tee 而不是 N 个 ffmpeg 进程：
-#   实测 96 个 ffmpeg 进程会因 Windows 页面文件不足而启动失败，
-#   且进程调度本身干扰 CPU 测量。tee 单进程推 800 路无压力。
-#
-# 注意：推流端（ffmpeg）自己会占满 1 核，这是测量环境的瓶颈，
-#       不代表服务端上限。脚本会同时记录推流端 CPU 以便判断。
+# 指标：
+#   CPU    全部 php 服务进程之和（可 > 100%，100% = 合计 1 核）
+#   内存   进程树 WorkingSet 之和（MB），另记 Commit
+#   保持率 实际推流数 / 目标数
 
 param(
-    [ValidateSet('event', 'select')]
-    [string]$EventLoop = 'event',
-    [int]$Streams = 100,
+    [int]$Streams = 600,
     [double]$Minutes = 10,
-    [int]$RtmpPort = 11935,
-    [int]$HttpPort = 11980,
-    [string]$StreamPrefix = 'push',
+    [int]$IngestRtmpPort = 11935,
+    [string]$StreamPrefix = 'live/p',
     [int]$WarmupSeconds = 20,
-    [int]$SampleInterval = 30
+    [int]$SampleInterval = 30,
+    [int]$PushChunk = 250     # 每 ffmpeg tee 进程推的流数（Windows 命令行长度限制）
 )
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'lib\common.ps1')
+
+$script:ApiTimeoutSec = 10
 
 $sample = Join-Path $script:SamplesDir '1080p30_4m.flv'
 if (-not (Test-Path $sample)) {
     throw "缺少样本 $sample，先运行 .\tests\bench\gen_samples.ps1"
 }
 
-Write-Host "=== 场景 3：推流并发测试 ===" -ForegroundColor Cyan
-Write-Host "事件循环: $EventLoop | 推流: $Streams 路 | 时长: $Minutes 分钟"
+Write-Host "=== 场景 3：推流并发测试（每功能一进程）===" -ForegroundColor Cyan
+Write-Host "推流: $Streams 路 | 时长: $Minutes 分钟"
 
 $server = $null
-$pushProc = $null
+$pushProcs = @()
 
 try {
-    $server = Start-BenchServer -EventLoop $EventLoop -RtmpPort $RtmpPort -HttpPort $HttpPort
-    Write-Host "服务端已启动 (pid=$($server.Id))" -ForegroundColor Green
+    $server = Start-MpServers -IngestRtmpPort $IngestRtmpPort
+    $ports = $server.BenchPorts
+    $adminPort = $ports.adminHttp
+    Write-Host "服务端已启动（进程树见 launcher pid=$($server.Id)）" -ForegroundColor Green
 
-    # 用 tee muxer 单进程推 N 路
-    $slaves = (1..$Streams | ForEach-Object {
-        "[f=flv]rtmp://127.0.0.1:$RtmpPort/live/$StreamPrefix$_"
-    }) -join '|'
+    $token = Get-AdminToken -HttpPort $adminPort
 
-    Write-Host "启动 $Streams 路推流（tee muxer）..." -NoNewline
-    $pushProc = Start-Process -FilePath 'ffmpeg' -ArgumentList @(
-        '-hide_banner', '-loglevel', 'error'
-        '-re', '-stream_loop', '-1'
-        '-i', $sample
-        '-c', 'copy'
-        '-f', 'tee', '-map', '0', $slaves
-    ) -PassThru -WindowStyle Hidden `
-      -RedirectStandardError (Join-Path $env:TEMP 'bench_s3_push.err')
-    Write-Host " pid=$($pushProc.Id)"
+    # N 路推流，每 PushChunk 路一个 ffmpeg 进程（命令行长度限制）
+    $idx = 0
+    while ($idx -lt $Streams) {
+        $count = [math]::Min($PushChunk, $Streams - $idx)
+        $slaves = (1..$count | ForEach-Object {
+            "[f=flv]rtmp://127.0.0.1:$($ports.ingestRtmp)/$StreamPrefix$($idx + $_)"
+        }) -join '|'
+        $pushProcs += Start-Process -FilePath 'ffmpeg' -ArgumentList @(
+            '-hide_banner', '-loglevel', 'error'
+            '-re', '-stream_loop', '-1'
+            '-i', $sample
+            '-c', 'copy'
+            '-f', 'tee', '-map', '0', $slaves
+        ) -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $ports.logDir "s3_push_$idx.err")
+        $idx += $count
+    }
 
-    Write-Host "预热 $WarmupSeconds 秒（等待推流建立稳定）..." -NoNewline
+    # 等推流建立
+    Write-Host "等待 $Streams 路推流建立..." -NoNewline
+    $initial = 0
+    $deadline = (Get-Date).AddSeconds(120)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 800
+        try {
+            $st = Invoke-AdminApiSafe -Token $token -Name 'listPushStream' -HttpPort $adminPort
+            $initial = if ($st) { @($st).Count } else { 0 }
+            if ($initial -ge $Streams) { break }
+        } catch { }
+    }
+    Write-Host " ($initial / $Streams)"
+    if ($initial -lt $Streams) { Write-Host "警告: 推流未全部建立" -ForegroundColor Yellow }
+
+    Write-Host "预热 $WarmupSeconds 秒..." -NoNewline
     Start-Sleep -Seconds $WarmupSeconds
     Write-Host " 完成"
 
-    $token = Get-AdminToken -HttpPort $HttpPort
-    $initial = @(Invoke-AdminApi -Token $token -Name 'listPushStream' -HttpPort $HttpPort)
-    Write-Host ("实际建立推流: {0} / {1}" -f $initial.Count, $Streams) -ForegroundColor Green
-
-    $badFps = @($initial | Where-Object { $_.videoFps -lt 25 })
-    if ($badFps.Count -gt 0) {
-        Write-Host ("  警告: {0} 路 fps < 25" -f $badFps.Count) -ForegroundColor Yellow
-    }
-
-    # 持续采样
+    # 持续采样（进程树口径）
     $totalSeconds = $Minutes * 60
     $samples = @()
     $elapsed = 0
     $t0 = Get-Date
-    $server.Refresh()
-    $cpu0 = $server.TotalProcessorTime.TotalSeconds
-    $pushProc.Refresh()
-    $pushCpu0 = $pushProc.TotalProcessorTime.TotalSeconds
+    $base = Get-MpTreeUsage
+    $apiFail = 0
 
     while ($elapsed -lt $totalSeconds) {
         Start-Sleep -Seconds $SampleInterval
         $elapsed = ((Get-Date) - $t0).TotalSeconds
-        $server.Refresh()
-        $cpu = $server.TotalProcessorTime.TotalSeconds
-        $pushProc.Refresh()
-        $pushCpu = $pushProc.TotalProcessorTime.TotalSeconds
+        $now = Get-MpTreeUsage
 
-        $streams = $null
-        try {
-            # 用非 job 版本：job 序列化会截断大数组（200 条以上实测丢失）
-            $streams = Invoke-AdminApi -Token $token -Name 'listPushStream' -HttpPort $HttpPort
-        } catch { }
+        $st = Invoke-AdminApiSafe -Token $token -Name 'listPushStream' -HttpPort $adminPort
+        $active = if ($st) { @($st).Count } else { -1 }
+
+        if ($active -lt 0) {
+            $apiFail++
+            if ($apiFail -ge 2) {
+                Write-Host "  检测到服务端 API 连续无响应，提前退出" -ForegroundColor Red
+                break
+            }
+        } else { $apiFail = 0 }
 
         $s = [pscustomobject]@{
             t = [math]::Round($elapsed, 0)
-            cpuCorePct = [math]::Round(($cpu - $cpu0) / $elapsed * 100, 2)
-            pushCpuCorePct = [math]::Round(($pushCpu - $pushCpu0) / $elapsed * 100, 2)
+            svcCpuPct = [math]::Round(($now.CpuSeconds - $base.CpuSeconds) / $elapsed * 100, 2)
             sysCpuPct = Get-SystemCpuPct
-            wsMB = [math]::Round($server.WorkingSet64 / 1MB, 1)
-            streams = if ($streams) { @($streams).Count } else { -1 }
-            lowFpsCount = if ($streams) { @($streams | Where-Object { $_.videoFps -lt 25 }).Count } else { -1 }
-            serverAlive = -not $server.HasExited
-            pushAlive = -not $pushProc.HasExited
+            wsMB = $now.WsMB
+            commitMB = $now.CommitMB
+            procs = $now.Count
+            active = $active
         }
         $samples += $s
-        Write-Host ("  [{0,4}s] svc={1,6:N1}% push={2,6:N1}% sys={3,5:N0}% ws={4,6:N1}MB streams={5}/{6} lowFps={7}" -f `
-            $s.t, $s.cpuCorePct, $s.pushCpuCorePct, $s.sysCpuPct, $s.wsMB, $s.streams, $Streams, $s.lowFpsCount)
+        Write-Host ("  [{0,4}s] svc={1,6:N1}% sys={2,5:N0}% ws={3,6:N1}MB procs={4} push={5}/{6}" -f `
+            $s.t, $s.svcCpuPct, $s.sysCpuPct, $s.wsMB, $s.procs, $active, $Streams)
     }
 
+    # 汇总
     $final = $samples[-1]
-    $cpuSamples = @($samples | Select-Object -ExpandProperty cpuCorePct)
-    $streamSamples = @($samples | Where-Object { $_.streams -ge 0 } | Select-Object -ExpandProperty streams)
-    $wsSamples = @($samples | Select-Object -ExpandProperty wsMB)
+    $pushSamples = @($samples | Where-Object { $_.active -ge 0 } | Select-Object -ExpandProperty active)
+    $cpuSamples = @($samples | Select-Object -ExpandProperty svcCpuPct)
 
     $summary = [pscustomobject]@{
         TargetStreams = $Streams
-        InitialStreams = $initial.Count
-        FinalStreams = $final.streams
-        MinStreams = if ($streamSamples.Count) { ($streamSamples | Measure-Object -Minimum).Minimum } else { 0 }
-        RetentionPct = if ($Streams -gt 0) { [math]::Round($final.streams / $Streams * 100, 1) } else { 0 }
-        CpuCorePctAvg = [math]::Round(($cpuSamples | Measure-Object -Average).Average, 2)
-        CpuCorePctMax = ($cpuSamples | Measure-Object -Maximum).Maximum
-        PushCpuCorePct = $final.pushCpuCorePct
+        InitialStreams = $initial
+        FinalStreams = $final.active
+        MinStreams = if ($pushSamples) { ($pushSamples | Measure-Object -Minimum).Minimum } else { -1 }
+        RetentionPct = if ($Streams -gt 0) { [math]::Round($final.active / $Streams * 100, 1) } else { 0 }
+        SvcCpuPctAvg = [math]::Round(($cpuSamples | Measure-Object -Average).Average, 2)
+        SvcCpuPctMax = ($cpuSamples | Measure-Object -Maximum).Maximum
         WsMBEnd = $final.wsMB
-        WsMBMax = ($wsSamples | Measure-Object -Maximum).Maximum
-        PerStreamCpuPct = if ($final.streams -gt 0) { [math]::Round($final.cpuCorePct / $final.streams, 4) } else { 0 }
-        LowFpsStreams = $final.lowFpsCount
-        ServerAlive = $final.serverAlive
-        PushToolAlive = $final.pushAlive
+        CommitMBEnd = $final.commitMB
+        Procs = $final.procs
+        PerStreamCpuPct = if ($final.active -gt 0) { [math]::Round($final.svcCpuPct / $final.active, 4) } else { 0 }
     }
 
     Write-Host ""
     Write-Host "=== 汇总 ===" -ForegroundColor Cyan
     Write-Host ("  推流: 初始 {0} → 最终 {1} / 目标 {2}（保持率 {3}%）" -f `
         $summary.InitialStreams, $summary.FinalStreams, $Streams, $summary.RetentionPct)
-    Write-Host ("  CPU:  均值 {0:N2}%  峰值 {1:N2}%  每路 {2:N4}%（推流端 {3:N1}%）" -f `
-        $summary.CpuCorePctAvg, $summary.CpuCorePctMax, $summary.PerStreamCpuPct, $summary.PushCpuCorePct)
-    Write-Host ("  内存: 最终 {0:N1} MB  峰值 {1:N1} MB" -f $summary.WsMBEnd, $summary.WsMBMax)
-    Write-Host ("  掉帧: {0} 路 fps<25" -f $summary.LowFpsStreams)
-    Write-Host ("  存活: 服务端={0} 推流端={1}" -f $summary.ServerAlive, $summary.PushToolAlive)
+    Write-Host ("  CPU:  均值 {0:N2}%  峰值 {1:N2}%  每路 {2:N4}%  (进程树合计)" -f `
+        $summary.SvcCpuPctAvg, $summary.SvcCpuPctMax, $summary.PerStreamCpuPct)
+    Write-Host ("  内存: 最终 {0:N1} MB (ws) / {1:N1} MB (commit)" -f $summary.WsMBEnd, $summary.CommitMBEnd)
+    Write-Host ("  进程: {0}" -f $summary.Procs)
 
-    if ($summary.PushCpuCorePct -gt 90) {
-        Write-Host "  注意: 推流端已占满 1 核，服务端数据可能受客户端限制" -ForegroundColor Yellow
-    }
-
-    Save-BenchResult -Scenario 's3_push' -EventLoop $EventLoop -Data @{
+    Save-BenchResult -Scenario 's3_push' -EventLoop 'multiprocess' -Data @{
         summary = $summary
         samples = $samples
         config = @{
@@ -154,13 +152,15 @@ try {
             streamPrefix = $StreamPrefix
             warmupSeconds = $WarmupSeconds
             sampleInterval = $SampleInterval
+            pushChunk = $PushChunk
             resolution = '1920x1080'
             bitrateKbps = 4096
-            pushTool = 'ffmpeg tee'
         }
     } | Out-Null
 }
 finally {
-    if ($pushProc -and -not $pushProc.HasExited) { Stop-Process -Id $pushProc.Id -Force -ErrorAction SilentlyContinue }
-    if ($server) { Stop-BenchServer -Process $server }
+    foreach ($p in $pushProcs) {
+        if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
+    }
+    if ($server) { Stop-MpServers -Launcher $server }
 }

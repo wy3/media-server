@@ -18,13 +18,13 @@ use MediaServer\Utils\StreamRegistryControl;
 
 final class ControlProcess
 {
-    public static function run(int $registryPort, string $dbFile): void
+    public static function run(int $registryPort, string $registryHost, string $dbFile): void
     {
         RecorderManager::$enabled = false;
         StreamRegistryControl::setDbFile($dbFile);
 
         // 注册表监听：Workerman Worker（Text 协议，行分隔 JSON）
-        $registry = new \Workerman\Worker("tcp://0.0.0.0:$registryPort");
+        $registry = new \Workerman\Worker("tcp://$registryHost:$registryPort");
         StreamRegistryControl::bind($registry);
 
         // 注意：dbFile 不能作为 argv 传入——Workerman Windows 的

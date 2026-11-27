@@ -37,12 +37,17 @@
 ; php.ini —— 顺序不能反，php_event.dll 直接链接 php_sockets.dll
 extension=sockets
 extension=event
+extension=shmop        ; 改版后推流写入 shm 帧总线，压测也依赖
 ```
+
+> sockets 是 event 扩展的加载依赖，与业务是否使用 UDP 组播无关（组播已移除）。
+> 压测脚本 `Start-BenchServer` 会用 `-d extension=...` 显式加载这三项，
+> php.ini 里即使没启用也能跑。
 
 验证：
 
 ```powershell
-php -d extension=sockets -d extension=event -r "echo phpversion('event'), PHP_EOL;"
+php -d extension=sockets -d extension=event -d extension=shmop -r "echo phpversion('event'), PHP_EOL;"
 # 应输出 3.2.0
 ```
 
@@ -313,7 +318,7 @@ Windows 命令行长度上限约 32KB。`s4_ramp.ps1` 与 `s5_mixed.ps1` 已按 
 
 ```powershell
 # 0. 前置检查
-php -d extension=sockets -d extension=event -r "echo phpversion('event');"   # 应输出 3.2.0
+php -d extension=sockets -d extension=event -d extension=shmop -r "echo phpversion('event');"   # 应输出 3.2.0
 ffmpeg -version                                                              # 应有输出
 $env:RTMPSTRESS = "$env:TEMP\rtmpstress\rtmpstress.exe"                       # 或放进 PATH
 

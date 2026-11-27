@@ -11,40 +11,52 @@
 | [RESULTS.md](./RESULTS.md) | 实测结果与分析（中文） |
 | [RESULTS_EN.md](./RESULTS_EN.md) | Results and analysis (English) |
 
-## 三个场景
+## 场景脚本
 
-| 场景 | 内容 | 主要指标 |
+| 脚本 | 内容 | 主要指标 |
 |---|---|---|
-| **S1 时延** | 1 路推 + 1 路拉，测端到端延迟 | 帧级延迟（毫秒） |
-| **S2 拉流** | 1 路推 + N 路并发拉（单档） | CPU / 内存 / 连接保持率 |
-| **S3 推流** | N 路并发推 + 不拉流（单档） | CPU / 内存 / 连接保持率 |
-| **S4 逐级加压** | 从低到高逐档加压 | **容量拐点（主要依据）** |
-| **S5 混合** | 同时 N 路推 + M 路拉 | 相互影响、总容量 |
+| **s1_latency.ps1** | 1 路推 + 1 路拉，测端到端延迟 | 帧级延迟（毫秒） |
+| **s2_pull.ps1** / **s3_push.ps1** | 固定并发拉流 / 推流（单档，长时间稳定性） | CPU / 内存 / 保持率 |
+| **s4_ramp.ps1** | **自动爬坡容量测试（主要依据）** | 容量、每路成本、拐点 |
+| **s5_mixed.ps1** / **mp_mixed.ps1** | 混合推拉矩阵 | 相互影响、总容量 |
+| **mp_pull.ps1** / **mp_diag.ps1** | 按进程角色拆分的拉流诊断 | 瓶颈定位 |
 
 ## 快速开始
 
 ```powershell
-# 1. 生成样本（1920x1080 30fps 4096kb/s）
+# 1. 生成样本（1920x1080 30fps 4096kb/s，仅首次需要）
 .\tests\bench\gen_samples.ps1
 
-# 2. 逐级加压（推荐，能看出容量拐点）
-.\tests\bench\s4_ramp.ps1 -Scenario pull -EventLoop event -Steps 100,200,400,600,800,1000
-.\tests\bench\s4_ramp.ps1 -Scenario push -EventLoop event -Steps 100,200,400,600,800,1000,1200
+# 2. 自动爬坡容量测试（核心：服务端只起一次，按进程独立饱和判定）
+.\tests\bench\s4_ramp.ps1 -Scenario pull -PlayCount 6
+.\tests\bench\s4_ramp.ps1 -Scenario push -IngestCount 1 -EnableJit
 
-# 3. 混合推拉（更接近生产负载）
-.\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','200/500','500/500','500/200','500/100','500/50'
-
-# 4. 或单场景
-.\tests\bench\s1_latency.ps1 -EventLoop event -Samples 10
-.\tests\bench\s2_pull.ps1 -EventLoop event -Concurrency 800 -Minutes 10
-.\tests\bench\s3_push.ps1 -EventLoop event -Streams 600 -Minutes 10
+# 3. 固定并发 / 混合矩阵
+.\tests\bench\s2_pull.ps1 -Concurrency 500 -Minutes 10
+.\tests\bench\s3_push.ps1 -Streams 600 -Minutes 10
+.\tests\bench\s5_mixed.ps1 -Matrix '50/500','100/500','500/500'
 ```
 
-**为什么推荐逐级加压**：单点测试看不出拐点。比如只测 800 路，
-select 会直接卡死，看不出「200 路是好的、300 是死的」这条边界。
+**自动爬坡策略（s4_ramp）**：服务端只启动一次，全程不重启。每 `RampIntervalSec`
+（默认 5s）给**每个未饱和的目标进程**各追加 `RampBatch`（默认 100）路；
+单进程 CPU 连续 ≥80% 维持 30s 即锁定该进程（不再给它加压）；若 CPU 回落到
+阈值以下则解锁、可以继续加。所有目标进程都锁定后，保持负载 40s 做稳定性
+考核（保持率 ≥95% 判定通过）。这样测出的容量是"所有进程都跑到饱和"的总容量，
+而不是某个进程先到阈值就全局停。
 
-**为什么还要测混合**：单测推流或单测拉流都会低估真实负载，
-且两者的开销结构不同（推流内存密集、拉流连接密集）。
+### 压测服务端的架构
+
+`Start-MpServers`（`lib/common.ps1`）启动完整的多进程服务端：
+
+- **control**（注册中心）：流注册表，端口 12090（默认），DB 落在临时目录
+- **ingest × N**：推流入口，端口 11935 起（多实例 `+10`）
+- **play × N**：拉流入口，端口 11936 起（多实例 `+10`）
+- **admin**：管理 API，端口 18099（默认），代理 control 数据
+- 录像进程默认不启动（`-WithRecord` 可开）
+
+CPU / 内存按**目标角色进程**统计（s4_ramp）：拉流看 play 进程合计除以进程数
+（单进程平均），推流看 ingest 进程；进程树全量 CPU 作为参考值 `allCpu` 同时记录。
+`-EnableJit` 给子进程加 `opcache.jit=tracing`（推流路径有收益，拉流无）。
 
 ## 前置准备
 
@@ -64,7 +76,12 @@ select 会直接卡死，看不出「200 路是好的、300 是死的」这条�
 ; php.ini —— 顺序不能反，php_event.dll 直接链接 php_sockets.dll
 extension=sockets
 extension=event
+extension=shmop        ; 帧总线（改版后推流写入 shm）
 ```
+
+> sockets 是 event 扩展的加载依赖（不是业务用 UDP 组播——组播已移除）；
+> shmop 用于进程间帧总线。压测脚本会通过 `-d extension=...` 显式加载这三项，
+> 不依赖 php.ini 是否启用。
 
 ### 2. 安装 rtmpstress（拉流压测）
 

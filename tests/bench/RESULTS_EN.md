@@ -1,4 +1,4 @@
-# Benchmark Results: select vs event
+# Benchmark Results: single-process baseline & multi-process capacity
 
 [简体中文](./RESULTS.md) | English
 
@@ -8,7 +8,64 @@ End-to-end performance benchmarks for media-server.
 > measurement scopes are **not directly comparable**.
 > Use these only for `select` vs `event` and before/after-refactor comparisons.
 
-## Scenarios
+## Multi-process capacity (current, `capacity_*` result files)
+
+**Strategy**: the server (control / ingest / play / admin) is started once and
+never restarted during a run. Every 5 s each unsaturated play/ingest worker gets
++100 streams. A worker is "saturated" after its own CPU stays ≥80% for 30 s
+(if CPU drops back it unlocks and can receive more load). Once all workers are
+locked, the load is held for 40 s and ≥95% retention is required to pass.
+
+**Conditions**: AMD Ryzen 9 9900X (12C/24T), Windows, PHP 8.4.25, 1080p30
+4096 kb/s, ffmpeg `-c copy` push, rtmpstress pull, recording disabled.
+
+### Pull capacity vs play-worker count
+
+| Play workers | Capacity | Avg CPU / worker | Memory (ws) | Per worker |
+|---|---|---|---|---|
+| 1 | 950 | 98.9% | 102 MB | 950 |
+| 2 | 1600 | 94.8% | 69 MB | 800 |
+| 5 | 3000 | 98.4% | 160 MB | 600 |
+| 6 | **3599** | 103.2% | 196 MB | 600 |
+| 6 + JIT | 3600 | 97.2% | 245 MB | 600 |
+| 8 | 3200 | 100.2% | 231 MB | 400 |
+| 10 | 4000 | 85.9% | 288 MB | 400 |
+
+**Takeaway**: 6 play workers is the sweet spot (3599 streams). Beyond that,
+per-worker efficiency halves (~400/worker) as system-level costs (rtmpstress
+clients, NIC, scheduling) dominate. JIT gives no pull benefit (socket-bound).
+
+### Push capacity (1 ingest worker)
+
+| Config | Capacity | Avg CPU | Memory |
+|---|---|---|---|
+| Default | 800 | 90.5% | 931 MB |
+| JIT | 800 | **82.4%** | 953 MB |
+
+JIT cuts push-path CPU by ~9% (FLV parsing is JIT-compiled); recommended for
+ingest workers. GC-disabling was tested and removed (no meaningful benefit).
+
+### Issues fixed during testing
+
+1. **AsyncTcpConnection busy-loop**: php_event on Windows keeps reporting
+   async-connect sockets as ready, burning a full core per idle process. Fixed
+   by `fsockopen` + Workerman `TcpConnection` (sync connect, async I/O).
+2. **Heartbeat-based stale sweep**: under load, active streams were falsely
+   unregistered and all players closed. Removed `sweepStale` — stream liveness
+   is handled by ingest TCP connection close.
+3. **Benchmark stats reset to 0**: the 5 s stats-report delay made the script
+   reset its target to a transient 0. Now uses the historical peak.
+4. **Saturation metric**: switched from "whole tree CPU ≥100%" to "target-role
+   per-process average ≥80% for 30 s" so multi-worker thresholds stay meaningful.
+
+---
+
+## Historic single-process baseline
+
+> The data below is from the retired single-process architecture, kept for
+> historical comparison only; scripts and metrics no longer match the current version.
+
+## Scenarios (historic)
 
 | Scenario | Contents | Script |
 |---|---|---|

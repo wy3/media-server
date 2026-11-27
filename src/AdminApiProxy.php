@@ -81,7 +81,7 @@ final class AdminApiProxy
         $line = fgets($sock);
         fclose($sock);
         $reply = $line !== false ? json_decode(trim($line), true) : null;
-        if (!is_array($reply) || ($reply['ok'] ?? false) !== true) {
+        if (!$reply['ok']) {
             return $name === 'listPushStream' ? [] : [
                 'publishCount' => 0, 'playCount' => 0, 'uptime' => 0,
                 'memory' => 0, 'memoryPeak' => 0, 'time' => time(),
@@ -90,12 +90,12 @@ final class AdminApiProxy
         if ($name === 'listPushStream') {
             return array_map(
                 fn($p) => ['publishStreamPath' => $p],
-                (array)($reply['paths'] ?? [])
+                $reply['paths']
             );
         }
         // 聚合各进程上报的统计
         $total = ['publishCount' => 0, 'playCount' => 0, 'memory' => 0, 'time' => time()];
-        foreach ((array)($reply['stats'] ?? []) as $entry) {
+        foreach ($reply['stats'] as $entry) {
             $d = $entry['data'] ?? [];
             if (($entry['role'] ?? '') === 'ingest') $total['publishCount'] += (int)($d['publishCount'] ?? 0);
             if (($entry['role'] ?? '') === 'play') $total['playCount'] += (int)($d['playCount'] ?? 0);

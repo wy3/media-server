@@ -9,7 +9,6 @@ use MediaServer\Admin\AdminAuth;
 use MediaServer\MediaReader\MediaFrame;
 use MediaServer\PushServer\PlayStreamInterface;
 use MediaServer\PushServer\PublishStreamInterface;
-use MediaServer\PushServer\VerifyAuthStreamInterface;
 use MediaServer\Recorder\Mp4Recorder;
 use MediaServer\Recorder\RecorderManager;
 use MediaServer\Utils\FrameBusInterface;
@@ -427,7 +426,7 @@ class MediaServer
             self::delPublishStream($path);
 
             // 推流结束通知（fire-and-forget，control 广播 notify.unpublish）
-            self::$registryClient?->send('publish.end', ['path' => $path]);
+            self::$registryClient->send('publish.end', ['path' => $path]);
 
         });
 
@@ -479,11 +478,4 @@ class MediaServer
         logger()->info(' add player {path}', ['path' => $path]);
     }
 
-    /**
-     * @param VerifyAuthStreamInterface $stream
-     */
-    static public function verifyAuth(VerifyAuthStreamInterface $stream): bool
-    {
-        return true;
-    }
 }

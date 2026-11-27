@@ -1,62 +1,61 @@
-# 拉流基准：1 路推流 + N 路拉流，测 play 进程 CPU（对照旧 S4 单进程数据）
+# 拉流基准：1 路推流 + N 路拉流，按进程角色拆分 CPU（对照旧 S4 单进程数据）。
+#
+# 架构：完整多进程服务端（每功能一进程，录像关闭）。
+# 特点：CPU 按 ingest / play 角色分别统计，能看出推流与拉流的开销分布。
+#
+# 用法：
+#   .\mp_pull.ps1 -Pulls 500 -MeasureSeconds 30
+
 param(
     [int]$Pulls = 500,
     [int]$MeasureSeconds = 30,
     [int]$WarmupSeconds = 20,
-    [int]$PlayCount = 1          # play 进程数
+    [int]$IngestRtmpPort = 11935,
+    [int]$PlayRtmpPort = 11936,
+    [int]$PlayHttpPort = 11980
 )
 
-$ErrorActionPull = 'Stop'
-$repoRoot = 'F:\work-data\media-server'
-$extDir = 'D:\php-8.4.25-nts-Win32-vs17-x64\ext'
-$sample = Join-Path $repoRoot 'tests\bench\samples\1080p30_4m.flv'
-$rtmpstress = Join-Path $env:TEMP 'rtmpstress\rtmpstress.exe'
-$tmp = Join-Path $env:TEMP "pull_bench_$Pulls"
-New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-Remove-Item "$tmp\*" -Recurse -Force -ErrorAction SilentlyContinue
+$ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'lib\common.ps1')
 
-$env:MP_LOG_DIR = $tmp
-$env:MP_MEMORY_LIMIT = '2G'
-Remove-Item Env:MP_DEBUG -ErrorAction SilentlyContinue
+$rtmpstress = Resolve-RtmpStress
+$sample = Join-Path $script:SamplesDir '1080p30_4m.flv'
 
-$launcher = Start-Process php -ArgumentList @(
-    '-d',"extension_dir=$extDir",'-d','extension=shmop','-d','extension=sockets','-d','extension=event',
-    'start_multiprocess.php','1',"$PlayCount",'0',
-    '11935','11936','11980','11981'
-) -PassThru -WindowStyle Hidden -RedirectStandardOutput "$tmp\l.out" -RedirectStandardError "$tmp\l.err"
-
-$push = $null; $stressProcs = @()
+$server = $null
+$push = $null
+$stressProcs = @()
 try {
-    # 等端口
-    $deadline = (Get-Date).AddSeconds(20)
-    while ((Get-Date) -lt $deadline) {
-        if ((Test-NetConnection 127.0.0.1 -Port 11935 -InformationLevel Quiet -WarningAction SilentlyContinue) -and
-            (Test-NetConnection 127.0.0.1 -Port 11936 -InformationLevel Quiet -WarningAction SilentlyContinue)) { break }
-        Start-Sleep -Milliseconds 400
-    }
+    $server = Start-MpServers `
+        -IngestRtmpPort $IngestRtmpPort -PlayRtmpPort $PlayRtmpPort -PlayHttpPort $PlayHttpPort
+    $ports = $server.BenchPorts
+    $adminPort = $ports.adminHttp
+    $token = Get-AdminToken -HttpPort $adminPort
 
     $push = Start-Process ffmpeg -ArgumentList @(
         '-hide_banner','-loglevel','error','-re','-stream_loop','-1','-i',$sample,
-        '-c','copy','-f','flv','rtmp://127.0.0.1:11935/live/pullbench'
-    ) -PassThru -WindowStyle Hidden -RedirectStandardError "$tmp\push.err"
+        '-c','copy','-f','flv',"rtmp://127.0.0.1:$($ports.ingestRtmp)/live/pullbench"
+    ) -PassThru -WindowStyle Hidden -RedirectStandardError (Join-Path $ports.logDir 'push.err')
 
-    # 等推流就绪
-    Start-Sleep -Seconds 5
-
-    # 拉流分摊到各 play 实例（端口 11936 + i*10）
-    $perPlay = [math]::Ceiling($Pulls / [math]::Max(1, $PlayCount))
-    for ($g = 0; $g -lt $PlayCount; $g++) {
-        $n = [math]::Min($perPlay, $Pulls - $g * $perPlay)
-        if ($n -le 0) { break }
-        $port = 11936 + $g * 10
-        $stressProcs += Start-Process $rtmpstress -ArgumentList @('-c',$n,'-i',"rtmp://127.0.0.1:$port/live/pullbench") `
-            -PassThru -WindowStyle Hidden -RedirectStandardOutput "$tmp\pull_$g.out" -RedirectStandardError "$tmp\pull_$g.err"
+    # 等推流就绪（API 代理到 control 注册表）
+    $deadline = (Get-Date).AddSeconds(60)
+    $ready = $false
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Milliseconds 500
+        $st = Invoke-AdminApiSafe -Token $token -Name 'listPushStream' -HttpPort $adminPort -TimeoutSec 5
+        if ($st -and @($st).Count -ge 1) { $ready = $true; break }
     }
+    if (-not $ready) { throw "推流未就绪" }
+
+    $stressProcs += Start-Process $rtmpstress -ArgumentList @(
+        '-c',$Pulls,'-i',"rtmp://127.0.0.1:$($ports.playRtmp)/live/pullbench"
+    ) -PassThru -WindowStyle Hidden `
+        -RedirectStandardOutput (Join-Path $ports.logDir 'pull.out') `
+        -RedirectStandardError (Join-Path $ports.logDir 'pull.err')
 
     Write-Host "预热 ${WarmupSeconds}s..."
     Start-Sleep -Seconds $WarmupSeconds
 
-    # 采样 play 进程 + ingest 进程
+    # 按角色采样 CPU（ingest / play 分开，能看出推拉各自开销）
     function Get-WorkerProcs {
         Get-CimInstance Win32_Process -Filter "Name='php.exe'" |
             Where-Object { $_.CommandLine -match 'worker\.php.{0,10}(ingest|play)' } |
@@ -83,26 +82,24 @@ try {
     }
 
     # 连接保持检查
-    $playProc = Get-WorkerProcs | Where-Object { $_.Role -eq 'play' } | Select-Object -First 1
-    if ($playProc) {
-        try {
-            $body = @{ name='login'; args=@('admin','admin123') } | ConvertTo-Json -Compress
-            $r = Invoke-RestMethod -Uri "http://127.0.0.1:11980/api" -Method Post -ContentType 'application/json' -Body $body
-            $cnt = Invoke-RestMethod -Uri "http://127.0.0.1:11980/api" -Method Post -ContentType 'application/json' `
-                -Headers @{ 'X-Auth-Token' = $r.token } `
-                -Body (@{ name='getPlayStreamCount'; args=@('/live/pullbench') } | ConvertTo-Json -Compress)
-            Write-Host ("  拉流连接: {0}/{1}" -f $cnt.count, $Pulls) -ForegroundColor Green
-        } catch {
-            Write-Host "  API 查询失败: $_" -ForegroundColor Yellow
-        }
+    try {
+        $cnt = Invoke-AdminApiSafe -Token $token -Name 'getPlayStreamCount' -Args @('/live/pullbench') -HttpPort $adminPort -TimeoutSec 8
+        $n = if ($cnt) { $cnt.count } else { '?' }
+        Write-Host ("  拉流连接: {0}/{1}" -f $n, $Pulls) -ForegroundColor Green
+    } catch {
+        Write-Host "  API 查询失败: $_" -ForegroundColor Yellow
     }
+
+    Save-BenchResult -Scenario 'mp_pull' -EventLoop 'multiprocess' -Data @{
+        pulls = $Pulls
+        measureSeconds = $MeasureSeconds
+        warmupSeconds = $WarmupSeconds
+        ingestRtmpPort = $IngestRtmpPort
+        playRtmpPort = $PlayRtmpPort
+    } | Out-Null
 }
 finally {
     foreach ($pl in $stressProcs) { if ($pl -and -not $pl.HasExited) { Stop-Process -Id $pl.Id -Force -ErrorAction SilentlyContinue } }
     if ($push -and -not $push.HasExited) { Stop-Process -Id $push.Id -Force -ErrorAction SilentlyContinue }
-    if ($launcher -and -not $launcher.HasExited) { Stop-Process -Id $launcher.Id -Force -ErrorAction SilentlyContinue }
-    Start-Sleep 2
-    Get-CimInstance Win32_Process -Filter "Name='php.exe' or Name='ffmpeg.exe'" |
-        Where-Object { $_.CommandLine -match 'worker\.php|start_multiprocess|pullbench' } |
-        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    if ($server) { Stop-MpServers -Launcher $server }
 }

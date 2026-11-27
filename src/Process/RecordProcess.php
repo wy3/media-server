@@ -66,7 +66,7 @@ final class RecordProcess
             $entry['recorder']->onFrame($frame);
         });
 
-        $worker = new \Workerman\Worker('tcp://0.0.0.0:0');   // 无监听端口
+        $worker = new \Workerman\Worker('tcp://127.0.0.1:0');   // 无监听端口
         $worker->onWorkerStart = function ($w) use ($consumer) {
             $consumer->start();
         };

@@ -22,7 +22,12 @@ use Workerman\Worker;
  */
 class StreamRegistryControl
 {
-    public const STALE_AFTER = 15.0;
+    /**
+     * 心跳过期阈值（秒）。只兜 ingest 进程假死（TCP 未断但完全停摆），
+     * 正常崩溃由 handleClose（连接断开）即时自愈。CPU 饱和时 ingest 的
+     * 5s 心跳定时器会被挤压延迟，阈值必须远大于可预期的过载延迟。
+     */
+    public const STALE_AFTER = 60.0;
 
     private static ?PDO $pdo = null;
 
@@ -83,7 +88,7 @@ class StreamRegistryControl
     protected static function handleLine(TcpConnection $conn, string $line): void
     {
         if (getenv('MP_DEBUG')) {
-            fwrite(STDERR, "[registry-ctrl] recv: $line\n");
+            logger()->debug("[registry-ctrl] recv: $line");
         }
         $msg = json_decode($line, true);
         if (!is_array($msg) || !isset($msg['op'])) {
@@ -126,8 +131,7 @@ class StreamRegistryControl
                 $path = (string)($msg['path'] ?? '');
                 $pid = (int)($msg['pid'] ?? 0);
                 $shm = is_array($msg['shm'] ?? null) ? $msg['shm'] : [];
-                fwrite(STDERR, "[registry] publish.req path=$path pid=$pid\n");
-                self::sweepStale();
+                logger()->info("[registry] publish.req path={path} pid={pid}", ['path' => $path, 'pid' => $pid]);
                 $existing = self::$streams[$path] ?? null;
                 if ($existing !== null && $existing['pid'] !== $pid
                     && (microtime(true) - $existing['ts']) <= self::STALE_AFTER) {
@@ -170,7 +174,6 @@ class StreamRegistryControl
             // ── play/record ──
             case 'subscribe.req':
                 $path = (string)($msg['path'] ?? '');
-                self::sweepStale();
                 if (isset(self::$streams[$path])) {
                     $s = self::$streams[$path];
                     // 流存在：立即消费（shm 布局由 control 下发）
@@ -189,7 +192,7 @@ class StreamRegistryControl
 
             // ── admin ──
             case 'admin.list':
-                fwrite(STDERR, "[registry] admin.list streams=" . count(self::$streams) . "\n");
+                logger()->info('[registry] admin.list streams={n}', ['n' => count(self::$streams)]);
                 $conn->send(json_encode(['mid' => $mid, 'ok' => true, 'paths' => array_keys(self::$streams)]) . "\n");
                 break;
 
@@ -275,7 +278,11 @@ class StreamRegistryControl
     }
 
     /**
-     * 清理心跳超时的流。
+     * 清理心跳超时的流（兜底，正常自愈走 handleClose：ingest 连接断开即注销全部流）。
+     *
+     * 心跳由 ingest 的 5s 定时器上报；CPU 饱和时事件循环过载，心跳会延迟
+     * 甚至停发十几秒——但这不代表流死了（推流端还在写帧）。宽阈值只兜
+     * 进程假死（TCP 未断但完全停摆）的场景。
      */
     protected static function sweepStale(): void
     {
@@ -287,14 +294,24 @@ class StreamRegistryControl
             }
         }
         foreach ($stale as $p) {
+            logger()->warning('[registry] stale sweep: {path}', ['path' => $p]);
             self::removeStream($p);
         }
     }
 
-    // ── SQLite 持久化（崩溃恢复用，1s 批量落盘） ──
+    // ── SQLite 持久化（崩溃恢复用，1s 批量落盘；可用 disablePersistence 关闭） ──
+
+    private static bool $persistenceEnabled = true;
+
+    /** 关闭持久化（压测场景：避免上千条流时 1s 全表重写卡住事件循环） */
+    public static function disablePersistence(): void
+    {
+        self::$persistenceEnabled = false;
+    }
 
     protected static function ensureFlushTimer(): void
     {
+        if (!self::$persistenceEnabled) return;
         if (self::$flushTimerStarted) return;
         self::$flushTimerStarted = true;
         Timer::add(1.0, function () {
@@ -336,6 +353,7 @@ class StreamRegistryControl
 
     protected static function restore(): void
     {
+        if (!self::$persistenceEnabled) return;
         try {
             $pdo = self::pdo();
             $now = microtime(true);

@@ -6,9 +6,6 @@ namespace MediaServer\Http;
 
 use MediaServer\Flv\FlvPublisherStream;
 use MediaServer\MediaServer;
-use Psr\Http\Message\StreamInterface;
-use React\Promise\Promise;
-use React\Stream\ReadableStreamInterface;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
 
@@ -24,14 +21,8 @@ class IngestHttpServer extends HttpWMServer
     {
         $path = $request->path();
 
-        if (!preg_match('#^/live/.+#', $path)) {
+        if (!preg_match('#^/live/.+\.flv$#', $path)) {
             $request->connection->send(new Response(404, [], '404 Not Found'));
-            return;
-        }
-
-        $bodyStream = $request->getBody();
-        if (!$bodyStream instanceof StreamInterface || !$bodyStream instanceof ReadableStreamInterface) {
-            $request->connection->send(new Response(500, ['Content-Type' => 'text/plain'], 'Stream error.'));
             return;
         }
 
@@ -41,16 +32,23 @@ class IngestHttpServer extends HttpWMServer
             return;
         }
 
-        return new Promise(function ($resolve, $reject) use ($bodyStream, $path) {
-            $flvReadStream = new FlvPublisherStream($bodyStream, $path);
-            MediaServer::addPublish($flvReadStream);
-            logger()->info('stream {path} created', ['path' => $path]);
-            $flvReadStream->on('on_end', function () use ($resolve) {
-                $resolve(new Response(200));
-            });
-            $flvReadStream->on('error', function (\Exception $exception) use ($reject) {
-                $reject(new Response(400, ['Content-Type' => 'text/plain'], $exception->getMessage()));
-            });
+        $connection = $request->connection;
+
+        if (!$request instanceof StreamRequest || $request->bodyStream === null) {
+            $connection->send(new Response(400, ['Content-Type' => 'text/plain'], 'Chunked transfer encoding required for FLV publish.'));
+            return;
+        }
+        $bodyStream = $request->bodyStream;
+
+        $flvReadStream = new FlvPublisherStream($bodyStream, $path);
+        if (!MediaServer::addPublish($flvReadStream)) {
+            $connection->send(new Response(400, ['Content-Type' => 'text/plain'], "Stream {$path} exists."));
+            return;
+        }
+        logger()->info('stream {path} created', ['path' => $path]);
+
+        $flvReadStream->on('on_publish_ready', function () use ($connection) {
+            $connection->send(new Response(200));
         });
     }
 }

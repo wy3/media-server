@@ -4,32 +4,30 @@ declare(strict_types=1);
 
 namespace MediaServer\Utils;
 
-use Workerman\Connection\AsyncTcpConnection;
+use Workerman\Connection\TcpConnection;
 use Workerman\Timer;
 
 /**
  * StreamRegistryControl 客户端（协议见 docs/multiprocess/06-registry-protocol.md）。
  *
- * 基于 Workerman AsyncTcpConnection：
+ * 基于 Workerman TcpConnection 包装同步建立的 socket：
  *   - request(op, payload, onReply)：异步等待回复（mid 关联，3s 超时回调 null）
  *   - send(op, payload)：发送不等回复（握手前缓存 outbox，握手后自动补发）
  *   - onNotify / onHello：接收 control 推送（notify.publish / unpublish / kick / hello）
  *
- * 连接策略：懒建连 + 首连前阻塞探活（fsockopen 0.5s）。
- * 不能让 AsyncTcpConnection 对未监听端口自动重连——event 扩展在 Windows 上
- * 反复 async-connect 未监听端口会原生崩溃（Access Violation）。探活失败时
- * 丢弃当次操作（request 3s 超时已有兜底），由调用方下次操作重试。
- * 运行中断线（control 重启）后 onClose 清引用，下次操作重新探活建连。
+ * 连接策略：懒建连。用 fsockopen 同步建立连接（control 在本机，毫秒级），
+ * 把已建立的 socket 交给 Workerman TcpConnection 管理读写。
+ * 不用 AsyncTcpConnection——php_event 在 Windows 上对
+ * STREAM_CLIENT_ASYNC_CONNECT socket 会持续触发虚假就绪事件，空转烧满 1 核。
+ * control 不可达时 fsockopen 失败返回 null，调用方按失败处理，下次操作重试。
+ * 运行中断线（control 重启）后 onClose 清引用，下次操作重新建连。
  */
 class StreamRegistryClient
 {
     private string $addr;
 
-    /** @var string 探活用地址（去掉协议前缀） */
-    private string $probeAddr;
-
-    /** @var AsyncTcpConnection|null */
-    private ?AsyncTcpConnection $conn = null;
+    /** @var TcpConnection|null */
+    private ?TcpConnection $conn = null;
 
     /** @var bool 握手（hello→ok）完成 */
     private bool $handshaken = false;
@@ -60,51 +58,44 @@ class StreamRegistryClient
         $this->addr = str_starts_with($addr, 'unix://') || str_starts_with($addr, 'tcp://')
             ? $addr
             : "tcp://{$addr}";
-        // fsockopen 探活用裸地址
-        $this->probeAddr = str_replace(['tcp://', 'unix://'], '', $this->addr);
         $this->role = $role;
     }
 
     /**
-     * 建连（懒调用）。control 未监听时返回 null（调用方丢弃操作，下轮重试）。
+     * 建连（懒调用）。fsockopen 同步建立（本地 control 毫秒级），
+     * 交给 TcpConnection 管理读写。control 不可达时返回 null，
+     * 调用方按失败处理，下次操作重试。
      */
-    private function conn(): ?AsyncTcpConnection
+    private function conn(): ?TcpConnection
     {
         if ($this->conn !== null) return $this->conn;
         $this->ensureTimer();
 
-        // 探活：毫秒级失败，避免 AsyncTcpConnection 对未监听端口自动重连（Windows event 崩溃）
-        $probePort = 18090;
-        if (preg_match('/:(\d+)$/', $this->probeAddr, $m)) {
-            $probePort = (int)$m[1];
-            $host = substr($this->probeAddr, 0, -(strlen($m[0])));
-        } else {
-            $host = $this->probeAddr;
-        }
-        $probe = @fsockopen($host, $probePort, $errno, $probeErr, 0.5);
-        if ($probe === false) {
-            fwrite(STDERR, "[registry-client] probe fail host=$host port=$probePort: $probeErr\n");
+        $remote = str_replace(['tcp://', 'unix://'], '', $this->addr);
+        // 拆 host:port（registry 地址恒为 host:port 形式）
+        $colon = strrpos($remote, ':');
+        if ($colon === false) {
+            fwrite(STDERR, "[registry-client] bad addr: {$this->addr}\n");
             return null;
         }
-        fclose($probe);
-        fwrite(STDERR, "[registry-client] probe ok, building async conn\n");
+        $host = substr($remote, 0, $colon);
+        $port = (int)substr($remote, $colon + 1);
+        $timeout = 3.0;
+        $socket = @fsockopen($host, $port, $errno, $errstr, $timeout);
+        if ($socket === false) {
+            fwrite(STDERR, "[registry-client] connect fail $remote: $errstr\n");
+            return null;
+        }
 
-        $conn = new AsyncTcpConnection($this->addr);
+        $conn = new TcpConnection($socket, $remote);
         $conn->protocol = '\Workerman\Protocols\Text';   // 行分隔 JSON
-        $conn->onConnect = function (AsyncTcpConnection $c) {
-            fwrite(STDERR, "[registry-client] onConnect: sending hello\n");
-            // TCP 建立即发 hello（control 回 ok 后触发 outbox 补发）
-            $c->send(json_encode(['mid' => 0, 'op' => 'hello', 'role' => $this->role, 'pid' => getmypid()]));
-        };
-        $conn->onMessage = function (AsyncTcpConnection $c, string $line) {
-            fwrite(STDERR, "[registry-client] onMessage: " . trim($line) . "\n");
+        $conn->onMessage = function (TcpConnection $c, string $line) {
             $msg = json_decode(trim($line), true);
             if (is_array($msg)) {
                 $this->handleMessage($msg);
             }
         };
-        $conn->onClose = function (AsyncTcpConnection $c) {
-            fwrite(STDERR, "[registry-client] onClose\n");
+        $conn->onClose = function (TcpConnection $c) {
             $this->handshaken = false;
             // 未完成请求全部回 null（调用方按超时/失败处理）
             foreach ($this->pending as $cb) {
@@ -112,12 +103,13 @@ class StreamRegistryClient
             }
             $this->pending = [];
             $this->pendingTimeout = [];
-            // 清引用：下次操作重新探活建连（control 重启场景）
+            // 清引用：下次操作重新建连（control 重启场景）
             $this->conn = null;
         };
-        // 不配置 reconnect：断线由下一次操作触发重新探活
-        $conn->connect();
         $this->conn = $conn;
+
+        // 建立后立即握手（control 回 ok 后触发 outbox 补发）
+        $conn->send(json_encode(['mid' => 0, 'op' => 'hello', 'role' => $this->role, 'pid' => getmypid()]));
         return $conn;
     }
 
@@ -167,7 +159,15 @@ class StreamRegistryClient
         $mid = $this->midSeq;
         $this->pending[$mid] = $onReply;
         $this->pendingTimeout[$mid] = microtime(true) + 3.0;
-        $conn->send(json_encode(array_merge(['mid' => $mid, 'op' => $op], $payload)));
+        $msg = array_merge(['mid' => $mid, 'op' => $op], $payload);
+        if (!$this->handshaken) {
+            // 未握手时 send 会早于 onConnect 里的 hello 被 flush，导致 control
+            // 先收到业务请求、后收到 hello（hello 被判 bad request）。放进 outbox，
+            // 等 hello ok 后按序补发（回调已存 pending，靠 mid 匹配回复）。
+            $this->outbox[] = $msg;
+            return;
+        }
+        $conn->send(json_encode($msg));
     }
 
     /**

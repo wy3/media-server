@@ -57,9 +57,7 @@ $worker->onWorkerStart = function ($w) use ($consumer, $httpPort, &$frames) {
     $consumer->start();
     fwrite(STDERR, "[play-debug] consumer EV_READ registered\n");
     \MediaServer\Http\HttpWMServer::$publicPath = dirname(__DIR__, 2) . '/public';
-    $httpServer = new \MediaServer\Http\HttpWMServer(
-        "\\MediaServer\\Http\\ExtHttpProtocol://127.0.0.1:$httpPort"
-    );
+    $httpServer = new \MediaServer\Http\PlayHttpServer($httpPort, '127.0.0.1');
     $httpServer->listen();
     fwrite(STDERR, "[play-debug] http listening on $httpPort\n");
 

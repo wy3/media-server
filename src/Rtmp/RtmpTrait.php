@@ -6,6 +6,10 @@ namespace MediaServer\Rtmp;
 
 use Workerman\Timer;
 
+/**
+ * Class RtmpStream
+ * @package MediaServer\Rtmp
+ */
 trait RtmpTrait
 {
 
@@ -14,8 +18,7 @@ trait RtmpTrait
         RtmpAudioHandlerTrait,
         RtmpVideoHandlerTrait,
         RtmpInvokeHandlerTrait,
-        RtmpDataHandlerTrait,
-        RtmpAuthorizeTrait;
+        RtmpDataHandlerTrait;
 
     /**
      * @param RtmpPacket $p
