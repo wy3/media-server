@@ -18,6 +18,7 @@ use MediaServer\PushServer\PublishStreamInterface;
 use MediaServer\Utils\BinaryStream;
 use React\Stream\ReadableStreamInterface;
 use Workerman\Timer;
+use Workerman\Connection\TcpConnection;
 
 class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 {
@@ -27,10 +28,7 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
     public string $id = '';
 
-    /**
-     * @var EventEmitter|ReadableStreamInterface
-     */
-    private EventEmitter|ReadableStreamInterface $input;
+    private EventEmitter|TcpConnection $input;
     private bool $closed = false;
 
 
@@ -116,10 +114,10 @@ class FlvPublisherStream extends EventEmitter implements PublishStreamInterface
 
     /**
      * FlvStream constructor.
-     * @param EventEmitter|ReadableStreamInterface $input
+     * @param EventEmitter|TcpConnection $input
      * @param string $path
      */
-    public function __construct(EventEmitter|ReadableStreamInterface $input, string $path)
+    public function __construct(EventEmitter|TcpConnection $input, string $path)
     {
         //先随机生成个id
         $this->id = generateNewSessionID();

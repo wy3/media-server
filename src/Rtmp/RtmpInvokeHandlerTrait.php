@@ -154,6 +154,12 @@ trait RtmpInvokeHandlerTrait
             }
         }
 
+        // play 进程只做播放，publish 请连推流端口（1935）
+        if (MediaServer::$processRole === 'play') {
+            $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.PlayOnly', 'This port accepts playback only; use the publish port for publishing.');
+            return;
+        }
+
         if (MediaServer::hasPublishStream($this->publishStreamPath)) {
             //publishStream already
             logger()->info("[rtmp publish] Already has a stream. id={$this->id} ip={$this->ip} app={$this->appName} args=" . json_encode($invokeMessage));
@@ -164,6 +170,39 @@ trait RtmpInvokeHandlerTrait
             $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadConnection', 'Connection already publishing');
         } else {
 
+            // 向 control 注册（异步等回复）：ok 才完成注册；拒绝/超时则中断推流
+            $registry = MediaServer::$registryClient;
+            if ($registry !== null) {
+                $registry->request('publish.req', [
+                    'path' => $this->publishStreamPath,
+                    'pid' => getmypid(),
+                    'shm' => [
+                        'frameSlots' => (int)(getenv('MP_SHM_FRAMESLOTS') ?: 200),
+                        'gopKb' => (int)(getenv('MP_SHM_DATAKB') ?: 2048),
+                    ],
+                ], function (?array $reply) use ($invokeMessage) {
+                    if ($reply === null || ($reply['ok'] ?? false) !== true) {
+                        $reason = $reply['reason'] ?? ($reply === null ? 'registry timeout' : 'path busy');
+                        logger()->warning("[rtmp publish] registry rejected: {reason}", ['reason' => $reason]);
+                        $this->reject();
+                        $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+                        return;
+                    }
+                    // 注册成功：完成进程内注册
+                    if (MediaServer::addPublish($this)) {
+                        $this->isPublishing = true;
+                        $this->sendStatusMessage($this->publishStreamId, 'status', 'NetStream.Publish.Start', "{$this->publishStreamPath} is now published.");
+                        $this->emit('on_publish_ready');
+                    } else {
+                        // control ok 但本进程查重失败（竞态）
+                        $this->reject();
+                        $this->sendStatusMessage($this->publishStreamId, 'error', 'NetStream.Publish.BadName', 'Stream already publishing');
+                    }
+                });
+                return;
+            }
+
+            // 无 registryClient（单进程模式）：直接注册
             MediaServer::addPublish($this);
 
             $this->isPublishing = true;
@@ -214,6 +253,12 @@ trait RtmpInvokeHandlerTrait
                 });
                 return;
             }
+        }
+
+        // ingest 进程只收推流，播放请连播放端口（1936）
+        if (MediaServer::$processRole === 'ingest') {
+            $this->sendStatusMessage($this->playStreamId, 'error', 'NetStream.Play.IngestOnly', 'This port accepts publish only; use the play port for playback.');
+            return;
         }
 
         if ($this->isPlaying) {

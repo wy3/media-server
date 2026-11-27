@@ -91,10 +91,15 @@ extension=event
 
 ### 阶段 3：共享内存实现
 
-`SharedMemoryFrameBus` + 段头结构 + 轮询。
+`SharedMemoryFrameBus` + 段头结构 + **UDP 组播通知 + EV_READ 唤醒**。
 
-**可脱离业务验证**：写 N 帧，多消费者读，校验 `crc` 全一致。
-现有实测脚本可复用。
+**可脱离业务验证**：写 N 帧，多消费者通过组播通知读取，校验 crc 全一致。
+现有验证脚本见 `tests/bench/verify_*.php`（shmop 基础/跨进程、帧扇出、组播、EV_READ）。
+
+> **2026-11-26 决策更新**：消费者同步从原计划的 Timer 轮询改为 UDP 组播通知。
+> 原因：Windows Timer 1ms 实测 15ms（延迟过高）；星形单播 1000路×30fps×10进程
+> 需 300,000 次/s（59% 单核）；组播一次 send 唤醒所有进程，只需 30,000 次/s（8% 单核），
+> 且端到端延迟 5.9µs。详见 [02-shared-memory.md](./02-shared-memory.md) 3.0 节。
 
 ### 阶段 4：录像池独立
 
@@ -117,7 +122,12 @@ extension=event
 | 风险 | 严重度 | 说明 | 应对 |
 |---|---|---|---|
 | **Linux `reuseport` 未验证** | 高 | 只在 Windows 实测过（不分流） | 阶段 5 前先验证 |
-| **Linux `shmop` 未验证** | 高 | 开发机为 Windows | 阶段 3 前先验证 |
+| ~~Linux `shmop` 未验证~~ | ~~高~~ | ✅ Windows 已实测；Linux 仍需确认 | 阶段 3 前在 Linux 复验 |
+| **UDP 组播在 Linux 的行为** | 中 | Windows 已实测 `MCAST_JOIN_GROUP` 可用；Linux 需确认接口索引写法 | 阶段 3 前在 Linux 复验 |
+| **组播通知丢包** | 低 | 单机 loopback 不丢包；跨机不支持 | 帧在 shmop 中，丢通知不丢帧；下帧通知带同 key 自然追上 |
+| **组播串扰（收到别人的包）** | 中 | 固定 group+port 会双向串扰 | 三重隔离：随机 group + 随机 port + magic token（实测 `other=0`），见 02 文档 3.0 |
+| **Linux loopback 路由黑洞** | 中 | 不指定 `IP_MULTICAST_IF` 时组播走 eth0，send 成功但收不到 | 发送/接收两端都显式绑定 `127.0.0.1`；Windows 用整数索引 |
+| **Workerman Event 不支持 PHP8 Socket 对象** | 中 | `socket_create()` 返回的 Socket 对象无法 `(int)$fd` 转换，Event::add 报错 | 用 `stream_socket_server('udp://')` 创建；payload 固定 4 字节对齐 |
 | **录像背压实现** | 高 | 不丢帧要求阻塞生产者，且必须收敛到单路流 | 阶段 6 重点验证 |
 | **录像池分片** | 高 | 不分片则一个慢盘拖慢所有流 | 按 path 哈希分片 |
 | **关键帧回溯** | 中高 | GOP 超过缓冲深度时无关键帧 | 维护 `lastKeySeq`，不可用时等待 |

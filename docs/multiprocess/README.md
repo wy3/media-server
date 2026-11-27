@@ -25,8 +25,7 @@
 | 播放池 | 端口 **18080**，`reuseport`，M 个进程 |
 | 录像池 | 无端口，**K 个进程（按 path 哈希分片）** |
 | 控制进程 | 端口 **18081**，单实例 |
-| 帧如何跨进程 | 共享内存环形缓冲，**消费者轮询** |
-| 消费者同步 | **轮询（0.05 µs/次）**，不用 socket 通知 |
+| 帧如何跨进程 | 共享内存环形缓冲，**消费者由 UDP 组播 + EV_READ 唤醒** |
 | 录像丢帧 | **不丢帧**（背压 + 5s 超时兜底） |
 | 播放丢帧 | 允许（低延迟优先） |
 | 跨机器扩展 | 不支持 |
@@ -87,11 +86,14 @@ $shm = shmop_open($key, 'w', 0, 0);
 flowchart LR
     A["socket 移交<br/>（技术可行）"] -->|"被 Defender 拦截<br/>VirTool:PHP/Remeshelsz.A"| B["Gateway 代理转发<br/>（安全但成瓶颈）"]
     B -->|"Gateway 承担全部带宽<br/>职责未隔离"| C["共享内存扇出<br/>（采用）"]
-    C --> D["推流池 / 播放池<br/>reuseport 多进程"]
+    C --> C1["消费者 Timer 轮询<br/>（Windows 实测 15ms）"]
+    C1 -->|"延迟高 + 尾帧问题"| C2["UDP 组播通知 + EV_READ<br/>（现行，5.9µs）"]
+    C2 --> D["推流池 / 播放池<br/>reuseport 多进程"]
 
     style A stroke-dasharray: 5 5
     style B stroke-dasharray: 5 5
-    style C stroke-width:2px
+    style C1 stroke-dasharray: 5 5
+    style C2 stroke-width:2px
     style D stroke-width:3px
 ```
 
@@ -104,7 +106,14 @@ flowchart LR
 | shmop 父子进程双向共享 | ✅ 已实测（Windows） |
 | 一帧被多进程并发读取且数据完整 | ✅ 已实测（2000 帧 × 2 消费者，0 损坏） |
 | 共享内存写入吞吐 | ✅ 已实测（5042 MB/s） |
-| **轮询成本** | ✅ **已实测（0.05 µs/次，100 路全量）** |
+| **轮询成本** | ✅ 已实测（0.05 µs/次，仅作对照） |
+| **Timer 1ms 实际精度** | ✅ 已实测（Windows 15ms，event/select 都是，故否决） |
+| **UDP 组播多进程接收** | ✅ **已实测（Windows PHP 8.4，MCAST_JOIN_GROUP，2 进程各收 50/50）** |
+| **UDP EV_READ 注册 Workerman** | ✅ **已实测（event 循环，注册 OK）** |
+| **通知延迟** | ✅ **已实测（5.9 µs 中位，Timer 15ms 的 1/2542）** |
+| **组播吞吐** | ✅ **已实测（30,000 次/s，11% 单核；3 进程各收 17k/s）** |
+| **组播丢包** | ✅ **已实测零丢包（序号校验 30k/s × 30000 包 missing=0 dup=0），需 EV_READ + 大 RCVBUF** |
+| 消费者唤醒机制 | ✅ **决策：组播通知（每帧立即），见 02 文档 3.0 节** |
 | **单线程跨流拖累** | ✅ **已实测（一路慢拖慢全部）** |
 | **单推流进程容量** | ✅ **已实测（1080p30 每路 0.116% 单核，860 路满载）** |
 | **帧尺寸分布** | ✅ **已实测（4K 关键帧可达 257 KB）** |

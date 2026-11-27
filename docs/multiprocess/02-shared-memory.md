@@ -54,14 +54,258 @@ REC:  收到=2000 损坏=0 速率=52000 帧/s
 | `flags` | bit0 = 关键帧 |
 | `payload` | AVCC/HVC1 格式的 NALU 数据 |
 
-## 3. 消费者同步：轮询而非通知
+## 3. 消费者同步：组播通知（现行）与轮询（历史）
 
-**这是本方案的关键选型。**
+> 📌 **2026-11-26 更新**：消费者唤醒机制从「Timer 轮询」改为「**UDP 组播通知 + EV_READ**」。
+> 下面 3.1~3.3 保留原始轮询推演作为历史参考，
+> **最新决策与实测见 [3.0 组播通知（现行方案）](#30-组播通知现行方案)**。
 
-在 `SO_REUSEPORT` 架构下，进程数多（推流池 N + 播放池 M + 录像池 K），
-如果用 socket 通知，连接数是 `N×M + N×K`，随进程数平方增长。
+### 3.0 组播通知（现行方案）
 
-### 3.1 实测：轮询成本极低
+#### 为什么改
+
+Windows 上 **Timer 1ms 实际间隔 15ms**（两个事件循环都实测过）：
+
+| 事件循环 | Timer(1ms) 中位 | p99 | 最大 |
+|---|---|---|---|
+| event | 15.45 ms | 30.58 ms | 31.28 ms |
+| select | 15.45 ms | 16.07 ms | 16.15 ms |
+
+实测（脚本为临时插桩，未入库）：
+15ms 对 30fps（33ms/帧）是半帧延迟，p99 30ms 接近一帧，不够理想。
+
+#### 为什么不能逐路单播通知
+
+用户指出：1000 路推流 × 30fps × 10 个播放进程 = **300,000 次/s**。
+实测 UDP send 2 µs/次 → **59% 单核**，不可接受。
+脚本：`tests/bench/verify_star_cost.php`。
+
+根本原因：`SO_REUSEPORT` 下推流进程不知道哪路流被哪些播放进程订阅，
+逐路广播给所有进程会产生 N×M 次通知。
+
+#### 组播方案
+
+**一次 send，所有订阅的播放进程都收到**，通知次数与播放进程数无关：
+
+```
+推流进程：
+  写 shmop 帧 → UDP 组播 send(streamKey)  一次
+
+播放进程（M 个）：
+  都加入同一组播组 → EV_READ 收到通知 → 读 shmop → 发帧
+```
+
+| 指标 | 值 |
+|---|---|
+| 通知次数 | 1000 路 × 30fps = **30,000 次/s**（与 M 无关） |
+| 组播 send 成本 | 2.65 µs（单播 1.9 µs 的 1.39x） |
+| CPU | **7.96% 单核** |
+| 端到端延迟 | **5.9 µs**（Timer 15ms 的 1/2542） |
+
+#### 跨平台 loopback 组播配置（Windows / Linux 不同！）
+
+组播地址必须是 **D 类地址 224.0.0.0~239.255.255.255**，**不能用 `127.0.0.1`**
+（那是单播地址）。但组播流量可以走 loopback 接口。两个平台的关键差异：
+
+| 平台 | 发送端 `IP_MULTICAST_IF` | 接收端 `MCAST_JOIN_GROUP` 的 `interface` |
+|---|---|---|
+| **Windows** | 不设置（默认走 loopback，实测通过） | **必须整数索引**：`0`=自动，`1`=loopback |
+| **Linux** | **必须显式 `'127.0.0.1'`** | **必须 `'127.0.0.1'` 或 `lo`** |
+
+> ⚠️ **Linux 路由黑洞**：不显式指定 `IP_MULTICAST_IF` 时，内核按路由表把组播包
+> 发往默认网卡（如 `eth0`），不会走 `lo`。现象是 `socket_sendto` **返回成功但接收端
+> 死活收不到**。这不是 PHP 的问题，是内核路由策略。必须在两端都显式绑定 loopback 接口。
+
+Windows PHP 8.4 **不支持** `IP_ADD_MEMBERSHIP` 常量（undefined）。
+必须用跨平台的 `MCAST_JOIN_GROUP`（=41），且 **Windows 的 `interface` 必须传整数索引**，
+不能传 IP 字符串（传 `'0.0.0.0'` 会返回"成功"但实际收不到包）：
+
+```php
+// 接收端加入组播
+$iface = PHP_OS_FAMILY === 'Windows' ? 0 : '127.0.0.1';  // 平台差异！
+socket_set_option($sock, IPPROTO_IP, MCAST_JOIN_GROUP, [
+    'group'     => $group,
+    'interface' => $iface,
+]);
+
+// 发送端
+socket_set_option($sock, IPPROTO_IP, IP_MULTICAST_TTL, 1);
+socket_set_option($sock, IPPROTO_IP, IP_MULTICAST_LOOP, 1);
+if (PHP_OS_FAMILY !== 'Windows') {
+    socket_set_option($sock, IPPROTO_IP, IP_MULTICAST_IF, '127.0.0.1');  // Linux 必须
+}
+socket_sendto($sock, $payload, strlen($payload), 0, $group, $port);
+```
+
+实测：两个独立进程加入组播组，一次 send 50 包 → **两个进程都收到 50 包**。
+脚本：`tests/bench/verify_multicast.php`。
+
+#### 组播隔离：三重机制（必须）
+
+固定 group + 固定端口有**双向串扰风险**：别的程序可能发到你的组（你收到并处理），
+你也可能发到别人的组（信息泄露）。实测：
+
+```
+固定 group + magic token:
+  server: mine=30 foreign=10   ← 仍能收到别人的包，只是校验后丢弃
+```
+
+采用**三重隔离**：
+
+| 层 | 机制 | 空间 | 效果 |
+|---|---|---|---|
+| 1 | 随机 group（239.x.x.x，排除 .0/.255） | 1600 万 | 外部程序不知道你的组 |
+| 2 | 随机端口（20000~60000） | 4 万 | group 撞上端口也不同 |
+| 3 | magic token（md5(instanceId) 前 16B） | ~0 碰撞 | 万一全撞上，校验后丢弃 |
+
+组合空间 ≈ **6710 亿**，实测隔离效果：
+
+```
+随机 group + 随机端口 + token:
+  client: 发 20 正确 + 20 错误 group + 20 错误端口
+  server: mine=20 other=0      ← 完全隔离
+```
+
+脚本：`tests/bench/verify_multicast_iso2.php`。
+
+**实例参数传递**：group / port / token 由**控制进程**启动时生成，所有 worker 必须一致。
+Windows 无 `pcntl_fork`，子进程通过 `proc_open` 启动，这三个值通过**命令行参数或环境变量**传入：
+
+```php
+// 控制进程
+$instanceId = random_bytes(16);
+$group = randomMulticastGroup();   // 239.x.x.x
+$port  = random_int(20000, 60000);
+$token = md5($instanceId, true);
+
+// 传给子进程（命令行参数）
+$cmd = PHP_BINARY . " worker.php " . escapeshellarg("$group $port " . bin2hex($token));
+```
+
+**验证脚本**：`tests/bench/verify_multicast_iso2.php`。
+
+#### EV_READ 回调：必须循环读到空（实测）
+
+发送端突发 100 包/批、共 1000 包时，两种读取策略对比：
+
+| 读取策略 | 回调次数 | 单次最多读包数 | 平均每次 |
+|---|---|---|---|
+| 每次回调只读 1 个包 | **1000 次** | 1 | 1.00 |
+| 循环读到空（EAGAIN） | **400 次** | **21 个** | 2.50 |
+
+**结论**：EV_READ 回调里必须 `while` 循环读到空，否则突发时回调次数是必要的
+2.5 倍，浪费事件循环调度开销。脚本：`tests/bench/verify_evread_batch.php`。
+
+⚠️ **Workerman Event 扩展的 PHP 8 坑**：`Event::add()` 内部用 `(int)$fd`，
+**不支持 PHP 8 的 `Socket` 对象**（`socket_create()` 返回值），会报：
+
+```
+PHP Warning: Object of class Socket could not be converted to int
+PHP Fatal: socket_recvfrom(): Argument #1 must be of type Socket, int given
+```
+
+**必须用 `stream_socket_server('udp://...')` 创建 UDP socket**（返回 resource），
+不能用 `socket_create()`。但注意 stream 的 `fread` 会把多个 UDP 数据报合并读入，
+payload 必须用**固定长度**（4 字节 streamKey）或自带长度前缀，按 4 字节对齐解析。
+
+#### 通知策略：每帧立即通知（事件驱动，无定时器）
+
+每写完一帧就发一次组播通知，payload 只有 streamKey（4 字节），不含帧数据。
+帧数据始终在 shmop 里，通知只是「去读」的提示。
+
+**尾帧问题**：攒批才通知会有尾部延迟。本方案每帧都通知，**没有尾帧问题**。
+未来若高负载需要攒批，尾帧靠「播放端取最新帧」天然兜底——下一帧通知带同一个
+key，播放端一次取走最新帧，不会永久漏帧。
+
+#### 组播性能实测
+
+**发送端吞吐**（`verify_multicast_perf.php send_bench`）：
+
+| payload | 单次 send | 可持续速率 |
+|---|---|---|
+| 4 B | 4.41 µs | 226,933 次/s |
+| 8 B（streamKey） | 4.56 µs | 219,064 次/s |
+| 100 B | 4.97 µs | 201,359 次/s |
+| 1500 B | 4.19 µs | 238,530 次/s |
+
+成本与 payload 大小无关，主要是 syscall 开销。
+**1000 路 × 30fps = 30,000 次/s → 约 11% 单核**。
+
+**组合成本**（`verify_multicast_perf.php combo`）：
+
+| 操作 | 单次成本 |
+|---|---|
+| `shmop_write(16 KB 帧)` | 129.5 ns |
+| 组播 `send(8 B key)` | 3608 ns |
+| 合计（单帧） | 3875 ns |
+
+→ 30,000 次/s 合计 **11.63% 单核**。组播通知是主要成本，但仍可接受。
+
+**多进程接收**（1 发送 + 3 接收，30k/s；脚本已合并到 `verify_no_loss.php`）：
+
+| 指标 | 值 |
+|---|---|
+| 发送达成速率 | 29,954 包/s |
+| 每个接收进程 | 17,179~17,191 包/s |
+| 接收端 busy | 2.79~2.81% |
+
+**早期丢包分析**（脚本已删除；结论：早期 10.2% 丢包是测试脚本缺陷，见下方零丢包验证）：
+
+| 类型 | 发送 | 接收 | 丢包率 |
+|---|---|---|---|
+| 单播 loopback | 240,000 | 215,418 | **10.2%** |
+| 组播 loopback | 240,000 | 215,560 | **10.2%** |
+
+**关键结论：单播与组播丢包率完全相同**，说明丢包来自 Windows UDP 接收缓冲区 +
+PHP 用户态循环，而**不是组播机制本身**。且丢包率与发送速率无关（1k~30k 恒定），
+是内核 socket 缓冲与调度问题。
+
+**为什么丢通知不影响正确性**：
+1. 帧数据始终在 shmop 里（不随通知丢失）
+2. 通知只是「去读」的提示，丢了下一帧通知带同一个 key，播放端自然追上
+3. 播放端取**最新帧**，丢掉的那帧在 33ms 后本就过期，属于设计内行为
+
+> **2026-11-26 更正**：上面 10.2% 丢包是**测试脚本缺陷**（接收循环 `usleep(100)`
+> 睡太久 + 统计不准），不是 UDP 本身的问题。用带序号的精确校验重测后，
+> **单播和组播都能做到零丢包**，见下节。
+
+#### 零丢包验证（序号校验，推荐实现依据）
+
+`tests/bench/verify_no_loss.php` 给每个包带 4 字节序号，接收端校验总数、连续性、
+重复——比「只统计收到多少」精确得多：
+
+| 场景 | 速率 | SO_RCVBUF | 单播 | 组播 |
+|---|---|---|---|---|
+| 10,000 包 | 1,000/s | 默认 64 KB | **10000/10000，missing=0 dup=0** | **10000/10000，missing=0 dup=0** |
+| 30,000 包 | 30,000/s | 4 MB | **30000/30000，missing=0 dup=0** | **30000/30000，missing=0 dup=0** |
+
+**零丢包的必要条件**（实测）：
+1. 接收端用**非阻塞纯轮询**（`socket_set_nonblock` + 不 sleep），或 EV_READ 事件驱动
+   （回调里循环读到空）——之前的 `usleep(100)` 会让 socket 缓冲区满
+2. 高速率场景把 `SO_RCVBUF` 调大（4 MB 实测 30k/s 零丢包；默认 64 KB 也够 1k/s）
+
+实际实现两者都做：**EV_READ 事件驱动 + 大接收缓冲区**，即使偶发丢通知也不影响正确性
+（帧在 shmop，下帧通知带同 key 自然追上）。
+
+#### 验证脚本（保留）
+
+| 脚本 | 验证内容 |
+|---|---|
+| `verify_shmop_basic.php` | shmop 创建/写入/读取/key 稳定性/清理 |
+| `verify_shmop_cross_process.php` | 父子进程双向读写 |
+| `verify_framebus_fanout.php` | 环形缓冲单写多读（2000 帧 × 2 读者，0 损坏） |
+| `verify_multicast.php` | 组播一次 send 多进程接收 |
+| `verify_multicast_iso2.php` | 随机 group+port+token 三重隔离（`mine=20 other=0`） |
+| `verify_udp_evread.php` | UDP socket 注册 EV_READ 到 Workerman |
+| `verify_evread_batch.php` | EV_READ 批量读取（一次回调最多 21 包） |
+| `verify_multicast_perf.php` | 组播发送吞吐 + shmop 组合成本 |
+| `verify_no_loss.php` | **权威**：序号校验零丢包（30k/s × 30000 包全收全） |
+| `verify_star_cost.php` | 星形广播成本核算（否决依据） |
+| `verify_poll_cost.php` | shmop 轮询成本（对照数据） |
+
+---
+
+### 3.1 实测：轮询成本极低（历史）
 
 | 操作 | 单次耗时 |
 |---|---|

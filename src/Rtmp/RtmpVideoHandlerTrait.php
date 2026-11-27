@@ -58,7 +58,8 @@ trait RtmpVideoHandlerTrait
                     }
                     if ($hevcPack->hevcPacketType === HEVCPacket::HEVC_PACKET_TYPE_SEQUENCE_START) {
                         //skip hevc sequence
-                    } else {
+                    } elseif (!\MediaServer\MediaServer::frameBusOwnsGopCache()) {
+                        // 单进程扇出：维护 PHP 数组 GOP 缓存；多进程 ingest 时 GOP 在 shm，跳过
                         $this->gopCacheQueue[] = $videoFrame;
                     }
                 }
@@ -86,7 +87,8 @@ trait RtmpVideoHandlerTrait
                         &&
                         $avcPack->avcPacketType === AVCPacket::AVC_PACKET_TYPE_SEQUENCE_HEADER) {
                         //skip avc sequence
-                    } else {
+                    } elseif (!\MediaServer\MediaServer::frameBusOwnsGopCache()) {
+                        // 单进程扇出：维护 PHP 数组 GOP 缓存；多进程 ingest 时 GOP 在 shm，跳过
                         $this->gopCacheQueue[] = $videoFrame;
                     }
                 }
